@@ -1,7 +1,6 @@
 package org.exarhteam.iitcprime.ui.panel
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
@@ -52,12 +51,7 @@ fun MapStateBar(
             .fillMaxWidth()
             .height(54.dp)
             .clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp))
-            .background(SurfaceContainerDark)
-            .border(
-                width = 1.dp,
-                color = OutlineSubtle,
-                shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
-            )
+            .background(androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainer)
             .padding(horizontal = 12.dp, vertical = 6.dp),
         contentAlignment = Alignment.Center
     ) {
@@ -73,7 +67,7 @@ fun MapStateBar(
                     .clip(RoundedCornerShape(12.dp))
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
-                        indication = ripple(color = AccentTeal),
+                        indication = ripple(color = androidx.compose.material3.MaterialTheme.colorScheme.primary),
                         onClick = onPortalTap
                     )
                     .padding(horizontal = 4.dp),
@@ -88,26 +82,26 @@ fun MapStateBar(
                             modifier = Modifier
                                 .size(32.dp)
                                 .clip(CircleShape)
-                                .background(AccentTeal.copy(alpha = 0.18f)),
+                                .background(androidx.compose.material3.MaterialTheme.colorScheme.primaryContainer),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                                 contentDescription = L("panel.back_to_map"),
-                                tint = AccentTeal,
+                                tint = androidx.compose.material3.MaterialTheme.colorScheme.onPrimaryContainer,
                                 modifier = Modifier.size(18.dp)
                             )
                         }
                         Text(
                             text = L("panel.back_to_map"),
-                            color = OnSurfaceWhite,
+                            color = androidx.compose.material3.MaterialTheme.colorScheme.onSurface,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Medium
                         )
                         if (currentPane == "info" && portalStatus.hasSelected) {
                             Text(
                                 text = "• ${portalStatus.title}",
-                                color = OnSurfaceVariantMuted,
+                                color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontSize = 12.sp,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
@@ -131,7 +125,7 @@ fun MapStateBar(
                     .clip(RoundedCornerShape(12.dp))
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
-                        indication = ripple(color = AccentTeal),
+                        indication = ripple(color = androidx.compose.material3.MaterialTheme.colorScheme.primary),
                         onClick = onMapTap
                     )
                     .padding(horizontal = 4.dp),

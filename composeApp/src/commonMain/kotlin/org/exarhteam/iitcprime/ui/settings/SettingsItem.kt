@@ -1,7 +1,6 @@
 package org.exarhteam.iitcprime.ui.settings
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
@@ -16,15 +15,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.exarhteam.iitcprime.platform.PlatformUtils
-import org.exarhteam.iitcprime.theme.*
 
 /**
- * Material 3 Expressive Settings Item
+ * Authentic Material 3 Expressive Settings Item (Tonal container, no harsh borders)
  */
 @Composable
 fun SettingsItem(
@@ -37,6 +34,8 @@ fun SettingsItem(
     trailingContent: (@Composable () -> Unit)? = null,
     onClick: (() -> Unit)? = null
 ) {
+    val colorScheme = MaterialTheme.colorScheme
+
     val cornerShape = when {
         isFirst && isLast -> RoundedCornerShape(18.dp)
         isFirst -> RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp, bottomStart = 4.dp, bottomEnd = 4.dp)
@@ -48,12 +47,11 @@ fun SettingsItem(
         modifier = modifier
             .fillMaxWidth()
             .clip(cornerShape)
-            .background(SurfaceContainerDark)
-            .border(width = 1.dp, color = OutlineSubtle, shape = cornerShape)
+            .background(colorScheme.surfaceContainer)
             .clickable(
                 enabled = onClick != null,
                 interactionSource = remember { MutableInteractionSource() },
-                indication = ripple(color = AccentTeal)
+                indication = ripple(color = colorScheme.primary)
             ) { onClick?.invoke() }
     ) {
         Row(
@@ -69,7 +67,7 @@ fun SettingsItem(
             ) {
                 Text(
                     text = title,
-                    color = OnSurfaceWhite,
+                    color = colorScheme.onSurface,
                     fontSize = 15.sp,
                     fontWeight = if (bold) FontWeight.Bold else FontWeight.SemiBold
                 )
@@ -77,7 +75,7 @@ fun SettingsItem(
                     Spacer(modifier = Modifier.height(3.dp))
                     Text(
                         text = description,
-                        color = OnSurfaceVariantMuted,
+                        color = colorScheme.onSurfaceVariant,
                         fontSize = 13.sp,
                         lineHeight = 18.sp
                     )
@@ -100,6 +98,7 @@ fun NavSettingsItem(
     bold: Boolean = false,
     onClick: () -> Unit
 ) {
+    val colorScheme = MaterialTheme.colorScheme
     SettingsItem(
         title = title,
         description = description,
@@ -111,7 +110,7 @@ fun NavSettingsItem(
             Icon(
                 imageVector = Icons.Default.ChevronRight,
                 contentDescription = null,
-                tint = OnSurfaceVariantMuted,
+                tint = colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(20.dp)
             )
         }
@@ -128,6 +127,7 @@ fun SwitchSettingsItem(
     isLast: Boolean = false,
     bold: Boolean = false
 ) {
+    val colorScheme = MaterialTheme.colorScheme
     SettingsItem(
         title = title,
         description = description,
@@ -140,10 +140,10 @@ fun SwitchSettingsItem(
                 checked = checked,
                 onCheckedChange = onCheckedChange,
                 colors = SwitchDefaults.colors(
-                    checkedThumbColor = Color.White,
-                    checkedTrackColor = AccentTeal,
-                    uncheckedThumbColor = OnSurfaceVariantMuted,
-                    uncheckedTrackColor = SurfaceContainerHighDark
+                    checkedThumbColor = colorScheme.onPrimary,
+                    checkedTrackColor = colorScheme.primary,
+                    uncheckedThumbColor = colorScheme.outline,
+                    uncheckedTrackColor = colorScheme.surfaceContainerHighest
                 )
             )
         }
@@ -159,6 +159,7 @@ fun LinkSettingsItem(
     isLast: Boolean = false,
     bold: Boolean = false
 ) {
+    val colorScheme = MaterialTheme.colorScheme
     SettingsItem(
         title = title,
         description = description ?: url,
@@ -170,7 +171,7 @@ fun LinkSettingsItem(
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.OpenInNew,
                 contentDescription = null,
-                tint = AccentTeal,
+                tint = colorScheme.primary,
                 modifier = Modifier.size(20.dp)
             )
         }

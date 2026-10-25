@@ -18,8 +18,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import org.exarhteam.iitcprime.i18n.L
-import org.exarhteam.iitcprime.theme.SurfaceDark
-import org.exarhteam.iitcprime.theme.SurfaceContainerDark
 
 @Composable
 fun ControlsPanel(
@@ -35,7 +33,7 @@ fun ControlsPanel(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .background(SurfaceDark)
+            .background(MaterialTheme.colorScheme.surfaceContainer)
             .padding(8.dp)
     ) {
         // Top toolbar
@@ -96,9 +94,10 @@ fun ControlsPanel(
                 },
                 modifier = Modifier
                     .weight(1f)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(SurfaceContainerDark),
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh),
                 maxLines = 4,
+                shape = RoundedCornerShape(24.dp),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
                 keyboardActions = KeyboardActions(onSend = {
                     if (command.isNotBlank()) {
@@ -124,7 +123,7 @@ fun ControlsPanel(
                     }
                 },
                 modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
+                    .clip(RoundedCornerShape(24.dp))
                     .background(MaterialTheme.colorScheme.primary)
             ) {
                 Icon(

@@ -492,26 +492,21 @@ private fun ChatMessageCard(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Faction colored dot
-                Box(
-                    modifier = Modifier
-                        .size(8.dp)
-                        .clip(CircleShape)
-                        .background(message.teamColor)
-                )
-
-                Spacer(modifier = Modifier.width(6.dp))
-
-                // Sender Nickname
-                Text(
-                    text = message.sender.ifBlank { "Agent" },
-                    color = message.teamColor,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f, fill = false)
-                )
+                // Faction sender badge (M3 Expressive tonal container)
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = message.teamContainerColor
+                ) {
+                    Text(
+                        text = message.sender.ifBlank { "Agent" },
+                        color = message.onTeamContainerColor,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp)
+                    )
+                }
 
                 if (message.isSecure) {
                     Spacer(modifier = Modifier.width(6.dp))

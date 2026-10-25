@@ -29,4 +29,20 @@ data class ChatMessage(
             "MACHINA" -> TeamMachina
             else -> TeamNeutral
         }
+
+    val teamContainerColor: Color
+        get() = when (team.uppercase()) {
+            "ENLIGHTENED" -> TeamEnlightenedContainer
+            "RESISTANCE" -> TeamResistanceContainer
+            "MACHINA" -> TeamMachinaContainer
+            else -> TeamNeutralContainer
+        }
+
+    val onTeamContainerColor: Color
+        get() = when (team.uppercase()) {
+            "ENLIGHTENED" -> OnTeamEnlightenedContainer
+            "RESISTANCE" -> OnTeamResistanceContainer
+            "MACHINA" -> OnTeamMachinaContainer
+            else -> OnTeamNeutralContainer
+        }
 }

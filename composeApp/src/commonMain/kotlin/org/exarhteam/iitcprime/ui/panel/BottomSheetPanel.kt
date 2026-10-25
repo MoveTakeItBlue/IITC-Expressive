@@ -7,7 +7,6 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
@@ -121,12 +120,7 @@ fun BottomSheetPanel(
                     .height(animatedHeight)
                     .align(Alignment.BottomCenter)
                     .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
-                    .background(SurfaceDark)
-                    .border(
-                        width = 1.dp,
-                        color = OutlineSubtle,
-                        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
-                    )
+                    .background(MaterialTheme.colorScheme.surfaceContainer)
                     .draggable(
                         state = rememberDraggableState { delta ->
                             dragOffset += delta
@@ -169,7 +163,7 @@ fun BottomSheetPanel(
                                 .width(36.dp)
                                 .height(4.dp)
                                 .clip(RoundedCornerShape(percent = 50))
-                                .background(OnSurfaceVariantMuted.copy(alpha = 0.45f))
+                                .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
                         )
                     }
 
@@ -213,7 +207,7 @@ fun BottomSheetPanel(
                                 ) {
                                     viewModel.togglePanel()
                                 },
-                            color = OnSurfaceWhite,
+                            color = MaterialTheme.colorScheme.onSurface,
                             fontSize = 17.sp,
                             fontWeight = FontWeight.SemiBold,
                             maxLines = 1,
@@ -274,7 +268,7 @@ fun BottomSheetPanel(
                                 .fillMaxWidth()
                                 .weight(1f)
                                 .padding(bottom = 54.dp) // Avoid overlapping bottom MapStateBar
-                                .background(SurfaceContainerDark.copy(alpha = 0.5f))
+                                .background(MaterialTheme.colorScheme.surfaceContainerLow)
                         ) {
                             ControlListView(
                                 activeTab = activeTab,
@@ -304,12 +298,12 @@ fun ExpressiveIconButton(
     modifier: Modifier = Modifier
 ) {
     val bg = when {
-        active -> AccentTeal
-        else -> SurfaceContainerHighDark
+        active -> MaterialTheme.colorScheme.primary
+        else -> MaterialTheme.colorScheme.surfaceContainerHigh
     }
     val tint = when {
-        active -> Color.Black
-        else -> OnSurfaceWhite
+        active -> MaterialTheme.colorScheme.onPrimary
+        else -> MaterialTheme.colorScheme.onSurface
     }
 
     Box(
@@ -319,7 +313,7 @@ fun ExpressiveIconButton(
             .background(bg)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
-                indication = ripple(color = AccentTeal),
+                indication = ripple(color = MaterialTheme.colorScheme.primary),
                 onClick = onClick
             ),
         contentAlignment = Alignment.Center
@@ -327,7 +321,7 @@ fun ExpressiveIconButton(
         if (loading) {
             CircularProgressIndicator(
                 modifier = Modifier.size(18.dp),
-                color = AccentTeal,
+                color = MaterialTheme.colorScheme.primary,
                 strokeWidth = 2.dp
             )
         } else {

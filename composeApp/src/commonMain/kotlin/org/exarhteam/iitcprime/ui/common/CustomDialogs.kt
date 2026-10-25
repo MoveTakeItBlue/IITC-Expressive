@@ -1,7 +1,6 @@
 package org.exarhteam.iitcprime.ui.common
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
@@ -88,7 +87,7 @@ fun AlertDialog(
         title = {
             Text(
                 text = title,
-                color = OnSurfaceWhite,
+                color = MaterialTheme.colorScheme.onSurface,
                 fontSize = 19.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -96,7 +95,7 @@ fun AlertDialog(
         text = {
             Text(
                 text = message,
-                color = OnSurfaceVariantMuted,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 14.sp,
                 lineHeight = 20.sp
             )
@@ -105,8 +104,8 @@ fun AlertDialog(
             FilledTonalButton(
                 onClick = onDismiss,
                 colors = ButtonDefaults.filledTonalButtonColors(
-                    containerColor = AccentContainerTeal,
-                    contentColor = AccentTeal
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
                 ),
                 shape = RoundedCornerShape(percent = 50)
             ) {
@@ -114,7 +113,7 @@ fun AlertDialog(
             }
         },
         shape = RoundedCornerShape(28.dp),
-        containerColor = SurfaceContainerDark
+        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
     )
 }
 
@@ -133,7 +132,7 @@ fun ConfirmDialog(
         title = {
             Text(
                 text = title,
-                color = OnSurfaceWhite,
+                color = MaterialTheme.colorScheme.onSurface,
                 fontSize = 19.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -141,7 +140,7 @@ fun ConfirmDialog(
         text = {
             Text(
                 text = message,
-                color = OnSurfaceVariantMuted,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 14.sp,
                 lineHeight = 20.sp
             )
@@ -150,8 +149,8 @@ fun ConfirmDialog(
             FilledTonalButton(
                 onClick = onConfirm,
                 colors = ButtonDefaults.filledTonalButtonColors(
-                    containerColor = AccentContainerTeal,
-                    contentColor = AccentTeal
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
                 ),
                 shape = RoundedCornerShape(percent = 50)
             ) {
@@ -163,11 +162,11 @@ fun ConfirmDialog(
                 onClick = onCancel,
                 shape = RoundedCornerShape(percent = 50)
             ) {
-                Text(L("dialog.cancel"), color = OnSurfaceVariantMuted, fontWeight = FontWeight.Medium)
+                Text(L("dialog.cancel"), color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Medium)
             }
         },
         shape = RoundedCornerShape(28.dp),
-        containerColor = SurfaceContainerDark
+        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
     )
 }
 
@@ -199,13 +198,13 @@ fun LocationShareDialog(
                     modifier = Modifier
                         .size(48.dp)
                         .clip(CircleShape)
-                        .background(AccentContainerTeal),
+                        .background(MaterialTheme.colorScheme.primaryContainer),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = if (isPortal) Icons.Default.Place else Icons.Default.MyLocation,
                         contentDescription = null,
-                        tint = AccentTeal,
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
                         modifier = Modifier.size(26.dp)
                     )
                 }
@@ -214,7 +213,7 @@ fun LocationShareDialog(
 
                 Text(
                     text = if (title.isNotBlank()) title else L("share.title"),
-                    color = OnSurfaceWhite,
+                    color = MaterialTheme.colorScheme.onSurface,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -223,7 +222,7 @@ fun LocationShareDialog(
 
                 Text(
                     text = "$lat, $lng",
-                    color = OnSurfaceVariantMuted,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 13.sp
                 )
 
@@ -243,8 +242,8 @@ fun LocationShareDialog(
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(percent = 50),
                         colors = ButtonDefaults.filledTonalButtonColors(
-                            containerColor = SurfaceContainerHighDark,
-                            contentColor = OnSurfaceWhite
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                            contentColor = MaterialTheme.colorScheme.onSurface
                         )
                     ) {
                         Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp))
@@ -261,8 +260,8 @@ fun LocationShareDialog(
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(percent = 50),
                         colors = ButtonDefaults.filledTonalButtonColors(
-                            containerColor = AccentContainerTeal,
-                            contentColor = AccentTeal
+                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
                         )
                     ) {
                         Icon(Icons.Default.Map, contentDescription = null, modifier = Modifier.size(16.dp))
@@ -295,7 +294,7 @@ fun SelectFieldDialog(
             Column(modifier = Modifier.padding(vertical = 18.dp, horizontal = 16.dp)) {
                 Text(
                     text = title,
-                    color = OnSurfaceWhite,
+                    color = MaterialTheme.colorScheme.onSurface,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
@@ -313,10 +312,10 @@ fun SelectFieldDialog(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(12.dp))
-                                .background(if (isSelected) SurfaceContainerHighestDark else Color.Transparent)
+                                .background(if (isSelected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent)
                                 .clickable(
                                     interactionSource = remember { MutableInteractionSource() },
-                                    indication = ripple(color = AccentTeal),
+                                    indication = ripple(color = MaterialTheme.colorScheme.primary),
                                     onClick = {
                                         onSelect(index)
                                         onDismiss()
@@ -327,7 +326,7 @@ fun SelectFieldDialog(
                         ) {
                             Text(
                                 text = item,
-                                color = if (isSelected) AccentTeal else OnSurfaceWhite,
+                                color = if (isSelected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurface,
                                 fontSize = 14.sp,
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                                 modifier = Modifier.weight(1f)
@@ -336,7 +335,7 @@ fun SelectFieldDialog(
                                 Icon(
                                     imageVector = Icons.Default.Check,
                                     contentDescription = null,
-                                    tint = AccentTeal,
+                                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
                                     modifier = Modifier.size(18.dp)
                                 )
                             }
@@ -351,7 +350,7 @@ fun SelectFieldDialog(
                         onClick = onDismiss,
                         shape = RoundedCornerShape(percent = 50)
                     ) {
-                        Text(L("dialog.cancel"), color = OnSurfaceVariantMuted)
+                        Text(L("dialog.cancel"), color = MaterialTheme.colorScheme.primary)
                     }
                 }
             }

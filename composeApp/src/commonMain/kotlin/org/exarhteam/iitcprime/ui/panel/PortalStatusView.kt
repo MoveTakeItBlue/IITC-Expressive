@@ -3,6 +3,7 @@ package org.exarhteam.iitcprime.ui.panel
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -15,7 +16,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.exarhteam.iitcprime.i18n.L
 import org.exarhteam.iitcprime.model.PortalStatus
-import org.exarhteam.iitcprime.theme.*
 
 fun parseHexColor(hex: String?): Color? {
     if (hex == null || !hex.startsWith("#")) return null
@@ -53,7 +53,7 @@ fun PortalStatusView(
         ) {
             Text(
                 text = message,
-                color = OnSurfaceVariantMuted,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Medium,
                 maxLines = 1,
@@ -107,7 +107,7 @@ fun PortalStatusView(
                 // Health percentage
                 Text(
                     text = "${portalStatus.health}%",
-                    color = OnSurfaceWhite,
+                    color = MaterialTheme.colorScheme.onSurface,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -117,7 +117,7 @@ fun PortalStatusView(
                 // Title
                 Text(
                     text = portalStatus.title,
-                    color = OnSurfaceWhite,
+                    color = MaterialTheme.colorScheme.onSurface,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Medium,
                     maxLines = 1,
@@ -133,18 +133,19 @@ fun PortalStatusView(
                 horizontalArrangement = Arrangement.spacedBy(2.dp)
             ) {
                 val resonators = portalStatus.resonators
+                val defaultResColor = MaterialTheme.colorScheme.primary
                 for (i in 0 until 8) {
                     val res = resonators?.getOrNull(i)
                     val healthPct = res?.healthPct ?: 0
                     val pct = (healthPct.toFloat() / 100f).coerceIn(0f, 1f)
-                    val resColor = parseHexColor(res?.levelColor) ?: AccentTeal
+                    val resColor = parseHexColor(res?.levelColor) ?: defaultResColor
 
                     Box(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight()
                             .clip(RoundedCornerShape(2.dp))
-                            .background(SurfaceContainerHighDark)
+                            .background(MaterialTheme.colorScheme.surfaceContainerHighest)
                     ) {
                         if (pct > 0f) {
                             Box(

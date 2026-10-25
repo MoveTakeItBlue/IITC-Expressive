@@ -13,9 +13,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import org.exarhteam.iitcprime.manager.BackupManager
-import org.exarhteam.iitcprime.theme.Accent
-import org.exarhteam.iitcprime.theme.AccentTeal
-import org.exarhteam.iitcprime.theme.SurfaceDark
 import org.exarhteam.iitcprime.ui.chat.ChatSheet
 import org.exarhteam.iitcprime.ui.common.AlertDialog
 import org.exarhteam.iitcprime.ui.common.ConfirmDialog
@@ -73,7 +70,7 @@ fun MainScreen(
                 LinearProgressIndicator(
                     progress = { progress },
                     modifier = Modifier.fillMaxWidth().statusBarsPadding().height(3.dp),
-                    color = AccentTeal,
+                    color = MaterialTheme.colorScheme.primary,
                     trackColor = Color.Transparent
                 )
             }

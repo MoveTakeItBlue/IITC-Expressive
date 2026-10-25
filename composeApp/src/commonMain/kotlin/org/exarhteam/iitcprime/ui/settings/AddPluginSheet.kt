@@ -11,11 +11,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.exarhteam.iitcprime.i18n.L
-import org.exarhteam.iitcprime.theme.*
 
 /**
  * Material 3 Expressive Add Plugin BottomSheet
@@ -29,10 +29,11 @@ fun AddPluginSheet(
     onDismiss: () -> Unit
 ) {
     var urlText by remember { mutableStateOf(initialUrl ?: "") }
+    val colorScheme = MaterialTheme.colorScheme
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = SurfaceContainerDark,
+        containerColor = colorScheme.surfaceContainerLow,
         shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
     ) {
         Column(
@@ -43,7 +44,7 @@ fun AddPluginSheet(
         ) {
             Text(
                 text = L("add_plugin.title"),
-                color = OnSurfaceWhite,
+                color = colorScheme.onSurface,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -57,23 +58,23 @@ fun AddPluginSheet(
                 placeholder = {
                     Text(
                         text = L("add_plugin.url_hint"),
-                        color = OnSurfaceVariantMuted
+                        color = colorScheme.onSurfaceVariant
                     )
                 },
                 leadingIcon = {
-                    Icon(Icons.Default.Link, contentDescription = null, tint = AccentTeal)
+                    Icon(Icons.Default.Link, contentDescription = null, tint = colorScheme.primary)
                 },
                 singleLine = true,
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
-                    .background(SurfaceContainerHighDark),
+                    .background(colorScheme.surfaceContainer),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = AccentTeal,
-                    unfocusedBorderColor = OutlineSubtle,
-                    focusedTextColor = OnSurfaceWhite,
-                    unfocusedTextColor = OnSurfaceWhite,
-                    cursorColor = AccentTeal
+                    focusedBorderColor = colorScheme.primary,
+                    unfocusedBorderColor = Color.Transparent,
+                    focusedTextColor = colorScheme.onSurface,
+                    unfocusedTextColor = colorScheme.onSurface,
+                    cursorColor = colorScheme.primary
                 ),
                 shape = RoundedCornerShape(16.dp)
             )
@@ -90,8 +91,8 @@ fun AddPluginSheet(
                 enabled = urlText.isNotBlank(),
                 modifier = Modifier.fillMaxWidth().height(48.dp),
                 colors = ButtonDefaults.filledTonalButtonColors(
-                    containerColor = AccentContainerTeal,
-                    contentColor = AccentTeal
+                    containerColor = colorScheme.primaryContainer,
+                    contentColor = colorScheme.onPrimaryContainer
                 ),
                 shape = RoundedCornerShape(percent = 50)
             ) {
@@ -109,32 +110,32 @@ fun AddPluginSheet(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                HorizontalDivider(modifier = Modifier.weight(1f), color = OutlineSubtle)
+                HorizontalDivider(modifier = Modifier.weight(1f), color = colorScheme.outlineVariant)
                 Text(
                     text = L("add_plugin.or"),
-                    color = OnSurfaceVariantMuted,
+                    color = colorScheme.onSurfaceVariant,
                     fontSize = 13.sp,
                     modifier = Modifier.padding(horizontal = 14.dp)
                 )
-                HorizontalDivider(modifier = Modifier.weight(1f), color = OutlineSubtle)
+                HorizontalDivider(modifier = Modifier.weight(1f), color = colorScheme.outlineVariant)
             }
 
             Spacer(modifier = Modifier.height(20.dp))
 
             // Choose file button
-            OutlinedButton(
+            FilledTonalButton(
                 onClick = onChooseFile,
                 modifier = Modifier.fillMaxWidth().height(48.dp),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = OnSurfaceWhite
+                colors = ButtonDefaults.filledTonalButtonColors(
+                    containerColor = colorScheme.surfaceContainerHigh,
+                    contentColor = colorScheme.onSurface
                 ),
-                border = androidx.compose.foundation.BorderStroke(1.dp, OutlineSubtle),
                 shape = RoundedCornerShape(percent = 50)
             ) {
                 Icon(
                     imageVector = Icons.Default.FolderOpen,
                     contentDescription = null,
-                    tint = AccentTeal,
+                    tint = colorScheme.primary,
                     modifier = Modifier.size(20.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))

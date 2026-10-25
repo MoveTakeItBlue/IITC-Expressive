@@ -1,7 +1,6 @@
 package org.exarhteam.iitcprime.ui.panel
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
@@ -118,15 +117,10 @@ fun ControlListView(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(16.dp))
-                        .background(if (isSelected) SurfaceContainerHighestDark else SurfaceContainerDark)
-                        .border(
-                            width = 1.dp,
-                            color = if (isSelected) AccentTeal else OutlineSubtle,
-                            shape = RoundedCornerShape(16.dp)
-                        )
+                        .background(if (isSelected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainer)
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
-                            indication = ripple(color = AccentTeal),
+                            indication = ripple(color = MaterialTheme.colorScheme.primary),
                             onClick = { viewModel.switchToPane(pane.name) }
                         )
                         .padding(horizontal = 16.dp, vertical = 14.dp),
@@ -137,13 +131,13 @@ fun ControlListView(
                         modifier = Modifier
                             .size(38.dp)
                             .clip(CircleShape)
-                            .background(if (isSelected) AccentTeal else SurfaceContainerHighDark),
+                            .background(if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHigh),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = getPaneIcon(pane.icon),
                             contentDescription = null,
-                            tint = if (isSelected) Color.Black else AccentTeal,
+                            tint = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -152,7 +146,7 @@ fun ControlListView(
 
                     Text(
                         text = pane.displayLabel,
-                        color = if (isSelected) AccentTeal else OnSurfaceWhite,
+                        color = if (isSelected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurface,
                         fontSize = 15.sp,
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                         modifier = Modifier.weight(1f)
@@ -161,7 +155,7 @@ fun ControlListView(
                     Icon(
                         imageVector = Icons.Default.ChevronRight,
                         contentDescription = null,
-                        tint = if (isSelected) AccentTeal else OnSurfaceVariantMuted,
+                        tint = if (isSelected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -200,13 +194,12 @@ fun ControlListView(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(18.dp))
-                        .background(SurfaceContainerDark)
-                        .border(width = 1.dp, color = OutlineSubtle, shape = RoundedCornerShape(18.dp))
+                        .background(MaterialTheme.colorScheme.surfaceContainer)
                         .padding(horizontal = 12.dp, vertical = 12.dp)
                 ) {
                     Text(
                         text = L("map_status.portals"),
-                        color = OnSurfaceVariantMuted,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.SemiBold,
                         modifier = Modifier.padding(bottom = 8.dp, start = 4.dp)
@@ -231,12 +224,7 @@ fun ControlListView(
                                 modifier = Modifier
                                     .size(32.dp)
                                     .clip(CircleShape)
-                                    .background(if (isActive) color else Color.Transparent)
-                                    .border(
-                                        width = 1.5.dp,
-                                        color = if (isActive) Color.White.copy(alpha = 0.8f) else color.copy(alpha = 0.45f),
-                                        shape = CircleShape
-                                    )
+                                    .background(if (isActive) color.copy(alpha = 0.25f) else MaterialTheme.colorScheme.surfaceContainerHigh)
                                     .clickable(
                                         interactionSource = remember { MutableInteractionSource() },
                                         indication = ripple(color = color),
@@ -246,9 +234,9 @@ fun ControlListView(
                             ) {
                                 Text(
                                     text = "$level",
-                                    color = if (isActive) Color.Black else color,
+                                    color = if (isActive) color else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                                     fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold
+                                    fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal
                                 )
                             }
                         }
@@ -313,8 +301,7 @@ private fun ExpressiveActionButtonsGroup(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(20.dp))
-            .background(SurfaceContainerDark)
-            .border(width = 1.dp, color = OutlineSubtle, shape = RoundedCornerShape(20.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainer)
             .padding(horizontal = 8.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.SpaceEvenly
     ) {
@@ -336,7 +323,7 @@ private fun ExpressiveActionButtonItem(
             .clip(RoundedCornerShape(14.dp))
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
-                indication = ripple(color = AccentTeal),
+                indication = ripple(color = MaterialTheme.colorScheme.primary),
                 onClick = onClick
             )
             .padding(horizontal = 10.dp, vertical = 6.dp),
@@ -346,15 +333,15 @@ private fun ExpressiveActionButtonItem(
             modifier = Modifier
                 .size(42.dp)
                 .clip(CircleShape)
-                .background(AccentContainerTeal),
+                .background(MaterialTheme.colorScheme.primaryContainer),
             contentAlignment = Alignment.Center
         ) {
-            Icon(icon, contentDescription = text, tint = AccentTeal, modifier = Modifier.size(22.dp))
+            Icon(icon, contentDescription = text, tint = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.size(22.dp))
         }
         Spacer(modifier = Modifier.height(6.dp))
         Text(
             text = text,
-            color = OnSurfaceWhite,
+            color = MaterialTheme.colorScheme.onSurface,
             fontSize = 11.sp,
             fontWeight = FontWeight.Medium,
             maxLines = 1,
@@ -374,7 +361,7 @@ private fun ExpressiveDropdownCard(
     Column(modifier = modifier) {
         Text(
             text = title,
-            color = OnSurfaceVariantMuted,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontSize = 12.sp,
             fontWeight = FontWeight.SemiBold,
             modifier = Modifier.padding(bottom = 6.dp, start = 4.dp)
@@ -383,11 +370,10 @@ private fun ExpressiveDropdownCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(16.dp))
-                .background(SurfaceContainerDark)
-                .border(width = 1.dp, color = OutlineSubtle, shape = RoundedCornerShape(16.dp))
+                .background(MaterialTheme.colorScheme.surfaceContainer)
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
-                    indication = ripple(color = AccentTeal),
+                    indication = ripple(color = MaterialTheme.colorScheme.primary),
                     onClick = onClick
                 )
                 .padding(horizontal = 12.dp, vertical = 12.dp),
@@ -396,13 +382,13 @@ private fun ExpressiveDropdownCard(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = AccentTeal,
+                tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(18.dp)
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = value,
-                color = OnSurfaceWhite,
+                color = MaterialTheme.colorScheme.onSurface,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Medium,
                 maxLines = 1,
@@ -412,7 +398,7 @@ private fun ExpressiveDropdownCard(
             Icon(
                 imageVector = Icons.Default.ArrowDropDown,
                 contentDescription = null,
-                tint = OnSurfaceVariantMuted
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
@@ -427,11 +413,10 @@ private fun ExpressiveLayerSwitchCard(
     Row(
         modifier = modifier
             .clip(RoundedCornerShape(16.dp))
-            .background(SurfaceContainerDark)
-            .border(width = 1.dp, color = OutlineSubtle, shape = RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainer)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
-                indication = ripple(color = AccentTeal),
+                indication = ripple(color = MaterialTheme.colorScheme.primary),
                 onClick = onToggle
             )
             .padding(horizontal = 12.dp, vertical = 8.dp),
@@ -440,7 +425,7 @@ private fun ExpressiveLayerSwitchCard(
     ) {
         Text(
             text = layer.name,
-            color = OnSurfaceWhite,
+            color = MaterialTheme.colorScheme.onSurface,
             fontSize = 13.sp,
             fontWeight = FontWeight.Medium,
             maxLines = 1,
@@ -449,13 +434,7 @@ private fun ExpressiveLayerSwitchCard(
         )
         Switch(
             checked = layer.active,
-            onCheckedChange = { onToggle() },
-            colors = SwitchDefaults.colors(
-                checkedThumbColor = Color.White,
-                checkedTrackColor = AccentTeal,
-                uncheckedThumbColor = OnSurfaceVariantMuted,
-                uncheckedTrackColor = SurfaceContainerHighDark
-            )
+            onCheckedChange = { onToggle() }
         )
     }
 }
@@ -469,11 +448,10 @@ private fun ExpressiveLayerSwitchRow(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(SurfaceContainerDark)
-            .border(width = 1.dp, color = OutlineSubtle, shape = RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainer)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
-                indication = ripple(color = AccentTeal),
+                indication = ripple(color = MaterialTheme.colorScheme.primary),
                 onClick = onToggle
             )
             .padding(horizontal = 16.dp, vertical = 8.dp),
@@ -482,7 +460,7 @@ private fun ExpressiveLayerSwitchRow(
     ) {
         Text(
             text = layer.name,
-            color = OnSurfaceWhite,
+            color = MaterialTheme.colorScheme.onSurface,
             fontSize = 14.sp,
             fontWeight = FontWeight.Medium,
             maxLines = 1,
@@ -491,13 +469,7 @@ private fun ExpressiveLayerSwitchRow(
         )
         Switch(
             checked = layer.active,
-            onCheckedChange = { onToggle() },
-            colors = SwitchDefaults.colors(
-                checkedThumbColor = Color.White,
-                checkedTrackColor = AccentTeal,
-                uncheckedThumbColor = OnSurfaceVariantMuted,
-                uncheckedTrackColor = SurfaceContainerHighDark
-            )
+            onCheckedChange = { onToggle() }
         )
     }
 }

@@ -1,7 +1,6 @@
 package org.exarhteam.iitcprime.ui.settings
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -9,7 +8,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -19,16 +17,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.exarhteam.iitcprime.i18n.L
-import org.exarhteam.iitcprime.theme.*
 import org.exarhteam.iitcprime.viewmodel.PluginsViewModel
 
 /**
- * Material 3 Expressive Plugins Management Screen
+ * Authentic Material 3 Expressive Plugins Management Screen
  */
 @Composable
 fun PluginsView(
@@ -42,6 +38,7 @@ fun PluginsView(
     val pendingPlugin by viewModel.pendingPlugin.collectAsState()
     val selectedPluginForInfo by viewModel.selectedPluginForInfo.collectAsState()
     val showAddPluginSheet by viewModel.showAddPluginSheet.collectAsState()
+    val colorScheme = MaterialTheme.colorScheme
 
     // Add Plugin Sheet
     if (showAddPluginSheet) {
@@ -102,8 +99,8 @@ fun PluginsView(
             FilledTonalButton(
                 onClick = { viewModel.showAddPlugin() },
                 colors = ButtonDefaults.filledTonalButtonColors(
-                    containerColor = AccentContainerTeal,
-                    contentColor = AccentTeal
+                    containerColor = colorScheme.primaryContainer,
+                    contentColor = colorScheme.onPrimaryContainer
                 ),
                 shape = RoundedCornerShape(percent = 50),
                 contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
@@ -122,7 +119,7 @@ fun PluginsView(
             }
         }
     ) {
-        // Horizontal Expressive Filter Chips Row
+        // Horizontal Expressive Filter Chips Row (Clean M3 surfaceContainers)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -135,22 +132,17 @@ fun PluginsView(
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(percent = 50))
-                        .background(if (isSelected) AccentTeal else SurfaceContainerDark)
-                        .border(
-                            width = 1.dp,
-                            color = if (isSelected) AccentTeal else OutlineSubtle,
-                            shape = RoundedCornerShape(percent = 50)
-                        )
+                        .background(if (isSelected) colorScheme.secondaryContainer else colorScheme.surfaceContainer)
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
-                            indication = ripple(color = AccentTeal),
+                            indication = ripple(color = colorScheme.primary),
                             onClick = { viewModel.setActiveCategory(category) }
                         )
                         .padding(horizontal = 16.dp, vertical = 8.dp)
                 ) {
                     Text(
                         text = category,
-                        color = if (isSelected) Color.Black else OnSurfaceWhite,
+                        color = if (isSelected) colorScheme.onSecondaryContainer else colorScheme.onSurfaceVariant,
                         fontSize = 13.sp,
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
                     )
@@ -170,7 +162,7 @@ fun PluginsView(
             ) {
                 Text(
                     text = L("plugins.no_plugins"),
-                    color = OnSurfaceVariantMuted,
+                    color = colorScheme.onSurfaceVariant,
                     fontSize = 15.sp
                 )
             }

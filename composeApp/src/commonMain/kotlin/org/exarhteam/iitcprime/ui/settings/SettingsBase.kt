@@ -1,7 +1,6 @@
 package org.exarhteam.iitcprime.ui.settings
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -21,7 +20,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.exarhteam.iitcprime.i18n.L
-import org.exarhteam.iitcprime.theme.*
 
 /**
  * Material 3 Expressive SettingsBase Screen Layout
@@ -40,9 +38,11 @@ fun SettingsBase(
     headerRight: (@Composable RowScope.() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit
 ) {
+    val colorScheme = MaterialTheme.colorScheme
+
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        containerColor = SurfaceDark,
+        containerColor = colorScheme.background,
         topBar = {
             if (search) {
                 // M3 Expressive Search Header
@@ -51,7 +51,7 @@ fun SettingsBase(
                         .fillMaxWidth()
                         .statusBarsPadding()
                         .height(68.dp)
-                        .background(SurfaceDark)
+                        .background(colorScheme.background)
                         .padding(horizontal = 12.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -60,12 +60,12 @@ fun SettingsBase(
                         modifier = Modifier
                             .size(42.dp)
                             .clip(CircleShape)
-                            .background(SurfaceContainerHighDark)
+                            .background(colorScheme.surfaceContainerHigh)
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = L("nav.back"),
-                            tint = OnSurfaceWhite,
+                            tint = colorScheme.onSurface,
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -78,7 +78,7 @@ fun SettingsBase(
                         placeholder = {
                             Text(
                                 text = searchHint,
-                                color = OnSurfaceVariantMuted,
+                                color = colorScheme.onSurfaceVariant,
                                 fontSize = 14.sp
                             )
                         },
@@ -86,7 +86,7 @@ fun SettingsBase(
                             Icon(
                                 imageVector = Icons.Default.Search,
                                 contentDescription = "Search",
-                                tint = AccentTeal,
+                                tint = colorScheme.primary,
                                 modifier = Modifier.size(20.dp)
                             )
                         },
@@ -96,7 +96,7 @@ fun SettingsBase(
                                     Icon(
                                         imageVector = Icons.Default.Close,
                                         contentDescription = "Clear",
-                                        tint = OnSurfaceVariantMuted,
+                                        tint = colorScheme.onSurfaceVariant,
                                         modifier = Modifier.size(18.dp)
                                     )
                                 }
@@ -107,13 +107,13 @@ fun SettingsBase(
                             .weight(1f)
                             .height(52.dp)
                             .clip(RoundedCornerShape(percent = 50))
-                            .background(SurfaceContainerDark),
+                            .background(colorScheme.surfaceContainer),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = AccentTeal,
-                            unfocusedBorderColor = OutlineSubtle,
-                            focusedTextColor = OnSurfaceWhite,
-                            unfocusedTextColor = OnSurfaceWhite,
-                            cursorColor = AccentTeal
+                            focusedBorderColor = colorScheme.primary,
+                            unfocusedBorderColor = Color.Transparent,
+                            focusedTextColor = colorScheme.onSurface,
+                            unfocusedTextColor = colorScheme.onSurface,
+                            cursorColor = colorScheme.primary
                         ),
                         shape = RoundedCornerShape(percent = 50)
                     )
@@ -128,7 +128,7 @@ fun SettingsBase(
                     title = {
                         Text(
                             text = title,
-                            color = OnSurfaceWhite,
+                            color = colorScheme.onSurface,
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -143,7 +143,7 @@ fun SettingsBase(
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                                 contentDescription = L("nav.back"),
-                                tint = OnSurfaceWhite,
+                                tint = colorScheme.onSurface,
                                 modifier = Modifier.size(22.dp)
                             )
                         }
@@ -154,7 +154,7 @@ fun SettingsBase(
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = SurfaceDark
+                        containerColor = colorScheme.background
                     )
                 )
             }

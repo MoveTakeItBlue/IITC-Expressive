@@ -1,7 +1,6 @@
 package org.exarhteam.iitcprime.ui.settings
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
@@ -12,6 +11,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material3.ripple
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -24,7 +24,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.exarhteam.iitcprime.i18n.L
 import org.exarhteam.iitcprime.platform.PlatformUtils
-import org.exarhteam.iitcprime.theme.*
 
 data class LicenseItem(val name: String, val url: String)
 
@@ -40,12 +39,14 @@ val DEPENDENCIES = listOf(
 )
 
 /**
- * Material 3 Expressive Licenses Screen
+ * Authentic Material 3 Expressive Licenses Screen
  */
 @Composable
 fun LicensesView(
     onBack: () -> Unit
 ) {
+    val colorScheme = MaterialTheme.colorScheme
+
     SettingsBase(
         title = L("licenses.title"),
         onBack = onBack,
@@ -61,11 +62,10 @@ fun LicensesView(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(16.dp))
-                        .background(SurfaceContainerDark)
-                        .border(width = 1.dp, color = OutlineSubtle, shape = RoundedCornerShape(16.dp))
+                        .background(colorScheme.surfaceContainer)
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
-                            indication = ripple(color = AccentTeal),
+                            indication = ripple(color = colorScheme.primary),
                             onClick = { PlatformUtils.openUrl(item.url) }
                         )
                         .padding(horizontal = 16.dp, vertical = 14.dp),
@@ -76,14 +76,14 @@ fun LicensesView(
                     ) {
                         Text(
                             text = item.name,
-                            color = OnSurfaceWhite,
+                            color = colorScheme.onSurface,
                             fontSize = 15.sp,
                             fontWeight = FontWeight.SemiBold
                         )
                         Spacer(modifier = Modifier.height(3.dp))
                         Text(
                             text = item.url,
-                            color = AccentTeal,
+                            color = colorScheme.primary,
                             fontSize = 12.sp,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
@@ -93,7 +93,7 @@ fun LicensesView(
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.OpenInNew,
                         contentDescription = null,
-                        tint = OnSurfaceVariantMuted,
+                        tint = colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(18.dp)
                     )
                 }

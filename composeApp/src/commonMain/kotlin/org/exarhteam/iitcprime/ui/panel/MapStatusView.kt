@@ -1,6 +1,7 @@
 package org.exarhteam.iitcprime.ui.panel
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -15,9 +16,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.exarhteam.iitcprime.i18n.L
 import org.exarhteam.iitcprime.model.MapStatus
-import org.exarhteam.iitcprime.theme.OnSurfaceVariantMuted
-import org.exarhteam.iitcprime.theme.OnSurfaceWhite
-import org.exarhteam.iitcprime.theme.StateError
 
 /**
  * Material 3 Expressive MapStatusView
@@ -36,6 +34,7 @@ fun MapStatusView(
 
     val statusDetails = mapStatus.mapStatus
     val requests = mapStatus.requests
+    val errorColor = MaterialTheme.colorScheme.error
 
     val statusAnnotated = buildAnnotatedString {
         val short = statusDetails.short ?: L("common.loading")
@@ -49,7 +48,7 @@ fun MapStatusView(
             append(" [${requests.active}")
             if (requests.hasFailed) {
                 append("/")
-                withStyle(SpanStyle(color = StateError, fontWeight = FontWeight.Bold)) {
+                withStyle(SpanStyle(color = errorColor, fontWeight = FontWeight.Bold)) {
                     append("${requests.failed}")
                 }
             }
@@ -64,7 +63,7 @@ fun MapStatusView(
     ) {
         Text(
             text = portalLevelsText,
-            color = OnSurfaceWhite,
+            color = MaterialTheme.colorScheme.onSurface,
             fontSize = 12.sp,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.End,
@@ -73,7 +72,7 @@ fun MapStatusView(
         )
         Text(
             text = statusAnnotated,
-            color = OnSurfaceVariantMuted,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontSize = 11.sp,
             fontWeight = FontWeight.Normal,
             textAlign = TextAlign.End,

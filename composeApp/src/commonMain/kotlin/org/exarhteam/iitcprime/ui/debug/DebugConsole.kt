@@ -27,7 +27,6 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import org.exarhteam.iitcprime.model.LogItem
 import org.exarhteam.iitcprime.platform.PlatformUtils
-import org.exarhteam.iitcprime.theme.*
 import org.exarhteam.iitcprime.viewmodel.MainViewModel
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -66,7 +65,7 @@ fun DebugConsole(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(SurfaceDark)
+            .background(MaterialTheme.colorScheme.background)
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             // Logs display list
@@ -90,7 +89,7 @@ fun DebugConsole(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(4.dp))
-                            .background(SurfaceContainerDark.copy(alpha = 0.6f))
+                            .background(MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.6f))
                             .combinedClickable(
                                 onClick = {},
                                 onLongClick = {

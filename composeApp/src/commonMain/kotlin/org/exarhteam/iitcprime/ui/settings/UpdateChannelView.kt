@@ -1,7 +1,6 @@
 package org.exarhteam.iitcprime.ui.settings
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
@@ -15,18 +14,16 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.exarhteam.iitcprime.i18n.L
 import org.exarhteam.iitcprime.model.Channel
-import org.exarhteam.iitcprime.theme.*
 import org.exarhteam.iitcprime.ui.common.SelectFieldDialog
 import org.exarhteam.iitcprime.viewmodel.UpdateChannelViewModel
 
 /**
- * Material 3 Expressive Update Channel Screen
+ * Authentic Material 3 Expressive Update Channel Screen
  */
 @Composable
 fun UpdateChannelView(
@@ -38,6 +35,7 @@ fun UpdateChannelView(
     val updateInterval by viewModel.selectedInterval.collectAsState()
     val externalInterval by viewModel.selectedExternalInterval.collectAsState()
     val isChecking by viewModel.isCheckingUpdates.collectAsState()
+    val colorScheme = MaterialTheme.colorScheme
 
     var showCoreIntervalDialog by remember { mutableStateOf(false) }
     var showExternalIntervalDialog by remember { mutableStateOf(false) }
@@ -95,8 +93,8 @@ fun UpdateChannelView(
                 onClick = { viewModel.checkUpdatesNow() },
                 enabled = !isChecking,
                 colors = ButtonDefaults.filledTonalButtonColors(
-                    containerColor = AccentContainerTeal,
-                    contentColor = AccentTeal
+                    containerColor = colorScheme.primaryContainer,
+                    contentColor = colorScheme.onPrimaryContainer
                 ),
                 shape = RoundedCornerShape(percent = 50),
                 contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
@@ -104,7 +102,7 @@ fun UpdateChannelView(
                 if (isChecking) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(16.dp),
-                        color = AccentTeal,
+                        color = colorScheme.primary,
                         strokeWidth = 2.dp
                     )
                 } else {
@@ -128,15 +126,10 @@ fun UpdateChannelView(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(16.dp))
-                        .background(if (isSelected) SurfaceContainerHighestDark else SurfaceContainerDark)
-                        .border(
-                            width = 1.dp,
-                            color = if (isSelected) AccentTeal else OutlineSubtle,
-                            shape = RoundedCornerShape(16.dp)
-                        )
+                        .background(if (isSelected) colorScheme.secondaryContainer else colorScheme.surfaceContainer)
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
-                            indication = ripple(color = AccentTeal),
+                            indication = ripple(color = colorScheme.primary),
                             onClick = { viewModel.selectChannel(channel) }
                         )
                         .padding(horizontal = 16.dp, vertical = 14.dp),
@@ -145,14 +138,14 @@ fun UpdateChannelView(
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = L("update_channel.channel.${channel.name.lowercase()}"),
-                            color = if (isSelected) AccentTeal else OnSurfaceWhite,
+                            color = if (isSelected) colorScheme.onSecondaryContainer else colorScheme.onSurface,
                             fontSize = 15.sp,
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold
                         )
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
                             text = L("update_channel.channel.${channel.name.lowercase()}.description"),
-                            color = OnSurfaceVariantMuted,
+                            color = if (isSelected) colorScheme.onSecondaryContainer.copy(alpha = 0.8f) else colorScheme.onSurfaceVariant,
                             fontSize = 13.sp
                         )
                     }
@@ -162,13 +155,13 @@ fun UpdateChannelView(
                             modifier = Modifier
                                 .size(28.dp)
                                 .clip(CircleShape)
-                                .background(AccentTeal),
+                                .background(colorScheme.primary),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Check,
                                 contentDescription = null,
-                                tint = Color.Black,
+                                tint = colorScheme.onPrimary,
                                 modifier = Modifier.size(16.dp)
                             )
                         }
@@ -182,14 +175,14 @@ fun UpdateChannelView(
             OutlinedTextField(
                 value = customUrl,
                 onValueChange = { viewModel.setCustomUrl(it) },
-                label = { Text(L("update_channel.custom_url.title"), color = OnSurfaceVariantMuted) },
+                label = { Text(L("update_channel.custom_url.title"), color = colorScheme.onSurfaceVariant) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = AccentTeal,
-                    unfocusedBorderColor = OutlineSubtle,
-                    focusedTextColor = OnSurfaceWhite,
-                    unfocusedTextColor = OnSurfaceWhite
+                    focusedBorderColor = colorScheme.primary,
+                    unfocusedBorderColor = colorScheme.outlineVariant,
+                    focusedTextColor = colorScheme.onSurface,
+                    unfocusedTextColor = colorScheme.onSurface
                 ),
                 shape = RoundedCornerShape(14.dp)
             )
