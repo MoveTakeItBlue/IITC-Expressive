@@ -1,0 +1,588 @@
+package org.exarhteam.iitcprime.viewmodel
+
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.serialization.json.*
+import org.exarhteam.iitcprime.bridge.EventsToIitc
+import org.exarhteam.iitcprime.bridge.UrlConfig
+import org.exarhteam.iitcprime.i18n.L
+import org.exarhteam.iitcprime.manager.IITCManager
+import org.exarhteam.iitcprime.model.*
+import org.exarhteam.iitcprime.platform.PlatformLocationListener
+import org.exarhteam.iitcprime.platform.PlatformUtils
+import org.exarhteam.iitcprime.storage.AppStorage
+
+enum class PanelPosition {
+    HIDDEN,
+    BOTTOM,
+    MIDDLE,
+    TOP
+}
+
+enum class LocationState {
+    IDLE,
+    LOCATING,
+    FOLLOWING,
+    ERROR
+}
+
+sealed class AppDialog {
+    data class Alert(val title: String, val message: String, val onDismiss: () -> Unit) : AppDialog()
+    data class Confirm(val title: String, val message: String, val onConfirm: () -> Unit, val onCancel: () -> Unit) : AppDialog()
+    data class LocationShare(val lat: Double, val lng: Double, val title: String, val isPortal: Boolean, val guid: String?) : AppDialog()
+    data class AddPlugin(val initialUrl: String? = null) : AppDialog()
+    data class PluginInfo(val plugin: Plugin) : AppDialog()
+}
+
+class MainViewModel(
+    val storage: AppStorage,
+    val manager: IITCManager
+) {
+    private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
+    private val json = Json { ignoreUnknownKeys = true; isLenient = true }
+
+    // Navigation / Screen state
+    private val _currentScreen = MutableStateFlow<String>("main") // "main", "settings", "plugins", "update_channel", "backup", "about", "licenses"
+    val currentScreen: StateFlow<String> = _currentScreen.asStateFlow()
+
+    // URL & Web state
+    private val _currentUrl = MutableStateFlow(UrlConfig.INGRESS_INTEL_MAP)
+    val currentUrl: StateFlow<String> = _currentUrl.asStateFlow()
+
+    private val _desktopMode = MutableStateFlow(false)
+    val desktopMode: StateFlow<Boolean> = _desktopMode.asStateFlow()
+
+    private val _zoomControl = MutableStateFlow(storage.getBoolean("zoom_control", false))
+    val zoomControl: StateFlow<Boolean> = _zoomControl.asStateFlow()
+
+    fun setZoomControl(enabled: Boolean) {
+        _zoomControl.value = enabled
+        storage.setBoolean("zoom_control", enabled)
+    }
+
+    private val _isWebviewLoaded = MutableStateFlow(false)
+    val isWebviewLoaded: StateFlow<Boolean> = _isWebviewLoaded.asStateFlow()
+
+    private val _isIitcLoaded = MutableStateFlow(false)
+    val isIitcLoaded: StateFlow<Boolean> = _isIitcLoaded.asStateFlow()
+
+    private val _progress = MutableStateFlow(0f)
+    val progress: StateFlow<Float> = _progress.asStateFlow()
+
+    private val _pageTitle = MutableStateFlow("IITC Prime")
+    val pageTitle: StateFlow<String> = _pageTitle.asStateFlow()
+
+    // Panel state
+    private val _panelPosition = MutableStateFlow(PanelPosition.BOTTOM)
+    val panelPosition: StateFlow<PanelPosition> = _panelPosition.asStateFlow()
+
+    private val _activeTab = MutableStateFlow("quick") // "quick" | "layers"
+    val activeTab: StateFlow<String> = _activeTab.asStateFlow()
+
+    private val _isMapDark = MutableStateFlow(true)
+    val isMapDark: StateFlow<Boolean> = _isMapDark.asStateFlow()
+
+    // Navigation panes & dialogs
+    private val _currentPane = MutableStateFlow("map")
+    val currentPane: StateFlow<String> = _currentPane.asStateFlow()
+
+    private val _panes = MutableStateFlow(Pane.defaultPanes())
+    val panes: StateFlow<List<Pane>> = _panes.asStateFlow()
+
+    private val _dialogStack = MutableStateFlow<List<String>>(emptyList())
+    val dialogStack: StateFlow<List<String>> = _dialogStack.asStateFlow()
+
+    // Map & Portal state
+    private val _portalStatus = MutableStateFlow(PortalStatus())
+    val portalStatus: StateFlow<PortalStatus> = _portalStatus.asStateFlow()
+
+    private val _mapStatus = MutableStateFlow(MapStatus())
+    val mapStatus: StateFlow<MapStatus> = _mapStatus.asStateFlow()
+
+    private val _highlighters = MutableStateFlow(listOf("No Highlights"))
+    val highlighters: StateFlow<List<String>> = _highlighters.asStateFlow()
+
+    private val _selectedHighlighter = MutableStateFlow("No Highlights")
+    val selectedHighlighter: StateFlow<String> = _selectedHighlighter.asStateFlow()
+
+    private val _baseLayers = MutableStateFlow<List<MapLayer>>(emptyList())
+    val baseLayers: StateFlow<List<MapLayer>> = _baseLayers.asStateFlow()
+
+    private val _selectedBaseLayer = MutableStateFlow(0)
+    val selectedBaseLayer: StateFlow<Int> = _selectedBaseLayer.asStateFlow()
+
+    private val _overlayLayers = MutableStateFlow<List<MapLayer>>(emptyList())
+    val overlayLayers: StateFlow<List<MapLayer>> = _overlayLayers.asStateFlow()
+
+    // Debug console & logs
+    private val _isDebugActive = MutableStateFlow(false)
+    val isDebugActive: StateFlow<Boolean> = _isDebugActive.asStateFlow()
+
+    private val _logs = MutableStateFlow<List<LogItem>>(emptyList())
+    val logs: StateFlow<List<LogItem>> = _logs.asStateFlow()
+
+    // Location state
+    private val _locationState = MutableStateFlow(LocationState.IDLE)
+    val locationState: StateFlow<LocationState> = _locationState.asStateFlow()
+
+    // Active popup/dialog
+    private val _currentDialog = MutableStateFlow<AppDialog?>(null)
+    val currentDialog: StateFlow<AppDialog?> = _currentDialog.asStateFlow()
+
+    // Clipboard link detection
+    private val _hasClipboardLink = MutableStateFlow(false)
+    val hasClipboardLink: StateFlow<Boolean> = _hasClipboardLink.asStateFlow()
+
+    // Pending JS script to execute in webview
+    private val _pendingJsToEvaluate = MutableStateFlow<String?>(null)
+    val pendingJsToEvaluate: StateFlow<String?> = _pendingJsToEvaluate.asStateFlow()
+
+    // Reload trigger
+    private val _reloadTrigger = MutableStateFlow(0)
+    val reloadTrigger: StateFlow<Int> = _reloadTrigger.asStateFlow()
+
+    init {
+        val savedDesktop = storage.getBoolean("desktop_mode", false)
+        _desktopMode.value = savedDesktop
+
+        val showLocation = storage.getBoolean("show_location", false)
+        if (showLocation) {
+            startLocationTracking()
+        }
+    }
+
+    fun navigateTo(screen: String) {
+        _currentScreen.value = screen
+    }
+
+    fun navigateBack(): Boolean {
+        if (_currentScreen.value != "main") {
+            _currentScreen.value = "main"
+            return true
+        }
+        return handleBackPress()
+    }
+
+    fun setPanelPosition(pos: PanelPosition) {
+        _panelPosition.value = pos
+    }
+
+    fun togglePanel() {
+        if (_panelPosition.value == PanelPosition.BOTTOM) {
+            _panelPosition.value = PanelPosition.MIDDLE
+        } else if (_panelPosition.value == PanelPosition.MIDDLE || _panelPosition.value == PanelPosition.TOP) {
+            _panelPosition.value = PanelPosition.BOTTOM
+        }
+    }
+
+    fun closePanel() {
+        _panelPosition.value = PanelPosition.BOTTOM
+    }
+
+    fun restorePanel() {
+        _panelPosition.value = PanelPosition.BOTTOM
+    }
+
+    fun hidePanel() {
+        _panelPosition.value = PanelPosition.HIDDEN
+    }
+
+    fun setActiveTab(tab: String) {
+        _activeTab.value = tab
+        if (_panelPosition.value == PanelPosition.BOTTOM || _panelPosition.value == PanelPosition.HIDDEN) {
+            _panelPosition.value = PanelPosition.MIDDLE
+        }
+    }
+
+    fun setDialog(dialog: AppDialog?) {
+        _currentDialog.value = dialog
+    }
+
+    fun checkClipboard() {
+        _hasClipboardLink.value = PlatformUtils.hasClipboardUrl()
+    }
+
+    fun handlePasteClipboard() {
+        val text = PlatformUtils.readClipboardText() ?: return
+        if (text.startsWith("http://", ignoreCase = true) || text.startsWith("https://", ignoreCase = true)) {
+            if (text.contains(".user.js")) {
+                setDialog(AppDialog.AddPlugin(initialUrl = text))
+            } else if (text.contains("ingress.com") || text.contains("iitc")) {
+                loadUrl(text)
+            }
+        }
+    }
+
+    fun loadUrl(url: String) {
+        val target = UrlConfig.addViewportParam(url, _desktopMode.value)
+        _currentUrl.value = target
+    }
+
+    fun reloadWebView(clearCache: Boolean = false) {
+        if (clearCache) {
+            PlatformUtils.clearCookies {}
+        }
+        _reloadTrigger.value += 1
+    }
+
+    fun evaluateJs(code: String) {
+        _pendingJsToEvaluate.value = code
+    }
+
+    fun onJsEvaluated() {
+        _pendingJsToEvaluate.value = null
+    }
+
+    fun setWebviewLoaded(loaded: Boolean) {
+        _isWebviewLoaded.value = loaded
+    }
+
+    fun setProgress(prog: Float) {
+        _progress.value = prog
+    }
+
+    fun setPageTitle(title: String) {
+        _pageTitle.value = title
+    }
+
+    fun toggleDebugMode() {
+        _isDebugActive.value = !_isDebugActive.value
+    }
+
+    fun addLog(type: String, message: String, source: String = "webview") {
+        val item = LogItem(
+            type = type,
+            message = message,
+            timestamp = PlatformUtils.currentTimeMillis().toString(),
+            source = source,
+            id = "${PlatformUtils.currentTimeMillis()}_${message.hashCode()}"
+        )
+        val list = _logs.value.toMutableList()
+        list.add(item)
+        if (list.size > 500) list.removeAt(0)
+        _logs.value = list
+    }
+
+    fun clearLogs() {
+        _logs.value = emptyList()
+    }
+
+    fun executeDebugCommand(command: String) {
+        addLog("info", ">>> $command", "user")
+        val escaped = command.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", " ")
+        evaluateJs("window.nsWebViewBridge?._listeners?.['console:execute']?.forEach(cb => cb({command: \"$escaped\"})) || eval(\"$escaped\");")
+    }
+
+    fun selectHighlighter(name: String) {
+        _selectedHighlighter.value = name
+        evaluateJs(EventsToIitc.changePortalHighlights(name))
+    }
+
+    fun selectBaseLayer(layer: MapLayer) {
+        _selectedBaseLayer.value = layer.layerId
+        evaluateJs(EventsToIitc.showLayer(layer.layerId, true))
+    }
+
+    fun toggleOverlayLayer(layer: MapLayer) {
+        val newActive = !layer.active
+        val updated = _overlayLayers.value.map {
+            if (it.layerId == layer.layerId) it.copy(active = newActive) else it
+        }
+        _overlayLayers.value = updated
+        evaluateJs(EventsToIitc.showLayer(layer.layerId, newActive))
+    }
+
+    fun togglePortalLevelOverlay(index: Int) {
+        if (index in _overlayLayers.value.indices) {
+            toggleOverlayLayer(_overlayLayers.value[index])
+        }
+    }
+
+    fun switchToPane(name: String) {
+        _currentPane.value = name
+        evaluateJs(EventsToIitc.switchToPane(name))
+        closePanel()
+    }
+
+    fun setFollowMode(follow: Boolean) {
+        _locationState.value = if (follow) LocationState.FOLLOWING else LocationState.IDLE
+    }
+
+    fun triggerUserLocate() {
+        _locationState.value = LocationState.LOCATING
+        val persistentZoom = storage.getBoolean("persistent_zoom", false)
+        PlatformUtils.requestSingleLocationFix(object : PlatformLocationListener {
+            override fun onLocation(lat: Double, lng: Double, accuracy: Double) {
+                _locationState.value = LocationState.FOLLOWING
+                evaluateJs(EventsToIitc.userLocationLocate(lat, lng, accuracy, persistentZoom))
+            }
+
+            override fun onOrientation(direction: Double?) {
+                evaluateJs(EventsToIitc.userLocationOrientation(direction))
+            }
+
+            override fun onError(message: String) {
+                _locationState.value = LocationState.ERROR
+                scope.launch {
+                    delay(3000)
+                    if (_locationState.value == LocationState.ERROR) {
+                        _locationState.value = LocationState.IDLE
+                    }
+                }
+            }
+        })
+    }
+
+    private fun startLocationTracking() {
+        PlatformUtils.startLocationTracking(object : PlatformLocationListener {
+            override fun onLocation(lat: Double, lng: Double, accuracy: Double) {
+                evaluateJs(EventsToIitc.userLocationUpdate(lat, lng))
+            }
+
+            override fun onOrientation(direction: Double?) {
+                evaluateJs(EventsToIitc.userLocationOrientation(direction))
+            }
+
+            override fun onError(message: String) {}
+        })
+    }
+
+    fun handleBackPress(): Boolean {
+        // 1. If debug console active, close it
+        if (_isDebugActive.value) {
+            _isDebugActive.value = false
+            return true
+        }
+
+        // 2. If panel open (MIDDLE or TOP), collapse to BOTTOM
+        if (_panelPosition.value == PanelPosition.MIDDLE || _panelPosition.value == PanelPosition.TOP) {
+            _panelPosition.value = PanelPosition.BOTTOM
+            return true
+        }
+
+        // 3. If IITC dialog active, close top dialog
+        val dialogs = _dialogStack.value
+        if (dialogs.isNotEmpty()) {
+            val top = dialogs.last()
+            _dialogStack.value = dialogs.dropLast(1)
+            evaluateJs(EventsToIitc.closeDialog(top))
+            return true
+        }
+
+        // 4. If panel is hidden, restore it
+        if (_panelPosition.value == PanelPosition.HIDDEN) {
+            _panelPosition.value = PanelPosition.BOTTOM
+            return true
+        }
+
+        // 5. If not on map pane, switch to map
+        if (_currentPane.value != "map") {
+            switchToPane("map")
+            return true
+        }
+
+        return false
+    }
+
+    // Process incoming bridge events from WebView
+    fun handleBridgeMessage(eventName: String, data: JsonElement) {
+        when (eventName) {
+            "intentPosLink" -> {
+                val obj = data.jsonObject
+                val lat = obj["lat"]?.jsonPrimitive?.doubleOrNull ?: 0.0
+                val lng = obj["lng"]?.jsonPrimitive?.doubleOrNull ?: 0.0
+                val title = obj["title"]?.jsonPrimitive?.contentOrNull ?: ""
+                val isPortal = obj["isPortal"]?.jsonPrimitive?.booleanOrNull ?: false
+                val guid = obj["guid"]?.jsonPrimitive?.contentOrNull
+                setDialog(AppDialog.LocationShare(lat, lng, title, isPortal, guid))
+            }
+            "shareString" -> {
+                val str = data.jsonObject["str"]?.jsonPrimitive?.contentOrNull ?: ""
+                PlatformUtils.shareText(str, "IITC Share")
+            }
+            "copy" -> {
+                val text = data.jsonObject["s"]?.jsonPrimitive?.contentOrNull ?: ""
+                PlatformUtils.copyToClipboard(text, L("share.toast.coordinates_copied"))
+            }
+            "switchToPane" -> {
+                val id = data.jsonObject["id"]?.jsonPrimitive?.contentOrNull ?: "map"
+                _currentPane.value = id
+            }
+            "bootFinished" -> {
+                _isIitcLoaded.value = true
+                addLog("info", "IITC boot finished", "iitc")
+            }
+            "setLayers" -> {
+                try {
+                    val obj = data.jsonObject
+                    val baseLayerStr = obj["base_layer"]?.jsonPrimitive?.content ?: "[]"
+                    val overlayLayerStr = obj["overlay_layer"]?.jsonPrimitive?.content ?: "[]"
+
+                    val baseArray = json.parseToJsonElement(baseLayerStr).jsonArray
+                    val overlayArray = json.parseToJsonElement(overlayLayerStr).jsonArray
+
+                    val baseList = baseArray.mapIndexed { idx, it ->
+                        val itemObj = it.jsonObject
+                        val id = itemObj["layerId"]?.jsonPrimitive?.intOrNull ?: idx
+                        val name = itemObj["name"]?.jsonPrimitive?.contentOrNull ?: "Base $idx"
+                        val active = itemObj["active"]?.jsonPrimitive?.booleanOrNull ?: (idx == 0)
+                        MapLayer(layerId = id, name = name, active = active)
+                    }
+
+                    val overlayList = overlayArray.mapIndexed { idx, it ->
+                        val itemObj = it.jsonObject
+                        val id = itemObj["layerId"]?.jsonPrimitive?.intOrNull ?: idx
+                        val name = itemObj["name"]?.jsonPrimitive?.contentOrNull ?: "Layer $idx"
+                        val active = itemObj["active"]?.jsonPrimitive?.booleanOrNull ?: false
+                        MapLayer(layerId = id, name = name, active = active)
+                    }
+
+                    _baseLayers.value = baseList
+                    _overlayLayers.value = overlayList
+                } catch (e: Exception) {
+                    println("setLayers parse error: ${e.message}")
+                }
+            }
+            "addPortalHighlighter" -> {
+                val name = data.jsonObject["name"]?.jsonPrimitive?.contentOrNull ?: return
+                if (!_highlighters.value.contains(name)) {
+                    _highlighters.value = _highlighters.value + name
+                }
+            }
+            "setActiveHighlighter" -> {
+                val name = data.jsonObject["name"]?.jsonPrimitive?.contentOrNull ?: return
+                _selectedHighlighter.value = name
+            }
+            "addPane" -> {
+                val obj = data.jsonObject
+                val name = obj["name"]?.jsonPrimitive?.contentOrNull ?: return
+                val label = obj["label"]?.jsonPrimitive?.contentOrNull ?: name
+                val icon = obj["icon"]?.jsonPrimitive?.contentOrNull ?: "ms-map"
+                if (_panes.value.none { it.name == name }) {
+                    _panes.value = _panes.value + Pane(name, label, icon)
+                }
+            }
+            "setFollowMode" -> {
+                val follow = data.jsonObject["follow"]?.jsonPrimitive?.booleanOrNull ?: false
+                setFollowMode(follow)
+            }
+            "setMapDarkMode" -> {
+                val isDark = data.jsonObject["isDark"]?.jsonPrimitive?.booleanOrNull ?: true
+                _isMapDark.value = isDark
+                PlatformUtils.setStatusBarContrast(!isDark)
+            }
+            "setPortalStatus" -> {
+                try {
+                    val obj = data.jsonObject
+                    val guid = obj["guid"]?.jsonPrimitive?.contentOrNull
+                    val team = obj["team"]?.jsonPrimitive?.contentOrNull ?: "N"
+                    val level = obj["level"]?.jsonPrimitive?.intOrNull ?: 0
+                    val title = obj["title"]?.jsonPrimitive?.contentOrNull ?: "No portal selected"
+                    val health = obj["health"]?.jsonPrimitive?.intOrNull ?: 0
+                    val levelColor = obj["levelColor"]?.jsonPrimitive?.contentOrNull
+                    val isLoading = obj["isLoading"]?.jsonPrimitive?.booleanOrNull ?: false
+
+                    val resonatorsElem = obj["resonators"]
+                    val resonatorsList = if (resonatorsElem is JsonArray) {
+                        resonatorsElem.map { resElem ->
+                            val rObj = resElem.jsonObject
+                            Resonator(
+                                level = rObj["level"]?.jsonPrimitive?.intOrNull ?: 0,
+                                levelColor = rObj["levelColor"]?.jsonPrimitive?.contentOrNull ?: "#808080",
+                                healthPct = rObj["healthPct"]?.jsonPrimitive?.intOrNull ?: 0,
+                                energy = rObj["energy"]?.jsonPrimitive?.intOrNull ?: 0
+                            )
+                        }
+                    } else null
+
+                    _portalStatus.value = PortalStatus(
+                        guid = guid,
+                        team = team,
+                        level = level,
+                        isNeutral = team == "N",
+                        title = title,
+                        health = health,
+                        resonators = resonatorsList,
+                        levelColor = levelColor,
+                        isLoading = isLoading
+                    )
+                } catch (e: Exception) {
+                    println("setPortalStatus error: ${e.message}")
+                }
+            }
+            "setMapStatus" -> {
+                try {
+                    val obj = data.jsonObject
+                    val portalLevelsObj = obj["portalLevels"]?.jsonObject
+                    val mapStatusObj = obj["mapStatus"]?.jsonObject
+                    val requestsObj = obj["requests"]?.jsonObject
+
+                    val pInfo = if (portalLevelsObj != null) {
+                        PortalLevelsInfo(
+                            hasPortals = portalLevelsObj["hasPortals"]?.jsonPrimitive?.booleanOrNull ?: false,
+                            minLinkLength = portalLevelsObj["minLinkLength"]?.jsonPrimitive?.longOrNull ?: 0L,
+                            formattedLength = portalLevelsObj["formattedLength"]?.jsonPrimitive?.contentOrNull ?: "0m"
+                        )
+                    } else PortalLevelsInfo()
+
+                    val mInfo = if (mapStatusObj != null) {
+                        MapStatusDetails(
+                            short = mapStatusObj["short"]?.jsonPrimitive?.contentOrNull,
+                            long = mapStatusObj["long"]?.jsonPrimitive?.contentOrNull,
+                            progress = mapStatusObj["progress"]?.jsonPrimitive?.floatOrNull ?: 1f,
+                            progressPercent = mapStatusObj["progressPercent"]?.jsonPrimitive?.intOrNull
+                        )
+                    } else MapStatusDetails()
+
+                    val rInfo = if (requestsObj != null) {
+                        MapRequestsInfo(
+                            active = requestsObj["active"]?.jsonPrimitive?.intOrNull ?: 0,
+                            failed = requestsObj["failed"]?.jsonPrimitive?.intOrNull ?: 0,
+                            hasActive = requestsObj["hasActive"]?.jsonPrimitive?.booleanOrNull ?: false,
+                            hasFailed = requestsObj["hasFailed"]?.jsonPrimitive?.booleanOrNull ?: false
+                        )
+                    } else MapRequestsInfo()
+
+                    _mapStatus.value = MapStatus(pInfo, mInfo, rInfo)
+                } catch (e: Exception) {
+                    println("setMapStatus error: ${e.message}")
+                }
+            }
+            "setProgress" -> {
+                val prog = data.jsonObject["progress"]?.jsonPrimitive?.floatOrNull ?: 1f
+                _progress.value = prog
+            }
+            "saveFile" -> {
+                val obj = data.jsonObject
+                val filename = obj["filename"]?.jsonPrimitive?.contentOrNull ?: "iitc_export.txt"
+                val content = obj["content"]?.jsonPrimitive?.contentOrNull ?: ""
+                val dataType = obj["dataType"]?.jsonPrimitive?.contentOrNull ?: "text/plain"
+                PlatformUtils.shareFile(filename, content.encodeToByteArray(), dataType)
+            }
+            "dialogOpened" -> {
+                val id = data.jsonObject["id"]?.jsonPrimitive?.contentOrNull ?: return
+                val open = data.jsonObject["open"]?.jsonPrimitive?.booleanOrNull ?: true
+                if (open) {
+                    if (!_dialogStack.value.contains(id)) {
+                        _dialogStack.value = _dialogStack.value + id
+                    }
+                } else {
+                    _dialogStack.value = _dialogStack.value.filter { it != id }
+                }
+            }
+            "dialogFocused" -> {
+                val id = data.jsonObject["id"]?.jsonPrimitive?.contentOrNull ?: return
+                _dialogStack.value = _dialogStack.value.filter { it != id } + id
+            }
+            "openDemo" -> {
+                loadUrl(UrlConfig.DEMO_INTEL_MAP)
+            }
+            "gmBridgeRequest" -> {
+                val raw = data.jsonObject["data"]?.jsonPrimitive?.content ?: data.toString()
+                manager.handleGmBridgeRequest(raw)
+            }
+        }
+    }
+}

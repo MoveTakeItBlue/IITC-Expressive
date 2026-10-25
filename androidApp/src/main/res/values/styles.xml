@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- theme to use FOR launch screen-->
+    <style name="LaunchScreenThemeBase" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="toolbarStyle">@style/NativeScriptToolbarStyle</item>
+
+        <item name="colorPrimary">@color/ns_primary</item>
+        <item name="colorPrimaryDark">@color/ns_primaryDark</item>
+        <item name="colorAccent">@color/ns_accent</item>
+
+        <!-- Material3 surface colors for dark theme -->
+        <item name="colorSurface">@color/ns_primary</item>
+        <item name="colorOnSurface">@color/ns_text</item>
+
+        <item name="android:windowBackground">@drawable/splash_screen</item>
+        <item name="android:colorBackground">@color/ns_primary</item>
+
+        <item name="android:windowActionBarOverlay">true</item>
+        <item name="android:statusBarColor">@color/ns_primary</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+
+    <style name="LaunchScreenTheme" parent="LaunchScreenThemeBase">
+    </style>
+
+    <!-- theme to use AFTER launch screen is loaded-->
+    <style name="AppThemeBase" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="toolbarStyle">@style/NativeScriptToolbarStyle</item>
+
+        <item name="colorPrimary">@color/ns_primary</item>
+        <item name="colorPrimaryDark">@color/ns_primaryDark</item>
+        <item name="colorAccent">@color/ns_accent</item>
+
+        <!-- ActionBar text colors -->
+        <item name="android:textColorPrimary">@color/ns_text</item>
+        <item name="actionMenuTextColor">@color/ns_text</item>
+
+        <!-- Cursor: @null makes it inherit text color -->
+        <item name="android:textCursorDrawable">@null</item>
+
+        <!-- Status bar icon appearance: false = light/white icons for dark backgrounds -->
+        <item name="android:windowLightStatusBar">false</item>
+
+        <!-- DatePicker and TimePicker styles -->
+        <item name="android:datePickerStyle">@style/SpinnerDatePicker</item>
+        <item name="android:timePickerStyle">@style/SpinnerTimePicker</item>
+
+        <!-- Material Switch style -->
+        <item name="materialSwitchStyle">@style/AppMaterialSwitchStyle</item>
+
+        <!-- Bottom sheet dialog styling -->
+        <item name="bottomSheetDialogTheme">@style/AppBottomSheetDialogTheme</item>
+
+        <!-- Dialog elements styling -->
+        <item name="materialButtonStyle">@style/AppButtonStyle</item>
+        <item name="alertDialogTheme">@style/AppAlertDialogTheme</item>
+        <item name="materialAlertDialogTheme">@style/AppAlertDialogTheme</item>
+    </style>
+
+    <style name="AppTheme" parent="AppThemeBase">
+    </style>
+
+    <!-- Default style for DatePicker - in spinner mode -->
+    <style name="SpinnerDatePicker" parent="android:Widget.Material.DatePicker">
+        <item name="android:datePickerMode">spinner</item>
+    </style>
+
+    <!-- Default style for TimePicker - in spinner mode -->
+    <style name="SpinnerTimePicker" parent="android:Widget.Material.TimePicker">
+        <item name="android:timePickerMode">spinner</item>
+    </style>
+
+    <!-- Custom button style -->
+    <style name="AppButtonStyle" parent="Widget.MaterialComponents.Button">
+        <item name="backgroundTint">@color/ns_accent</item>
+        <item name="android:textColor">@color/ns_text</item>
+    </style>
+
+    <!-- Custom Material Switch style -->
+    <style name="AppMaterialSwitchStyle" parent="Widget.Material3.CompoundButton.MaterialSwitch">
+        <item name="materialThemeOverlay">@style/ThemeOverlay.App.Switch</item>
+    </style>
+
+    <!-- Switch theme overlay -->
+    <style name="ThemeOverlay.App.Switch" parent="">
+        <item name="colorPrimary">@color/switch_thumb_on</item>
+        <item name="colorOnPrimary">@color/switch_track_on</item>
+        <item name="colorSurfaceContainerHighest">@color/switch_track_off</item>
+        <item name="colorOnSurface">@color/switch_thumb_off</item>
+    </style>
+
+    <!-- Custom dialog style -->
+    <style name="AppAlertDialogTheme" parent="ThemeOverlay.MaterialComponents.MaterialAlertDialog">
+        <item name="colorPrimary">@color/ns_accent</item>
+        <item name="colorAccent">@color/ns_primary_light</item>
+        <item name="buttonBarPositiveButtonStyle">@style/AppDialogButtonStyle</item>
+        <item name="buttonBarNegativeButtonStyle">@style/AppDialogButtonStyle</item>
+        <item name="buttonBarNeutralButtonStyle">@style/AppDialogButtonStyle</item>
+    </style>
+
+    <style name="AppDialogButtonStyle" parent="Widget.MaterialComponents.Button.TextButton.Dialog">
+        <item name="android:textColor">@color/ns_primary_light</item>
+    </style>
+
+    <!-- Bottom sheet dialog theme -->
+    <style name="AppBottomSheetDialogTheme" parent="ThemeOverlay.Material3.BottomSheetDialog">
+        <item name="bottomSheetStyle">@style/AppBottomSheetStyle</item>
+        <item name="android:navigationBarColor">@color/ns_primary</item>
+    </style>
+
+    <style name="AppBottomSheetStyle" parent="Widget.Material3.BottomSheet">
+        <item name="backgroundTint">@color/ns_primary</item>
+        <item name="paddingTopSystemWindowInsets">false</item>
+        <item name="paddingBottomSystemWindowInsets">false</item>
+    </style>
+
+    <!-- theme for action-bar -->
+    <style name="NativeScriptToolbarStyleBase" parent="Widget.Material3.Toolbar">
+        <item name="android:background">@color/ns_primary</item>
+        <item name="theme">@style/ThemeOverlay.MaterialComponents.ActionBar</item>
+        <item name="popupTheme">@style/ThemeOverlay.MaterialComponents</item>
+    </style>
+
+    <style name="NativeScriptToolbarStyle" parent="NativeScriptToolbarStyleBase">
+        <item name="android:elevation">4dp</item>
+    </style>
+</resources>

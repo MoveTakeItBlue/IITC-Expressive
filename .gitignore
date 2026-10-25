@@ -38,3 +38,11 @@ typings/
 
 e2e/package-lock.json
 e2e/artifacts/
+
+
+# Gradle & Kotlin Multiplatform
+.gradle/
+build/
+**/build/
+local.properties
+.kotlin/

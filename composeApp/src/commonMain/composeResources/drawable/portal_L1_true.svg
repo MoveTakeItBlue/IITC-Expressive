@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="18mm" height="18mm" clip-rule="evenodd" fill-rule="evenodd" image-rendering="optimizeQuality" shape-rendering="geometricPrecision" text-rendering="geometricPrecision" version="1.1" viewBox="0 0 1800 1800" xml:space="preserve" xmlns="http://www.w3.org/2000/svg">
+ <defs>
+  <style type="text/css">
+   <![CDATA[
+    .fil0 {fill:#02CCCC}
+    .fil1 {fill:#2B2A29;fill-opacity:0.721569}
+   ]]>
+  </style>
+ </defs>
+ <g transform="translate(220 220)">
+  
+  
+   <path class="fil0" d="m680 257 300 124 124 300-124 300-300 124-300-124-62.1-150-62-150 62-150 53.8-130-69.7-69.7-92 92c-0.79 0.77-1.8 1.14-2.91 1.01s-2.01-0.71-2.58-1.67l-85.4-140c-0.86-1.41-0.67-3.16 0.51-4.34l158-158c1.15-1.18 2.93-1.37 4.32-0.52l140 85.4c0.94 0.58 1.53 1.48 1.66 2.59s-0.23 2.11-1 2.91l-92 92 69.7 69.7 130-53.7z"/>
+   <polygon class="fil1" points="921 440 971 560 1020 680 971 801 921 921 801 971 680 1020 560 971 440 921 390 801 340 680 390 560 440 440 560 390 680 340 801 390"/>
+  
+ </g>
+</svg>
