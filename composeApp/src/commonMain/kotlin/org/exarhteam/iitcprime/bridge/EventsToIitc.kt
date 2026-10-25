@@ -12,7 +12,36 @@ object EventsToIitc {
 
     fun switchToPane(name: String): String {
         val escaped = name.replace("'", "\\'")
-        return "window.show?.('$escaped'); true;"
+        return """
+            (function() {
+              try {
+                var id = '$escaped';
+                window.currentPane = '';
+                if (window.show) {
+                  window.show(id);
+                }
+                if (id === 'info') {
+                  if (window.smartphone && window.smartphone.sideButton) {
+                    window.smartphone.sideButton.click();
+                  }
+                  if (typeof $ !== 'undefined') {
+                    $('#scrollwrapper').show();
+                    if (window.resetScrollOnNewPortal) window.resetScrollOnNewPortal();
+                  }
+                } else if (id === 'map') {
+                  if (window.smartphone && window.smartphone.mapButton) {
+                    window.smartphone.mapButton.click();
+                  }
+                  if (typeof $ !== 'undefined') {
+                    $('#map').css({ visibility: 'visible', opacity: '1' });
+                    $('#updatestatus').show();
+                  }
+                }
+              } catch(e) {
+                console.error('[Bridge] switchToPane error: ' + e);
+              }
+            })(); true;
+        """.trimIndent()
     }
 
     fun closeDialog(id: String): String {

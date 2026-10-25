@@ -1,9 +1,15 @@
 package org.exarhteam.iitcprime.ui.settings
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material3.ripple
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -15,11 +21,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.exarhteam.iitcprime.i18n.L
 import org.exarhteam.iitcprime.model.Channel
-import org.exarhteam.iitcprime.theme.AccentTeal
-import org.exarhteam.iitcprime.theme.SurfaceContainerDark
+import org.exarhteam.iitcprime.theme.*
 import org.exarhteam.iitcprime.ui.common.SelectFieldDialog
 import org.exarhteam.iitcprime.viewmodel.UpdateChannelViewModel
 
+/**
+ * Material 3 Expressive Update Channel Screen
+ */
 @Composable
 fun UpdateChannelView(
     viewModel: UpdateChannelViewModel,
@@ -83,150 +91,131 @@ fun UpdateChannelView(
         title = L("update_channel.title"),
         onBack = onBack,
         headerRight = {
-            TextButton(
+            FilledTonalButton(
                 onClick = { viewModel.checkUpdatesNow() },
-                enabled = !isChecking
+                enabled = !isChecking,
+                colors = ButtonDefaults.filledTonalButtonColors(
+                    containerColor = AccentContainerTeal,
+                    contentColor = AccentTeal
+                ),
+                shape = RoundedCornerShape(percent = 50),
+                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
             ) {
-                Text(
-                    text = L("update_channel.update_now"),
-                    color = if (!isChecking) AccentTeal else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                    fontWeight = FontWeight.Bold
-                )
+                if (isChecking) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        color = AccentTeal,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text(
+                        text = L("update_channel.update_now"),
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
         }
     ) {
         // Channel selection
         SettingsSection(title = L("update_channel.section.channel"))
 
-        val channels = listOf(
-            Triple(Channel.RELEASE, L("update_channel.channel.release"), L("update_channel.channel.release.description")),
-            Triple(Channel.BETA, L("update_channel.channel.beta"), L("update_channel.channel.beta.description")),
-            Triple(Channel.CUSTOM, L("update_channel.channel.custom"), L("update_channel.channel.custom.description"))
-        )
-
-        channels.forEachIndexed { index, (type, name, desc) ->
-            val isFirst = index == 0
-            val isLast = index == channels.size - 1
-            val cornerShape = when {
-                isFirst && isLast -> RoundedCornerShape(12.dp)
-                isFirst -> RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)
-                isLast -> RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp)
-                else -> RoundedCornerShape(0.dp)
-            }
-
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(cornerShape)
-                    .background(SurfaceContainerDark)
-                    .clickable { viewModel.selectChannel(type) }
-            ) {
+        val channels = listOf(Channel.RELEASE, Channel.BETA, Channel.CUSTOM)
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            channels.forEach { channel ->
+                val isSelected = channel == currentChannel
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(if (isSelected) SurfaceContainerHighestDark else SurfaceContainerDark)
+                        .border(
+                            width = 1.dp,
+                            color = if (isSelected) AccentTeal else OutlineSubtle,
+                            shape = RoundedCornerShape(16.dp)
+                        )
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = ripple(color = AccentTeal),
+                            onClick = { viewModel.selectChannel(channel) }
+                        )
                         .padding(horizontal = 16.dp, vertical = 14.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = name,
-                            color = MaterialTheme.colorScheme.onSurface,
+                            text = L("update_channel.channel.${channel.name.lowercase()}"),
+                            color = if (isSelected) AccentTeal else OnSurfaceWhite,
                             fontSize = 15.sp,
-                            fontWeight = FontWeight.Medium
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold
                         )
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
-                            text = desc,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                            text = L("update_channel.channel.${channel.name.lowercase()}.description"),
+                            color = OnSurfaceVariantMuted,
                             fontSize = 13.sp
                         )
                     }
 
-                    RadioButton(
-                        selected = currentChannel == type,
-                        onClick = { viewModel.selectChannel(type) }
-                    )
-                }
-
-                if (!isLast) {
-                    HorizontalDivider(
-                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f),
-                        thickness = 1.dp,
-                        modifier = Modifier.padding(start = 16.dp)
-                    )
+                    if (isSelected) {
+                        Box(
+                            modifier = Modifier
+                                .size(28.dp)
+                                .clip(CircleShape)
+                                .background(AccentTeal),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Check,
+                                contentDescription = null,
+                                tint = Color.Black,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
                 }
             }
         }
 
-        // Custom URL input
         if (currentChannel == Channel.CUSTOM) {
-            SettingsSection(title = L("update_channel.section.custom_url"))
+            Spacer(modifier = Modifier.height(12.dp))
             OutlinedTextField(
                 value = customUrl,
                 onValueChange = { viewModel.setCustomUrl(it) },
-                placeholder = { Text("https://example.com/iitc/") },
+                label = { Text(L("update_channel.custom_url.title"), color = OnSurfaceVariantMuted) },
+                modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(SurfaceContainerDark),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = AccentTeal,
-                    unfocusedBorderColor = Color.Transparent,
-                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface
-                )
+                    unfocusedBorderColor = OutlineSubtle,
+                    focusedTextColor = OnSurfaceWhite,
+                    unfocusedTextColor = OnSurfaceWhite
+                ),
+                shape = RoundedCornerShape(14.dp)
             )
         }
 
-        // Core Update frequency
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Frequency Settings
         SettingsSection(title = L("update_channel.section.frequency"))
-        val coreLabel = coreIntervals.find { it.first == updateInterval }?.second ?: ""
+
+        val coreIntervalLabel = coreIntervals.find { it.first == updateInterval }?.second
+            ?: L("select_field.select")
         NavSettingsItem(
-            title = L("update_channel.section.frequency"),
-            description = coreLabel,
+            title = L("update_channel.core_frequency.title"),
+            description = coreIntervalLabel,
             isFirst = true,
-            isLast = true,
             onClick = { showCoreIntervalDialog = true }
         )
 
-        // External plugins update frequency
-        SettingsSection(title = L("update_channel.section.external_frequency"))
-        val extLabel = externalIntervals.find { it.first == externalInterval }?.second ?: ""
+        val externalIntervalLabel = externalIntervals.find { it.first == externalInterval }?.second
+            ?: L("select_field.select")
         NavSettingsItem(
-            title = L("update_channel.section.external_frequency"),
-            description = extLabel,
-            isFirst = true,
+            title = L("update_channel.external_frequency.title"),
+            description = externalIntervalLabel,
             isLast = true,
             onClick = { showExternalIntervalDialog = true }
         )
-
-        // Status & Last check
-        Spacer(modifier = Modifier.height(24.dp))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            if (isChecking) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(20.dp),
-                    color = AccentTeal,
-                    strokeWidth = 2.dp
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                Text(
-                    text = L("update_channel.checking"),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontSize = 13.sp
-                )
-            } else {
-                Text(
-                    text = viewModel.getFormattedLastCheck(),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                    fontSize = 13.sp
-                )
-            }
-        }
     }
 }

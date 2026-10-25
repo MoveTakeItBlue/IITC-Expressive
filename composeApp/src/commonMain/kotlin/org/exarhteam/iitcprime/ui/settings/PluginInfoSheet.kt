@@ -9,6 +9,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Extension
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
@@ -23,10 +24,11 @@ import androidx.compose.ui.unit.sp
 import org.exarhteam.iitcprime.i18n.L
 import org.exarhteam.iitcprime.model.Plugin
 import org.exarhteam.iitcprime.platform.PlatformUtils
-import org.exarhteam.iitcprime.theme.Accent
-import org.exarhteam.iitcprime.theme.SurfaceDark
-import org.exarhteam.iitcprime.theme.SurfaceContainer
+import org.exarhteam.iitcprime.theme.*
 
+/**
+ * Material 3 Expressive Plugin Details BottomSheet
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PluginInfoSheet(
@@ -38,8 +40,8 @@ fun PluginInfoSheet(
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = SurfaceDark,
-        shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)
+        containerColor = SurfaceContainerDark,
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
     ) {
         Column(
             modifier = Modifier
@@ -55,15 +57,15 @@ fun PluginInfoSheet(
             ) {
                 Box(
                     modifier = Modifier
-                        .size(48.dp)
+                        .size(52.dp)
                         .clip(CircleShape)
-                        .background(SurfaceContainer),
+                        .background(AccentContainerTeal),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.Extension,
                         contentDescription = null,
-                        tint = Accent,
+                        tint = AccentTeal,
                         modifier = Modifier.size(28.dp)
                     )
                 }
@@ -73,105 +75,86 @@ fun PluginInfoSheet(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = plugin.name,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        fontSize = 18.sp,
+                        color = OnSurfaceWhite,
+                        fontSize = 19.sp,
                         fontWeight = FontWeight.Bold
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         text = plugin.category.ifBlank { L("plugin_info.default_category") },
-                        color = Accent,
-                        fontSize = 13.sp
+                        color = AccentTeal,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(18.dp))
 
             // User / Override badge notice
             if (plugin.override) {
                 Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = Color(0xFFFFB74D).copy(alpha = 0.2f),
+                    shape = RoundedCornerShape(12.dp),
+                    color = TertiaryAmber.copy(alpha = 0.18f),
                     modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)
                 ) {
                     Text(
                         text = L("plugin_info.notice.override"),
-                        color = Color(0xFFFFB74D),
-                        fontSize = 12.sp,
-                        modifier = Modifier.padding(10.dp)
+                        color = TertiaryAmber,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.padding(12.dp)
                     )
                 }
             } else if (plugin.user) {
                 Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = Color(0xFF81D4FA).copy(alpha = 0.2f),
+                    shape = RoundedCornerShape(12.dp),
+                    color = AccentTeal.copy(alpha = 0.15f),
                     modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)
                 ) {
                     Text(
                         text = L("plugin_info.notice.user"),
-                        color = Color(0xFF81D4FA),
-                        fontSize = 12.sp,
-                        modifier = Modifier.padding(10.dp)
+                        color = AccentTeal,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.padding(12.dp)
                     )
                 }
             }
 
-            // Description
+            // Description Card
             if (plugin.description.isNotBlank()) {
-                Text(
-                    text = plugin.description,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontSize = 14.sp,
-                    lineHeight = 20.sp
-                )
-                Spacer(modifier = Modifier.height(16.dp))
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = SurfaceContainerHighDark,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = plugin.description,
+                        color = OnSurfaceWhite,
+                        fontSize = 14.sp,
+                        lineHeight = 20.sp,
+                        modifier = Modifier.padding(14.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.height(14.dp))
             }
 
-            // Details rows
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(SurfaceContainer)
-                    .padding(14.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+            // Metadata Chips / Table
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = SurfaceContainerHighDark,
+                modifier = Modifier.fillMaxWidth()
             ) {
-                if (plugin.version.isNotBlank()) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            text = L("plugin_info.version"),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontSize = 13.sp
-                        )
-                        Text(
-                            text = plugin.version,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Medium
-                        )
+                Column(modifier = Modifier.padding(14.dp)) {
+                    if (plugin.version.isNotBlank()) {
+                        InfoRow(label = L("plugin_info.version"), value = "v${plugin.version}")
                     }
-                }
-
-                if (plugin.author.isNotBlank()) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            text = L("plugin_info.author"),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontSize = 13.sp
-                        )
-                        Text(
-                            text = plugin.author,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Medium
-                        )
+                    if (plugin.author.isNotBlank()) {
+                        InfoRow(label = L("plugin_info.author"), value = plugin.author)
+                    }
+                    if (plugin.id.isNotBlank()) {
+                        InfoRow(label = "ID", value = plugin.id)
                     }
                 }
             }
@@ -179,75 +162,66 @@ fun PluginInfoSheet(
             Spacer(modifier = Modifier.height(20.dp))
 
             // Action Buttons
-            if (installMode && onInstall != null) {
-                Button(
-                    onClick = onInstall,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = Accent),
-                    shape = RoundedCornerShape(12.dp)
+            if (installMode) {
+                FilledTonalButton(
+                    onClick = {
+                        onInstall?.invoke()
+                        onDismiss()
+                    },
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                    colors = ButtonDefaults.filledTonalButtonColors(
+                        containerColor = AccentTeal,
+                        contentColor = Color.Black
+                    ),
+                    shape = RoundedCornerShape(percent = 50)
                 ) {
-                    Text(
-                        text = L("plugin_info.install"),
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-            }
-
-            if (!plugin.homepageURL.isNullOrBlank()) {
-                val url = plugin.homepageURL
-                OutlinedButton(
-                    onClick = { PlatformUtils.openUrl(url) },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Icon(imageVector = Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(text = L("plugin_info.open_homepage"))
+                    Text(L("plugin_info.install"), fontWeight = FontWeight.Bold, fontSize = 15.sp)
                 }
-                Spacer(modifier = Modifier.height(8.dp))
-            }
-
-            if (!plugin.issueTracker.isNullOrBlank()) {
-                val url = plugin.issueTracker
-                OutlinedButton(
-                    onClick = { PlatformUtils.openUrl(url) },
+            } else {
+                Row(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp)
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Icon(imageVector = Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(text = L("plugin_info.open_issue_tracker"))
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-            }
+                    if (!plugin.downloadURL.isNullOrBlank()) {
+                        OutlinedButton(
+                            onClick = { plugin.downloadURL?.let { PlatformUtils.openUrl(it) } },
+                            modifier = Modifier.weight(1f).height(44.dp),
+                            shape = RoundedCornerShape(percent = 50),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, OutlineSubtle)
+                        ) {
+                            Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null, tint = AccentTeal, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(L("plugin_info.website"), color = OnSurfaceWhite, fontSize = 13.sp)
+                        }
+                    }
 
-            if (!plugin.downloadURL.isNullOrBlank()) {
-                val url = plugin.downloadURL
-                OutlinedButton(
-                    onClick = { PlatformUtils.shareUrl(url) },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Icon(imageVector = Icons.Default.Share, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(text = L("plugin_info.share_download"))
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-            }
-
-            if ((plugin.user || plugin.override) && onDelete != null) {
-                OutlinedButton(
-                    onClick = onDelete,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Icon(imageVector = Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(text = L("common.delete"))
+                    if (onDelete != null) {
+                        OutlinedButton(
+                            onClick = onDelete,
+                            modifier = Modifier.weight(1f).height(44.dp),
+                            shape = RoundedCornerShape(percent = 50),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, StateError.copy(alpha = 0.5f))
+                        ) {
+                            Icon(Icons.Default.Delete, contentDescription = null, tint = StateError, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(L("plugin_info.delete"), color = StateError, fontSize = 13.sp)
+                        }
+                    }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun InfoRow(label: String, value: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(text = label, color = OnSurfaceVariantMuted, fontSize = 13.sp)
+        Text(text = value, color = OnSurfaceWhite, fontSize = 13.sp, fontWeight = FontWeight.Medium)
     }
 }

@@ -1,24 +1,36 @@
 package org.exarhteam.iitcprime.ui.common
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.automirrored.filled.OpenInNew
+import androidx.compose.material3.ripple
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import org.exarhteam.iitcprime.i18n.L
 import org.exarhteam.iitcprime.platform.PlatformUtils
 import org.exarhteam.iitcprime.theme.*
 import org.exarhteam.iitcprime.viewmodel.AppDialog
 
+/**
+ * Material 3 Expressive Dialogs Host
+ */
 @Composable
 fun AppDialogHost(
     dialog: AppDialog?,
@@ -29,48 +41,26 @@ fun AppDialogHost(
     when (dialog) {
         is AppDialog.Alert -> {
             AlertDialog(
-                onDismissRequest = {
+                title = dialog.title,
+                message = dialog.message,
+                onDismiss = {
                     dialog.onDismiss()
                     onDismiss()
-                },
-                title = { Text(dialog.title, color = OnSurfaceWhite) },
-                text = { Text(dialog.message, color = OnSurfaceVariantMuted) },
-                confirmButton = {
-                    TextButton(onClick = {
-                        dialog.onDismiss()
-                        onDismiss()
-                    }) {
-                        Text(L("dialog.ok"), color = AccentTeal)
-                    }
-                },
-                containerColor = SurfaceContainerDark
+                }
             )
         }
         is AppDialog.Confirm -> {
-            AlertDialog(
-                onDismissRequest = {
-                    dialog.onCancel()
+            ConfirmDialog(
+                title = dialog.title,
+                message = dialog.message,
+                onConfirm = {
+                    dialog.onConfirm()
                     onDismiss()
                 },
-                title = { Text(dialog.title, color = OnSurfaceWhite) },
-                text = { Text(dialog.message, color = OnSurfaceVariantMuted) },
-                confirmButton = {
-                    TextButton(onClick = {
-                        dialog.onConfirm()
-                        onDismiss()
-                    }) {
-                        Text(L("dialog.ok"), color = AccentTeal)
-                    }
-                },
-                dismissButton = {
-                    TextButton(onClick = {
-                        dialog.onCancel()
-                        onDismiss()
-                    }) {
-                        Text(L("dialog.cancel"), color = OnSurfaceVariantMuted)
-                    }
-                },
-                containerColor = SurfaceContainerDark
+                onCancel = {
+                    dialog.onCancel()
+                    onDismiss()
+                }
             )
         }
         is AppDialog.LocationShare -> {
@@ -79,15 +69,111 @@ fun AppDialogHost(
                 onDismiss = onDismiss
             )
         }
-        is AppDialog.AddPlugin -> {
-            // Handled in Settings/Plugins
-        }
-        is AppDialog.PluginInfo -> {
-            // Handled in Settings/Plugins
-        }
+        is AppDialog.AddPlugin -> {}
+        is AppDialog.PluginInfo -> {}
     }
 }
 
+/**
+ * Material 3 Expressive Alert Dialog
+ */
+@Composable
+fun AlertDialog(
+    title: String,
+    message: String,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = title,
+                color = OnSurfaceWhite,
+                fontSize = 19.sp,
+                fontWeight = FontWeight.Bold
+            )
+        },
+        text = {
+            Text(
+                text = message,
+                color = OnSurfaceVariantMuted,
+                fontSize = 14.sp,
+                lineHeight = 20.sp
+            )
+        },
+        confirmButton = {
+            FilledTonalButton(
+                onClick = onDismiss,
+                colors = ButtonDefaults.filledTonalButtonColors(
+                    containerColor = AccentContainerTeal,
+                    contentColor = AccentTeal
+                ),
+                shape = RoundedCornerShape(percent = 50)
+            ) {
+                Text(L("dialog.ok"), fontWeight = FontWeight.Bold)
+            }
+        },
+        shape = RoundedCornerShape(28.dp),
+        containerColor = SurfaceContainerDark
+    )
+}
+
+/**
+ * Material 3 Expressive Confirm Dialog
+ */
+@Composable
+fun ConfirmDialog(
+    title: String,
+    message: String,
+    onConfirm: () -> Unit,
+    onCancel: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onCancel,
+        title = {
+            Text(
+                text = title,
+                color = OnSurfaceWhite,
+                fontSize = 19.sp,
+                fontWeight = FontWeight.Bold
+            )
+        },
+        text = {
+            Text(
+                text = message,
+                color = OnSurfaceVariantMuted,
+                fontSize = 14.sp,
+                lineHeight = 20.sp
+            )
+        },
+        confirmButton = {
+            FilledTonalButton(
+                onClick = onConfirm,
+                colors = ButtonDefaults.filledTonalButtonColors(
+                    containerColor = AccentContainerTeal,
+                    contentColor = AccentTeal
+                ),
+                shape = RoundedCornerShape(percent = 50)
+            ) {
+                Text(L("dialog.ok"), fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = onCancel,
+                shape = RoundedCornerShape(percent = 50)
+            ) {
+                Text(L("dialog.cancel"), color = OnSurfaceVariantMuted, fontWeight = FontWeight.Medium)
+            }
+        },
+        shape = RoundedCornerShape(28.dp),
+        containerColor = SurfaceContainerDark
+    )
+}
+
+/**
+ * Material 3 Expressive Location Share Dialog
+ */
 @Composable
 fun LocationShareDialog(
     dialog: AppDialog.LocationShare,
@@ -99,89 +185,100 @@ fun LocationShareDialog(
     val isPortal = dialog.isPortal
     val guid = dialog.guid
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(L("share.title"), color = OnSurfaceWhite) },
-        text = {
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            shape = RoundedCornerShape(28.dp),
+            colors = CardDefaults.cardColors(containerColor = SurfaceContainerDark),
+            border = androidx.compose.foundation.BorderStroke(1.dp, OutlineSubtle),
+            modifier = Modifier.fillMaxWidth().padding(16.dp)
+        ) {
             Column(
-                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+                modifier = Modifier.padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                ShareOptionRow(
-                    icon = Icons.Default.Share,
-                    label = L("share.action.text"),
-                    onClick = {
-                        val text = "${if (title.isNotBlank()) "$title\n" else ""}Location: $lat,$lng"
-                        PlatformUtils.shareText(text, title.ifBlank { "Location" })
-                        onDismiss()
-                    }
-                )
-                ShareOptionRow(
-                    icon = Icons.Default.Map,
-                    label = L("share.action.maps"),
-                    onClick = {
-                        PlatformUtils.shareGeo(lat, lng, title)
-                        onDismiss()
-                    }
-                )
-                ShareOptionRow(
-                    icon = Icons.Default.ContentCopy,
-                    label = L("share.action.coordinates"),
-                    onClick = {
-                        PlatformUtils.copyToClipboard("$lat,$lng", L("share.toast.coordinates_copied"))
-                        onDismiss()
-                    }
-                )
-                ShareOptionRow(
-                    icon = Icons.Default.Link,
-                    label = L("share.action.link"),
-                    onClick = {
-                        val url = "https://intel.ingress.com/?ll=$lat,$lng&z=17${if (isPortal) "&pll=$lat,$lng" else ""}"
-                        PlatformUtils.shareUrl(url, title.ifBlank { "Intel Map" })
-                        onDismiss()
-                    }
-                )
-                if (isPortal || !guid.isNullOrBlank()) {
-                    ShareOptionRow(
-                        icon = Icons.AutoMirrored.Filled.OpenInNew,
-                        label = L("share.action.ingress_prime"),
-                        onClick = {
-                            val primeUrl = "https://link.ingress.com/?link=${"https://intel.ingress.com/portal/${guid ?: ""}"}&apn=com.nianticproject.ingress&ofl=${"https://intel.ingress.com/intel?pll=$lat,$lng"}"
-                            PlatformUtils.openInBrowser(primeUrl)
-                            onDismiss()
-                        }
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .background(AccentContainerTeal),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = if (isPortal) Icons.Default.Place else Icons.Default.MyLocation,
+                        contentDescription = null,
+                        tint = AccentTeal,
+                        modifier = Modifier.size(26.dp)
                     )
                 }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text(L("dialog.cancel"), color = OnSurfaceVariantMuted)
-            }
-        },
-        containerColor = SurfaceContainerDark
-    )
-}
 
-@Composable
-private fun ShareOptionRow(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    label: String,
-    onClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(vertical = 12.dp, horizontal = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(icon, contentDescription = null, tint = AccentTeal, modifier = Modifier.size(22.dp))
-        Spacer(modifier = Modifier.width(16.dp))
-        Text(label, color = OnSurfaceWhite, fontSize = 15.sp)
+                Spacer(modifier = Modifier.height(14.dp))
+
+                Text(
+                    text = if (title.isNotBlank()) title else L("share.title"),
+                    color = OnSurfaceWhite,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                Text(
+                    text = "$lat, $lng",
+                    color = OnSurfaceVariantMuted,
+                    fontSize = 13.sp
+                )
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                // Actions
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    FilledTonalButton(
+                        onClick = {
+                            val coordStr = "$lat,$lng"
+                            PlatformUtils.copyToClipboard(coordStr, L("share.toast.coordinates_copied"))
+                            onDismiss()
+                        },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(percent = 50),
+                        colors = ButtonDefaults.filledTonalButtonColors(
+                            containerColor = SurfaceContainerHighDark,
+                            contentColor = OnSurfaceWhite
+                        )
+                    ) {
+                        Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(L("share.copy"), fontSize = 13.sp)
+                    }
+
+                    FilledTonalButton(
+                        onClick = {
+                            val geoUrl = "geo:$lat,$lng?q=$lat,$lng($title)"
+                            PlatformUtils.openUrl(geoUrl)
+                            onDismiss()
+                        },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(percent = 50),
+                        colors = ButtonDefaults.filledTonalButtonColors(
+                            containerColor = AccentContainerTeal,
+                            contentColor = AccentTeal
+                        )
+                    ) {
+                        Icon(Icons.Default.Map, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(L("share.open_map"), fontSize = 13.sp)
+                    }
+                }
+            }
+        }
     }
 }
 
+/**
+ * Material 3 Expressive Selection Dialog
+ */
 @Composable
 fun SelectFieldDialog(
     title: String,
@@ -190,71 +287,76 @@ fun SelectFieldDialog(
     onSelect: (Int) -> Unit,
     onDismiss: () -> Unit
 ) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(title, color = OnSurfaceWhite) },
-        text = {
-            Column(
-                modifier = Modifier.fillMaxWidth().heightIn(max = 350.dp)
-            ) {
-                items.forEachIndexed { index, item ->
-                    val isSelected = index == selectedIndex
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                onSelect(index)
-                                onDismiss()
-                            }
-                            .padding(vertical = 12.dp, horizontal = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        RadioButton(
-                            selected = isSelected,
-                            onClick = {
-                                onSelect(index)
-                                onDismiss()
-                            },
-                            colors = RadioButtonDefaults.colors(
-                                selectedColor = AccentTeal,
-                                unselectedColor = OnSurfaceVariantMuted
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            shape = RoundedCornerShape(28.dp),
+            colors = CardDefaults.cardColors(containerColor = SurfaceContainerDark),
+            border = androidx.compose.foundation.BorderStroke(1.dp, OutlineSubtle),
+            modifier = Modifier.fillMaxWidth().heightIn(max = 480.dp).padding(16.dp)
+        ) {
+            Column(modifier = Modifier.padding(vertical = 18.dp, horizontal = 16.dp)) {
+                Text(
+                    text = title,
+                    color = OnSurfaceWhite,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                LazyColumn(
+                    modifier = Modifier.weight(1f, fill = false),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    itemsIndexed(items) { index, item ->
+                        val isSelected = index == selectedIndex
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(if (isSelected) SurfaceContainerHighestDark else Color.Transparent)
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = ripple(color = AccentTeal),
+                                    onClick = {
+                                        onSelect(index)
+                                        onDismiss()
+                                    }
+                                )
+                                .padding(horizontal = 14.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = item,
+                                color = if (isSelected) AccentTeal else OnSurfaceWhite,
+                                fontSize = 14.sp,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                modifier = Modifier.weight(1f)
                             )
-                        )
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text(
-                            text = item,
-                            color = if (isSelected) AccentTeal else OnSurfaceWhite,
-                            fontSize = 15.sp
-                        )
+                            if (isSelected) {
+                                Icon(
+                                    imageVector = Icons.Default.Check,
+                                    contentDescription = null,
+                                    tint = AccentTeal,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    TextButton(
+                        onClick = onDismiss,
+                        shape = RoundedCornerShape(percent = 50)
+                    ) {
+                        Text(L("dialog.cancel"), color = OnSurfaceVariantMuted)
                     }
                 }
             }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text(L("dialog.cancel"), color = OnSurfaceVariantMuted)
-            }
-        },
-        containerColor = SurfaceContainerDark
-    )
+        }
+    }
 }
-
-@Composable
-fun AlertDialog(
-    title: String,
-    message: String,
-    onDismiss: () -> Unit
-) {
-    AppDialogHost(AppDialog.Alert(title, message, onDismiss), onDismiss)
-}
-
-@Composable
-fun ConfirmDialog(
-    title: String,
-    message: String,
-    onConfirm: () -> Unit,
-    onCancel: () -> Unit
-) {
-    AppDialogHost(AppDialog.Confirm(title, message, onConfirm, onCancel), onCancel)
-}
-

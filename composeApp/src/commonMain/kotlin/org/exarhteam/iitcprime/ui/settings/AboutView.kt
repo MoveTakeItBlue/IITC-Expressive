@@ -1,21 +1,29 @@
 package org.exarhteam.iitcprime.ui.settings
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Map
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.exarhteam.iitcprime.i18n.L
-import org.exarhteam.iitcprime.theme.Accent
+import org.exarhteam.iitcprime.theme.*
 
+/**
+ * Material 3 Expressive About Screen
+ */
 @Composable
 fun AboutView(
     onBack: () -> Unit
@@ -27,28 +35,50 @@ fun AboutView(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 24.dp),
+                .clip(RoundedCornerShape(24.dp))
+                .background(SurfaceContainerDark)
+                .border(width = 1.dp, color = OutlineSubtle, shape = RoundedCornerShape(24.dp))
+                .padding(vertical = 28.dp, horizontal = 20.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            // App Icon Circle
+            Box(
+                modifier = Modifier
+                    .size(72.dp)
+                    .clip(CircleShape)
+                    .background(AccentContainerTeal),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Map,
+                    contentDescription = null,
+                    tint = AccentTeal,
+                    modifier = Modifier.size(38.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
             Text(
                 text = L("app.name.release"),
-                color = MaterialTheme.colorScheme.onSurface,
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Black
+                color = OnSurfaceWhite,
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold
             )
 
             Spacer(modifier = Modifier.height(8.dp))
 
+            // Version Pill Badge
             Box(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(Accent)
+                    .clip(RoundedCornerShape(percent = 50))
+                    .background(AccentTeal)
                     .padding(horizontal = 14.dp, vertical = 4.dp)
             ) {
                 Text(
-                    text = "v0.42.5",
-                    color = MaterialTheme.colorScheme.onPrimary,
-                    fontSize = 13.sp,
+                    text = "v0.42.5 (Expressive)",
+                    color = Color.Black,
+                    fontSize = 12.sp,
                     fontWeight = FontWeight.Bold
                 )
             }
@@ -57,15 +87,17 @@ fun AboutView(
 
             Text(
                 text = L("about.description"),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = OnSurfaceVariantMuted,
                 fontSize = 14.sp,
                 textAlign = TextAlign.Center,
                 lineHeight = 20.sp,
-                modifier = Modifier.padding(horizontal = 16.dp)
+                modifier = Modifier.padding(horizontal = 12.dp)
             )
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(20.dp))
+
+        SettingsSection(title = L("about.section.links"))
 
         LinkSettingsItem(
             title = L("about.iitc_website.title"),

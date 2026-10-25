@@ -296,6 +296,28 @@ class IITCManager(
                 stateMap[uid] = JsonPrimitive(action)
                 val newJson = JsonObject(stateMap).toString()
                 storage.setString("plugins_state", newJson)
+
+                if (action == "on") {
+                    val p = _plugins.value[uid]
+                    if (p != null && p.code == null) {
+                        scope.launch {
+                            try {
+                                val ch = _currentChannel.value
+                                val host = getChannelHost(ch)
+                                val scriptUrl = p.downloadURL?.ifBlank { null }
+                                    ?: "$host/plugins/${p.filename.ifBlank { "${p.name.replace(" ", "_")}.user.js" }}"
+                                val resp = httpClient.get(scriptUrl)
+                                if (resp.status.value in 200..299) {
+                                    val code = resp.bodyAsText()
+                                    cacheLocalPluginCode(ch.key, p.uid, code)
+                                    refreshPluginsView()
+                                }
+                            } catch (e: Exception) {
+                                println("Prefetch plugin error: ${e.message}")
+                            }
+                        }
+                    }
+                }
             }
             "delete" -> {
                 // Delete user plugin or override

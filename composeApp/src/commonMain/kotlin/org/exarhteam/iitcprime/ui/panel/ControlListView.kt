@@ -3,6 +3,7 @@ package org.exarhteam.iitcprime.ui.panel
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -10,6 +11,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.ripple
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -28,6 +30,9 @@ import org.exarhteam.iitcprime.theme.*
 import org.exarhteam.iitcprime.ui.common.SelectFieldDialog
 import org.exarhteam.iitcprime.viewmodel.MainViewModel
 
+/**
+ * Material 3 Expressive ControlListView
+ */
 @Composable
 fun ControlListView(
     activeTab: String,
@@ -46,6 +51,7 @@ fun ControlListView(
     val overlayLayers by viewModel.overlayLayers.collectAsState()
     val panes by viewModel.panes.collectAsState()
     val currentPane by viewModel.currentPane.collectAsState()
+    val portalStatus by viewModel.portalStatus.collectAsState()
 
     if (showHighlighterDialog) {
         val selectedIdx = highlighters.indexOf(selectedHighlighter).coerceAtLeast(0)
@@ -77,15 +83,23 @@ fun ControlListView(
         )
     }
 
+    val displayPanes = remember(panes, portalStatus.hasSelected) {
+        panes.filter { pane ->
+            if (pane.name == "map") false
+            else if (pane.name == "info") portalStatus.hasSelected
+            else true
+        }
+    }
+
     LazyColumn(
         modifier = modifier.fillMaxWidth(),
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         if (activeTab == "quick") {
             // Quick action buttons group
             item {
-                ActionButtonsGroup(
+                ExpressiveActionButtonsGroup(
                     onSettings = onNavigateToSettings,
                     onPlugins = onNavigateToPlugins,
                     onDebug = { viewModel.toggleDebugMode() },
@@ -93,41 +107,62 @@ fun ControlListView(
                 )
             }
 
-            // Panes list
-            val filteredPanes = panes.filterIndexed { index, _ -> index < 3 || index >= 5 }
-            itemsIndexed(filteredPanes) { index, pane ->
-                val isSelected = currentPane == pane.name
-                val isFirst = index == 0
-                val isLast = index == filteredPanes.size - 1
+            item {
+                Spacer(modifier = Modifier.height(2.dp))
+            }
 
-                val shape = when {
-                    isFirst && isLast -> RoundedCornerShape(12.dp)
-                    isFirst -> RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp, bottomStart = 4.dp, bottomEnd = 4.dp)
-                    isLast -> RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp, bottomStart = 12.dp, bottomEnd = 12.dp)
-                    else -> RoundedCornerShape(4.dp)
-                }
+            itemsIndexed(displayPanes, key = { _, pane -> pane.name }) { _, pane ->
+                val isSelected = currentPane == pane.name
 
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(shape)
-                        .background(if (isSelected) SurfaceContainerHighDark else SurfaceContainerDark)
-                        .clickable { viewModel.switchToPane(pane.name) }
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(if (isSelected) SurfaceContainerHighestDark else SurfaceContainerDark)
+                        .border(
+                            width = 1.dp,
+                            color = if (isSelected) AccentTeal else OutlineSubtle,
+                            shape = RoundedCornerShape(16.dp)
+                        )
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = ripple(color = AccentTeal),
+                            onClick = { viewModel.switchToPane(pane.name) }
+                        )
                         .padding(horizontal = 16.dp, vertical = 14.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        imageVector = getPaneIcon(pane.icon),
-                        contentDescription = null,
-                        tint = if (isSelected) AccentTeal else OnSurfaceWhite,
-                        modifier = Modifier.size(22.dp)
-                    )
-                    Spacer(modifier = Modifier.width(16.dp))
+                    // Leading Icon with tonal pill background
+                    Box(
+                        modifier = Modifier
+                            .size(38.dp)
+                            .clip(CircleShape)
+                            .background(if (isSelected) AccentTeal else SurfaceContainerHighDark),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = getPaneIcon(pane.icon),
+                            contentDescription = null,
+                            tint = if (isSelected) Color.Black else AccentTeal,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(14.dp))
+
                     Text(
                         text = pane.displayLabel,
                         color = if (isSelected) AccentTeal else OnSurfaceWhite,
                         fontSize = 15.sp,
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    Icon(
+                        imageVector = Icons.Default.ChevronRight,
+                        contentDescription = null,
+                        tint = if (isSelected) AccentTeal else OnSurfaceVariantMuted,
+                        modifier = Modifier.size(20.dp)
                     )
                 }
             }
@@ -136,111 +171,86 @@ fun ControlListView(
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    // Highlighter select field
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = L("layers.highlighter"),
-                            color = OnSurfaceVariantMuted,
-                            fontSize = 12.sp,
-                            modifier = Modifier.padding(bottom = 4.dp)
-                        )
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(SurfaceContainerDark)
-                                .clickable { showHighlighterDialog = true }
-                                .padding(horizontal = 12.dp, vertical = 10.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text(
-                                text = selectedHighlighter,
-                                color = OnSurfaceWhite,
-                                fontSize = 13.sp,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.weight(1f)
-                            )
-                            Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = OnSurfaceVariantMuted)
-                        }
-                    }
+                    // Highlighter Card
+                    ExpressiveDropdownCard(
+                        title = L("layers.highlighter"),
+                        value = selectedHighlighter,
+                        icon = Icons.Default.Highlight,
+                        onClick = { showHighlighterDialog = true },
+                        modifier = Modifier.weight(1f)
+                    )
 
-                    // Base layer select field
+                    // Base Layer Card
                     val currentBaseName = baseLayers.find { it.layerId == selectedBaseLayer }?.name ?: L("select_field.select")
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = L("layers.base_layer"),
-                            color = OnSurfaceVariantMuted,
-                            fontSize = 12.sp,
-                            modifier = Modifier.padding(bottom = 4.dp)
-                        )
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(SurfaceContainerDark)
-                                .clickable { showBaseLayerDialog = true }
-                                .padding(horizontal = 12.dp, vertical = 10.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text(
-                                text = currentBaseName,
-                                color = OnSurfaceWhite,
-                                fontSize = 13.sp,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.weight(1f)
-                            )
-                            Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = OnSurfaceVariantMuted)
-                        }
-                    }
+                    ExpressiveDropdownCard(
+                        title = L("layers.base_layer"),
+                        value = currentBaseName,
+                        icon = Icons.Default.Map,
+                        onClick = { showBaseLayerDialog = true },
+                        modifier = Modifier.weight(1f)
+                    )
                 }
             }
 
             // Portal Icons row (first 9 overlay layers: levels 0-8)
             item {
-                Row(
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(8.dp))
+                        .clip(RoundedCornerShape(18.dp))
                         .background(SurfaceContainerDark)
-                        .padding(horizontal = 8.dp, vertical = 10.dp),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
-                    verticalAlignment = Alignment.CenterVertically
+                        .border(width = 1.dp, color = OutlineSubtle, shape = RoundedCornerShape(18.dp))
+                        .padding(horizontal = 12.dp, vertical = 12.dp)
                 ) {
-                    val portalColors = listOf(
-                        Level0Color, Level1Color, Level2Color, Level3Color,
-                        Level4Color, Level5Color, Level6Color, Level7Color, Level8Color
+                    Text(
+                        text = L("map_status.portals"),
+                        color = OnSurfaceVariantMuted,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.padding(bottom = 8.dp, start = 4.dp)
                     )
 
-                    for (level in 0..8) {
-                        val layer = overlayLayers.getOrNull(level)
-                        val isActive = layer?.active ?: true
-                        val color = portalColors[level]
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        val portalColors = listOf(
+                            Level0Color, Level1Color, Level2Color, Level3Color,
+                            Level4Color, Level5Color, Level6Color, Level7Color, Level8Color
+                        )
 
-                        Box(
-                            modifier = Modifier
-                                .size(34.dp)
-                                .clip(CircleShape)
-                                .background(if (isActive) color else Color.Transparent)
-                                .border(
-                                    width = 1.5.dp,
-                                    color = if (isActive) Color.White else color.copy(alpha = 0.5f),
-                                    shape = CircleShape
+                        for (level in 0..8) {
+                            val layer = overlayLayers.getOrNull(level)
+                            val isActive = layer?.active ?: true
+                            val color = portalColors[level]
+
+                            Box(
+                                modifier = Modifier
+                                    .size(32.dp)
+                                    .clip(CircleShape)
+                                    .background(if (isActive) color else Color.Transparent)
+                                    .border(
+                                        width = 1.5.dp,
+                                        color = if (isActive) Color.White.copy(alpha = 0.8f) else color.copy(alpha = 0.45f),
+                                        shape = CircleShape
+                                    )
+                                    .clickable(
+                                        interactionSource = remember { MutableInteractionSource() },
+                                        indication = ripple(color = color),
+                                        onClick = { viewModel.togglePortalLevelOverlay(level) }
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "$level",
+                                    color = if (isActive) Color.Black else color,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold
                                 )
-                                .clickable { viewModel.togglePortalLevelOverlay(level) },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "$level",
-                                color = if (isActive) Color.Black else color,
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Bold
-                            )
+                            }
                         }
                     }
                 }
@@ -248,24 +258,24 @@ fun ControlListView(
 
             // Remaining overlay layers (index 9 onwards)
             val remainingLayers = overlayLayers.drop(9)
-            // Show first 4 remaining as pairs
+            // First 4 remaining as 2-column cards
             val paired = remainingLayers.take(4)
             for (i in paired.indices step 2) {
                 item {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         val layer1 = paired[i]
                         val layer2 = paired.getOrNull(i + 1)
 
-                        LayerSwitchCard(
+                        ExpressiveLayerSwitchCard(
                             layer = layer1,
                             onToggle = { viewModel.toggleOverlayLayer(layer1) },
                             modifier = Modifier.weight(1f)
                         )
                         if (layer2 != null) {
-                            LayerSwitchCard(
+                            ExpressiveLayerSwitchCard(
                                 layer = layer2,
                                 onToggle = { viewModel.toggleOverlayLayer(layer2) },
                                 modifier = Modifier.weight(1f)
@@ -277,10 +287,10 @@ fun ControlListView(
                 }
             }
 
-            // Single switches for remainder
+            // Single switches for the rest of overlay layers
             val singleLayers = remainingLayers.drop(4)
-            itemsIndexed(singleLayers) { _, layer ->
-                LayerSwitchRow(
+            itemsIndexed(singleLayers, key = { _, l -> l.layerId }) { _, layer ->
+                ExpressiveLayerSwitchRow(
                     layer = layer,
                     onToggle = { viewModel.toggleOverlayLayer(layer) }
                 )
@@ -289,8 +299,11 @@ fun ControlListView(
     }
 }
 
+/**
+ * Material 3 Expressive Action Buttons Card Grid
+ */
 @Composable
-private fun ActionButtonsGroup(
+private fun ExpressiveActionButtonsGroup(
     onSettings: () -> Unit,
     onPlugins: () -> Unit,
     onDebug: () -> Unit,
@@ -299,48 +312,128 @@ private fun ActionButtonsGroup(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(20.dp))
             .background(SurfaceContainerDark)
-            .padding(vertical = 12.dp, horizontal = 8.dp),
+            .border(width = 1.dp, color = OutlineSubtle, shape = RoundedCornerShape(20.dp))
+            .padding(horizontal = 8.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.SpaceEvenly
     ) {
-        ActionButtonItem(icon = Icons.Default.Settings, text = L("nav.settings"), onClick = onSettings)
-        ActionButtonItem(icon = Icons.Default.Extension, text = L("nav.plugins"), onClick = onPlugins)
-        ActionButtonItem(icon = Icons.Default.Terminal, text = L("nav.debug"), onClick = onDebug)
-        ActionButtonItem(icon = Icons.Default.Refresh, text = L("nav.reload_iitc"), onClick = onReload)
+        ExpressiveActionButtonItem(icon = Icons.Default.Settings, text = L("nav.settings"), onClick = onSettings)
+        ExpressiveActionButtonItem(icon = Icons.Default.Extension, text = L("nav.plugins"), onClick = onPlugins)
+        ExpressiveActionButtonItem(icon = Icons.Default.Terminal, text = L("nav.debug"), onClick = onDebug)
+        ExpressiveActionButtonItem(icon = Icons.Default.Refresh, text = L("nav.reload_iitc"), onClick = onReload)
     }
 }
 
 @Composable
-private fun ActionButtonItem(
+private fun ExpressiveActionButtonItem(
     icon: ImageVector,
     text: String,
     onClick: () -> Unit
 ) {
     Column(
         modifier = Modifier
-            .clip(RoundedCornerShape(8.dp))
-            .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 6.dp),
+            .clip(RoundedCornerShape(14.dp))
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = ripple(color = AccentTeal),
+                onClick = onClick
+            )
+            .padding(horizontal = 10.dp, vertical = 6.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Icon(icon, contentDescription = text, tint = AccentTeal, modifier = Modifier.size(24.dp))
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(text, color = OnSurfaceWhite, fontSize = 11.sp)
+        Box(
+            modifier = Modifier
+                .size(42.dp)
+                .clip(CircleShape)
+                .background(AccentContainerTeal),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(icon, contentDescription = text, tint = AccentTeal, modifier = Modifier.size(22.dp))
+        }
+        Spacer(modifier = Modifier.height(6.dp))
+        Text(
+            text = text,
+            color = OnSurfaceWhite,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Medium,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 }
 
 @Composable
-private fun LayerSwitchCard(
+private fun ExpressiveDropdownCard(
+    title: String,
+    value: String,
+    icon: ImageVector,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier) {
+        Text(
+            text = title,
+            color = OnSurfaceVariantMuted,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.padding(bottom = 6.dp, start = 4.dp)
+        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(16.dp))
+                .background(SurfaceContainerDark)
+                .border(width = 1.dp, color = OutlineSubtle, shape = RoundedCornerShape(16.dp))
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = ripple(color = AccentTeal),
+                    onClick = onClick
+                )
+                .padding(horizontal = 12.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = AccentTeal,
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = value,
+                color = OnSurfaceWhite,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Medium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f)
+            )
+            Icon(
+                imageVector = Icons.Default.ArrowDropDown,
+                contentDescription = null,
+                tint = OnSurfaceVariantMuted
+            )
+        }
+    }
+}
+
+@Composable
+private fun ExpressiveLayerSwitchCard(
     layer: MapLayer,
     onToggle: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Row(
         modifier = modifier
-            .clip(RoundedCornerShape(8.dp))
+            .clip(RoundedCornerShape(16.dp))
             .background(SurfaceContainerDark)
-            .clickable(onClick = onToggle)
+            .border(width = 1.dp, color = OutlineSubtle, shape = RoundedCornerShape(16.dp))
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = ripple(color = AccentTeal),
+                onClick = onToggle
+            )
             .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
@@ -348,7 +441,8 @@ private fun LayerSwitchCard(
         Text(
             text = layer.name,
             color = OnSurfaceWhite,
-            fontSize = 12.sp,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Medium,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f)
@@ -367,16 +461,21 @@ private fun LayerSwitchCard(
 }
 
 @Composable
-private fun LayerSwitchRow(
+private fun ExpressiveLayerSwitchRow(
     layer: MapLayer,
     onToggle: () -> Unit
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
+            .clip(RoundedCornerShape(16.dp))
             .background(SurfaceContainerDark)
-            .clickable(onClick = onToggle)
+            .border(width = 1.dp, color = OutlineSubtle, shape = RoundedCornerShape(16.dp))
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = ripple(color = AccentTeal),
+                onClick = onToggle
+            )
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
@@ -385,6 +484,7 @@ private fun LayerSwitchRow(
             text = layer.name,
             color = OnSurfaceWhite,
             fontSize = 14.sp,
+            fontWeight = FontWeight.Medium,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f)
@@ -409,6 +509,10 @@ private fun getPaneIcon(iconName: String): ImageVector {
         "ms-notifications" -> Icons.Default.Notifications
         "ms-info" -> Icons.Default.Info
         "ms-map" -> Icons.Default.Map
-        else -> Icons.Default.Map
+        "ms-bookmark" -> Icons.Default.Bookmark
+        "ms-edit" -> Icons.Default.Edit
+        "ms-key" -> Icons.Default.VpnKey
+        "ms-extension" -> Icons.Default.Extension
+        else -> Icons.Default.Extension
     }
 }

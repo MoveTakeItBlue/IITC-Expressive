@@ -132,6 +132,7 @@ object BridgeScripts {
 
             window.nsWebViewBridge = bridge;
             window.app = bridge;
+            window.android = bridge;
 
             // GM bridge transport
             window.__iitc_gm_bridge__ = {

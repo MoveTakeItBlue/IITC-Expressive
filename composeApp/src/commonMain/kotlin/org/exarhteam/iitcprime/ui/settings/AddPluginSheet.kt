@@ -3,20 +3,23 @@ package org.exarhteam.iitcprime.ui.settings
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.FolderOpen
+import androidx.compose.material.icons.filled.Link
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.exarhteam.iitcprime.i18n.L
-import org.exarhteam.iitcprime.theme.Accent
-import org.exarhteam.iitcprime.theme.SurfaceDark
-import org.exarhteam.iitcprime.theme.SurfaceContainer
+import org.exarhteam.iitcprime.theme.*
 
+/**
+ * Material 3 Expressive Add Plugin BottomSheet
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddPluginSheet(
@@ -29,8 +32,8 @@ fun AddPluginSheet(
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = SurfaceDark,
-        shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)
+        containerColor = SurfaceContainerDark,
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
     ) {
         Column(
             modifier = Modifier
@@ -40,96 +43,105 @@ fun AddPluginSheet(
         ) {
             Text(
                 text = L("add_plugin.title"),
-                color = MaterialTheme.colorScheme.onSurface,
+                color = OnSurfaceWhite,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // URL input
+            // URL input field
             OutlinedTextField(
                 value = urlText,
                 onValueChange = { urlText = it },
                 placeholder = {
                     Text(
                         text = L("add_plugin.url_hint"),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                        color = OnSurfaceVariantMuted
                     )
+                },
+                leadingIcon = {
+                    Icon(Icons.Default.Link, contentDescription = null, tint = AccentTeal)
                 },
                 singleLine = true,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(SurfaceContainer),
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(SurfaceContainerHighDark),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Accent,
-                    unfocusedBorderColor = Color.Transparent,
-                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface
-                )
+                    focusedBorderColor = AccentTeal,
+                    unfocusedBorderColor = OutlineSubtle,
+                    focusedTextColor = OnSurfaceWhite,
+                    unfocusedTextColor = OnSurfaceWhite,
+                    cursorColor = AccentTeal
+                ),
+                shape = RoundedCornerShape(16.dp)
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
-            // Load button
-            Button(
+            // Load from URL Button
+            FilledTonalButton(
                 onClick = {
                     if (urlText.isNotBlank()) {
                         onLoadUrl(urlText.trim())
                     }
                 },
                 enabled = urlText.isNotBlank(),
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Accent,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
+                modifier = Modifier.fillMaxWidth().height(48.dp),
+                colors = ButtonDefaults.filledTonalButtonColors(
+                    containerColor = AccentContainerTeal,
+                    contentColor = AccentTeal
                 ),
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(percent = 50)
             ) {
                 Text(
                     text = L("add_plugin.load_url"),
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 15.sp
                 )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
             // Divider row
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                HorizontalDivider(
-                    modifier = Modifier.weight(1f),
-                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                )
+                HorizontalDivider(modifier = Modifier.weight(1f), color = OutlineSubtle)
                 Text(
                     text = L("add_plugin.or"),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = OnSurfaceVariantMuted,
                     fontSize = 13.sp,
-                    modifier = Modifier.padding(horizontal = 16.dp)
+                    modifier = Modifier.padding(horizontal = 14.dp)
                 )
-                HorizontalDivider(
-                    modifier = Modifier.weight(1f),
-                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                )
+                HorizontalDivider(modifier = Modifier.weight(1f), color = OutlineSubtle)
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
             // Choose file button
             OutlinedButton(
                 onClick = onChooseFile,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().height(48.dp),
                 colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = Accent
+                    contentColor = OnSurfaceWhite
                 ),
-                shape = RoundedCornerShape(12.dp)
+                border = androidx.compose.foundation.BorderStroke(1.dp, OutlineSubtle),
+                shape = RoundedCornerShape(percent = 50)
             ) {
+                Icon(
+                    imageVector = Icons.Default.FolderOpen,
+                    contentDescription = null,
+                    tint = AccentTeal,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = L("add_plugin.choose_file"),
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 15.sp
                 )
             }
         }

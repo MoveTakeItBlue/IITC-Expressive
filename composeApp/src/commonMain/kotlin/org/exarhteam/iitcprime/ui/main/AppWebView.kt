@@ -25,7 +25,6 @@ fun AppWebView(
     val desktopMode by viewModel.desktopMode.collectAsState()
     val zoomControl by viewModel.zoomControl.collectAsState()
     val reloadTrigger by viewModel.reloadTrigger.collectAsState()
-    val pendingJs by viewModel.pendingJsToEvaluate.collectAsState()
 
     val webViewState = rememberWebViewState(url = UrlConfig.addViewportParam(currentUrl, desktopMode)).apply {
         webSettings.apply {
@@ -104,10 +103,10 @@ fun AppWebView(
     }
 
     // Handle evaluate JavaScript requests from ViewModel
-    LaunchedEffect(pendingJs) {
-        val script = pendingJs ?: return@LaunchedEffect
-        webViewNavigator.evaluateJavaScript(script)
-        viewModel.onJsEvaluated()
+    LaunchedEffect(Unit) {
+        for (script in viewModel.jsChannel) {
+            webViewNavigator.evaluateJavaScript(script)
+        }
     }
 
     // Watch loading state
@@ -139,6 +138,13 @@ fun AppWebView(
                 for (script in scripts) {
                     webViewNavigator.evaluateJavaScript(script)
                 }
+
+                // Ensure bootFinished is signaled if IITC has completed boot
+                webViewNavigator.evaluateJavaScript("""
+                    if (window.iitcLoaded || window.bootDone || (window.map && window.portals)) {
+                        window.app?.bootFinished?.();
+                    }
+                """.trimIndent())
             }
             else -> {}
         }

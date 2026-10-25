@@ -1,9 +1,10 @@
 package org.exarhteam.iitcprime.ui.settings
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -11,7 +12,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -20,9 +21,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.exarhteam.iitcprime.i18n.L
-import org.exarhteam.iitcprime.theme.SurfaceDark
-import org.exarhteam.iitcprime.theme.SurfaceContainerDark
+import org.exarhteam.iitcprime.theme.*
 
+/**
+ * Material 3 Expressive SettingsBase Screen Layout
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsBase(
@@ -42,23 +45,32 @@ fun SettingsBase(
         containerColor = SurfaceDark,
         topBar = {
             if (search) {
-                // Search Top Bar
+                // M3 Expressive Search Header
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .statusBarsPadding()
-                        .height(64.dp)
+                        .height(68.dp)
                         .background(SurfaceDark)
-                        .padding(horizontal = 8.dp),
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    IconButton(onClick = onBack) {
+                    IconButton(
+                        onClick = onBack,
+                        modifier = Modifier
+                            .size(42.dp)
+                            .clip(CircleShape)
+                            .background(SurfaceContainerHighDark)
+                    ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = L("nav.back"),
-                            tint = MaterialTheme.colorScheme.onSurface
+                            tint = OnSurfaceWhite,
+                            modifier = Modifier.size(20.dp)
                         )
                     }
+
+                    Spacer(modifier = Modifier.width(10.dp))
 
                     OutlinedTextField(
                         value = searchText,
@@ -66,14 +78,16 @@ fun SettingsBase(
                         placeholder = {
                             Text(
                                 text = searchHint,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                                color = OnSurfaceVariantMuted,
+                                fontSize = 14.sp
                             )
                         },
                         leadingIcon = {
                             Icon(
                                 imageVector = Icons.Default.Search,
                                 contentDescription = "Search",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                tint = AccentTeal,
+                                modifier = Modifier.size(20.dp)
                             )
                         },
                         trailingIcon = {
@@ -82,7 +96,8 @@ fun SettingsBase(
                                     Icon(
                                         imageVector = Icons.Default.Close,
                                         contentDescription = "Clear",
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                        tint = OnSurfaceVariantMuted,
+                                        modifier = Modifier.size(18.dp)
                                     )
                                 }
                             }
@@ -90,14 +105,17 @@ fun SettingsBase(
                         singleLine = true,
                         modifier = Modifier
                             .weight(1f)
-                            .clip(RoundedCornerShape(24.dp))
+                            .height(52.dp)
+                            .clip(RoundedCornerShape(percent = 50))
                             .background(SurfaceContainerDark),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            unfocusedBorderColor = Color.Transparent,
-                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface
-                        )
+                            focusedBorderColor = AccentTeal,
+                            unfocusedBorderColor = OutlineSubtle,
+                            focusedTextColor = OnSurfaceWhite,
+                            unfocusedTextColor = OnSurfaceWhite,
+                            cursorColor = AccentTeal
+                        ),
+                        shape = RoundedCornerShape(percent = 50)
                     )
 
                     if (headerRight != null) {
@@ -110,17 +128,23 @@ fun SettingsBase(
                     title = {
                         Text(
                             text = title,
-                            color = MaterialTheme.colorScheme.onSurface,
+                            color = OnSurfaceWhite,
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold
                         )
                     },
                     navigationIcon = {
-                        IconButton(onClick = onBack) {
+                        IconButton(
+                            onClick = onBack,
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape)
+                        ) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                                 contentDescription = L("nav.back"),
-                                tint = MaterialTheme.colorScheme.onSurface
+                                tint = OnSurfaceWhite,
+                                modifier = Modifier.size(22.dp)
                             )
                         }
                     },
@@ -145,7 +169,7 @@ fun SettingsBase(
                     .padding(horizontal = 16.dp, vertical = 8.dp)
             ) {
                 content()
-                Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(36.dp))
             }
         } else {
             Column(

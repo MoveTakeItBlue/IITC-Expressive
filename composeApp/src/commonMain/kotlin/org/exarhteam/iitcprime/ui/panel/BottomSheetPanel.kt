@@ -1,38 +1,47 @@
 package org.exarhteam.iitcprime.ui.panel
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.ripple
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.exarhteam.iitcprime.i18n.L
-import org.exarhteam.iitcprime.theme.SurfaceDark
-import org.exarhteam.iitcprime.theme.SurfaceContainer
+import org.exarhteam.iitcprime.theme.*
 import org.exarhteam.iitcprime.viewmodel.LocationState
 import org.exarhteam.iitcprime.viewmodel.MainViewModel
 import org.exarhteam.iitcprime.viewmodel.PanelPosition
 
+/**
+ * Material 3 Expressive BottomSheetPanel
+ * Provides draggable multi-step bottom sheet (HIDDEN, BOTTOM, MIDDLE, TOP)
+ * with expressive motion, pill drag handle, and pane management.
+ */
 @Composable
 fun BottomSheetPanel(
     viewModel: MainViewModel,
@@ -52,12 +61,17 @@ fun BottomSheetPanel(
     val panelTitle = if (isMapPane) {
         L("app.name.release")
     } else {
-        panes.find { it.name == currentPane }?.label ?: currentPane
+        val found = panes.find { it.name == currentPane }
+        if (found != null) {
+            L(found.label)
+        } else {
+            currentPane.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
+        }
     }
 
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
         val screenHeight = maxHeight
-        val closedHeight = 108.dp
+        val closedHeight = 110.dp
         val middleHeight = screenHeight * 0.5f
         val topHeight = (screenHeight - 56.dp).coerceAtLeast(closedHeight)
 
@@ -70,7 +84,10 @@ fun BottomSheetPanel(
 
         val animatedHeight by animateDpAsState(
             targetValue = targetHeight,
-            animationSpec = tween(durationMillis = 280),
+            animationSpec = spring(
+                dampingRatio = Spring.DampingRatioLowBouncy,
+                stiffness = Spring.StiffnessMediumLow
+            ),
             label = "bottomSheetHeight"
         )
 
@@ -79,13 +96,13 @@ fun BottomSheetPanel(
         // Backdrop scrim when open
         AnimatedVisibility(
             visible = isPanelOpen,
-            enter = fadeIn(tween(250)),
-            exit = fadeOut(tween(200))
+            enter = fadeIn(),
+            exit = fadeOut()
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.5f))
+                    .background(Color.Black.copy(alpha = 0.55f))
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null
@@ -103,8 +120,13 @@ fun BottomSheetPanel(
                     .fillMaxWidth()
                     .height(animatedHeight)
                     .align(Alignment.BottomCenter)
-                    .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
+                    .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
                     .background(SurfaceDark)
+                    .border(
+                        width = 1.dp,
+                        color = OutlineSubtle,
+                        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+                    )
                     .draggable(
                         state = rememberDraggableState { delta ->
                             dragOffset += delta
@@ -135,19 +157,19 @@ fun BottomSheetPanel(
                 Column(
                     modifier = Modifier.fillMaxSize()
                 ) {
-                    // Drag handle
+                    // M3 Expressive Drag Handle
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(top = 8.dp, bottom = 4.dp),
+                            .padding(top = 10.dp, bottom = 4.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Box(
                             modifier = Modifier
                                 .width(36.dp)
                                 .height(4.dp)
-                                .clip(RoundedCornerShape(2.dp))
-                                .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
+                                .clip(RoundedCornerShape(percent = 50))
+                                .background(OnSurfaceVariantMuted.copy(alpha = 0.45f))
                         )
                     }
 
@@ -155,13 +177,13 @@ fun BottomSheetPanel(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(56.dp)
-                            .padding(horizontal = 8.dp),
+                            .height(52.dp)
+                            .padding(horizontal = 12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Quick Access / Back button
+                        // Menu / Back button
                         val isQuickActive = isPanelOpen && activeTab == "quick"
-                        ControlButton(
+                        ExpressiveIconButton(
                             icon = if (isMapPane) Icons.Default.Menu else Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = L(if (isMapPane) "panel.menu" else "panel.back_to_map"),
                             active = isQuickActive,
@@ -171,6 +193,7 @@ fun BottomSheetPanel(
                                         viewModel.closePanel()
                                     } else {
                                         viewModel.setActiveTab("quick")
+                                        if (!isPanelOpen) viewModel.openPanel()
                                     }
                                 } else {
                                     viewModel.switchToPane("map")
@@ -184,10 +207,13 @@ fun BottomSheetPanel(
                             modifier = Modifier
                                 .weight(1f)
                                 .padding(horizontal = 12.dp)
-                                .clickable {
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null
+                                ) {
                                     viewModel.togglePanel()
                                 },
-                            color = MaterialTheme.colorScheme.onSurface,
+                            color = OnSurfaceWhite,
                             fontSize = 17.sp,
                             fontWeight = FontWeight.SemiBold,
                             maxLines = 1,
@@ -196,13 +222,12 @@ fun BottomSheetPanel(
 
                         // Paste link button
                         if (hasClipboardLink) {
-                            ControlButton(
+                            ExpressiveIconButton(
                                 icon = Icons.Default.ContentPaste,
                                 contentDescription = L("panel.paste_link"),
-                                onClick = {
-                                    viewModel.handlePasteClipboard()
-                                }
+                                onClick = { viewModel.handlePasteClipboard() }
                             )
+                            Spacer(modifier = Modifier.width(6.dp))
                         }
 
                         // Location button
@@ -212,20 +237,21 @@ fun BottomSheetPanel(
                                 LocationState.FOLLOWING -> Icons.Default.MyLocation
                                 else -> Icons.Default.NearMe
                             }
-                            ControlButton(
+                            val isLocActive = locationState == LocationState.FOLLOWING
+                            ExpressiveIconButton(
                                 icon = locIcon,
                                 contentDescription = L("panel.my_location"),
+                                active = isLocActive,
                                 loading = locationState == LocationState.LOCATING,
-                                onClick = {
-                                    viewModel.triggerUserLocate()
-                                }
+                                onClick = { viewModel.triggerUserLocate() }
                             )
+                            Spacer(modifier = Modifier.width(6.dp))
                         }
 
                         // Layers button
                         if (isIitcLoaded) {
                             val isLayersActive = isPanelOpen && activeTab == "layers"
-                            ControlButton(
+                            ExpressiveIconButton(
                                 icon = Icons.Default.Layers,
                                 contentDescription = L("panel.layers"),
                                 active = isLayersActive,
@@ -234,6 +260,7 @@ fun BottomSheetPanel(
                                         viewModel.closePanel()
                                     } else {
                                         viewModel.setActiveTab("layers")
+                                        if (!isPanelOpen) viewModel.openPanel()
                                     }
                                 }
                             )
@@ -246,7 +273,8 @@ fun BottomSheetPanel(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .weight(1f)
-                                .background(SurfaceContainer.copy(alpha = 0.5f))
+                                .padding(bottom = 54.dp) // Avoid overlapping bottom MapStateBar
+                                .background(SurfaceContainerDark.copy(alpha = 0.5f))
                         ) {
                             ControlListView(
                                 activeTab = activeTab,
@@ -259,6 +287,56 @@ fun BottomSheetPanel(
                     }
                 }
             }
+        }
+    }
+}
+
+/**
+ * Material 3 Expressive Icon Button
+ */
+@Composable
+fun ExpressiveIconButton(
+    icon: ImageVector,
+    contentDescription: String?,
+    active: Boolean = false,
+    loading: Boolean = false,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val bg = when {
+        active -> AccentTeal
+        else -> SurfaceContainerHighDark
+    }
+    val tint = when {
+        active -> Color.Black
+        else -> OnSurfaceWhite
+    }
+
+    Box(
+        modifier = modifier
+            .size(40.dp)
+            .clip(CircleShape)
+            .background(bg)
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = ripple(color = AccentTeal),
+                onClick = onClick
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        if (loading) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(18.dp),
+                color = AccentTeal,
+                strokeWidth = 2.dp
+            )
+        } else {
+            Icon(
+                imageVector = icon,
+                contentDescription = contentDescription,
+                tint = tint,
+                modifier = Modifier.size(20.dp)
+            )
         }
     }
 }

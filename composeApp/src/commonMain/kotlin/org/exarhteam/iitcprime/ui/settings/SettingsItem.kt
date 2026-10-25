@@ -1,23 +1,31 @@
 package org.exarhteam.iitcprime.ui.settings
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material3.ripple
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.exarhteam.iitcprime.platform.PlatformUtils
-import org.exarhteam.iitcprime.theme.SurfaceContainer
+import org.exarhteam.iitcprime.theme.*
 
+/**
+ * Material 3 Expressive Settings Item
+ */
 @Composable
 fun SettingsItem(
     title: String,
@@ -30,18 +38,23 @@ fun SettingsItem(
     onClick: (() -> Unit)? = null
 ) {
     val cornerShape = when {
-        isFirst && isLast -> RoundedCornerShape(12.dp)
-        isFirst -> RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)
-        isLast -> RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp)
-        else -> RoundedCornerShape(0.dp)
+        isFirst && isLast -> RoundedCornerShape(18.dp)
+        isFirst -> RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp, bottomStart = 4.dp, bottomEnd = 4.dp)
+        isLast -> RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp, bottomStart = 18.dp, bottomEnd = 18.dp)
+        else -> RoundedCornerShape(4.dp)
     }
 
     Column(
         modifier = modifier
             .fillMaxWidth()
             .clip(cornerShape)
-            .background(SurfaceContainer)
-            .clickable(enabled = onClick != null) { onClick?.invoke() }
+            .background(SurfaceContainerDark)
+            .border(width = 1.dp, color = OutlineSubtle, shape = cornerShape)
+            .clickable(
+                enabled = onClick != null,
+                interactionSource = remember { MutableInteractionSource() },
+                indication = ripple(color = AccentTeal)
+            ) { onClick?.invoke() }
     ) {
         Row(
             modifier = Modifier
@@ -56,15 +69,15 @@ fun SettingsItem(
             ) {
                 Text(
                     text = title,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = OnSurfaceWhite,
                     fontSize = 15.sp,
-                    fontWeight = if (bold) FontWeight.Bold else FontWeight.Medium
+                    fontWeight = if (bold) FontWeight.Bold else FontWeight.SemiBold
                 )
                 if (description != null) {
-                    Spacer(modifier = Modifier.height(2.dp))
+                    Spacer(modifier = Modifier.height(3.dp))
                     Text(
                         text = description,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                        color = OnSurfaceVariantMuted,
                         fontSize = 13.sp,
                         lineHeight = 18.sp
                     )
@@ -74,14 +87,6 @@ fun SettingsItem(
             if (trailingContent != null) {
                 trailingContent()
             }
-        }
-
-        if (!isLast) {
-            HorizontalDivider(
-                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f),
-                thickness = 1.dp,
-                modifier = Modifier.padding(start = 16.dp)
-            )
         }
     }
 }
@@ -106,7 +111,8 @@ fun NavSettingsItem(
             Icon(
                 imageVector = Icons.Default.ChevronRight,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                tint = OnSurfaceVariantMuted,
+                modifier = Modifier.size(20.dp)
             )
         }
     )
@@ -119,18 +125,26 @@ fun SwitchSettingsItem(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
     isFirst: Boolean = false,
-    isLast: Boolean = false
+    isLast: Boolean = false,
+    bold: Boolean = false
 ) {
     SettingsItem(
         title = title,
         description = description,
         isFirst = isFirst,
         isLast = isLast,
+        bold = bold,
         onClick = { onCheckedChange(!checked) },
         trailingContent = {
             Switch(
                 checked = checked,
-                onCheckedChange = onCheckedChange
+                onCheckedChange = onCheckedChange,
+                colors = SwitchDefaults.colors(
+                    checkedThumbColor = Color.White,
+                    checkedTrackColor = AccentTeal,
+                    uncheckedThumbColor = OnSurfaceVariantMuted,
+                    uncheckedTrackColor = SurfaceContainerHighDark
+                )
             )
         }
     )
@@ -140,21 +154,24 @@ fun SwitchSettingsItem(
 fun LinkSettingsItem(
     title: String,
     url: String,
-    description: String? = url,
+    description: String? = null,
     isFirst: Boolean = false,
-    isLast: Boolean = false
+    isLast: Boolean = false,
+    bold: Boolean = false
 ) {
     SettingsItem(
         title = title,
-        description = description,
+        description = description ?: url,
         isFirst = isFirst,
         isLast = isLast,
+        bold = bold,
         onClick = { PlatformUtils.openUrl(url) },
         trailingContent = {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.OpenInNew,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                tint = AccentTeal,
+                modifier = Modifier.size(20.dp)
             )
         }
     )

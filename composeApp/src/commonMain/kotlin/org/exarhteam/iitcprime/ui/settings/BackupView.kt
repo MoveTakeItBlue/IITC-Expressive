@@ -3,15 +3,18 @@ package org.exarhteam.iitcprime.ui.settings
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.exarhteam.iitcprime.i18n.L
-import org.exarhteam.iitcprime.theme.Accent
+import org.exarhteam.iitcprime.theme.*
 import org.exarhteam.iitcprime.ui.common.AlertDialog
 import org.exarhteam.iitcprime.viewmodel.BackupViewModel
 
+/**
+ * Material 3 Expressive Backup & Restore Screen
+ */
 @Composable
 fun BackupView(
     viewModel: BackupViewModel,
@@ -58,8 +61,9 @@ fun BackupView(
         if (isInvalidBackup) {
             Text(
                 text = L("backup.invalid"),
-                color = MaterialTheme.colorScheme.error,
+                color = StateError,
                 fontSize = 13.sp,
+                fontWeight = FontWeight.Medium,
                 modifier = Modifier.padding(8.dp)
             )
         }
@@ -91,7 +95,7 @@ fun BackupView(
                 )
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             ActionSettingsItem(
                 title = L("backup.restore.title"),
@@ -106,6 +110,8 @@ fun BackupView(
                 }
             )
         }
+
+        Spacer(modifier = Modifier.height(20.dp))
 
         // Export Section
         SettingsSection(title = L("backup.section.export"))
@@ -131,25 +137,15 @@ fun BackupView(
             isLast = true
         )
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(10.dp))
 
         ActionSettingsItem(
-            title = L("backup.export_file.title"),
-            description = L("backup.export_file.description"),
+            title = L("backup.export.title"),
+            description = L("backup.export.description"),
             bold = true,
             isFirst = true,
             isLast = true,
             onClick = { viewModel.executeExport() }
         )
-
-        if (isWorking) {
-            Spacer(modifier = Modifier.height(24.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center
-            ) {
-                CircularProgressIndicator(color = Accent)
-            }
-        }
     }
 }

@@ -1,8 +1,6 @@
 package org.exarhteam.iitcprime.ui.panel
 
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -11,6 +9,7 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -20,6 +19,9 @@ import org.exarhteam.iitcprime.theme.OnSurfaceVariantMuted
 import org.exarhteam.iitcprime.theme.OnSurfaceWhite
 import org.exarhteam.iitcprime.theme.StateError
 
+/**
+ * Material 3 Expressive MapStatusView
+ */
 @Composable
 fun MapStatusView(
     mapStatus: MapStatus,
@@ -47,7 +49,7 @@ fun MapStatusView(
             append(" [${requests.active}")
             if (requests.hasFailed) {
                 append("/")
-                withStyle(SpanStyle(color = StateError)) {
+                withStyle(SpanStyle(color = StateError, fontWeight = FontWeight.Bold)) {
                     append("${requests.failed}")
                 }
             }
@@ -56,21 +58,27 @@ fun MapStatusView(
     }
 
     Column(
-        modifier = modifier.height(38.dp),
-        horizontalAlignment = Alignment.End
+        modifier = modifier.fillMaxHeight(),
+        horizontalAlignment = Alignment.End,
+        verticalArrangement = Arrangement.Center
     ) {
         Text(
             text = portalLevelsText,
             color = OnSurfaceWhite,
             fontSize = 12.sp,
             fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.End
+            textAlign = TextAlign.End,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
         )
         Text(
             text = statusAnnotated,
             color = OnSurfaceVariantMuted,
             fontSize = 11.sp,
-            textAlign = TextAlign.End
+            fontWeight = FontWeight.Normal,
+            textAlign = TextAlign.End,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
         )
     }
 }

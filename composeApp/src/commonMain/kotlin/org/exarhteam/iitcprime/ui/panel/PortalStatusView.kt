@@ -17,6 +17,23 @@ import org.exarhteam.iitcprime.i18n.L
 import org.exarhteam.iitcprime.model.PortalStatus
 import org.exarhteam.iitcprime.theme.*
 
+fun parseHexColor(hex: String?): Color? {
+    if (hex == null || !hex.startsWith("#")) return null
+    return try {
+        val clean = hex.removePrefix("#")
+        when (clean.length) {
+            6 -> Color(clean.toLong(16) or 0x00000000FF000000)
+            8 -> Color(clean.toLong(16))
+            else -> null
+        }
+    } catch (_: Exception) {
+        null
+    }
+}
+
+/**
+ * Material 3 Expressive PortalStatusView
+ */
 @Composable
 fun PortalStatusView(
     portalStatus: PortalStatus,
@@ -31,29 +48,31 @@ fun PortalStatusView(
             else -> L("portal_status.no_portal_selected")
         }
         Box(
-            modifier = modifier.height(38.dp),
+            modifier = modifier.fillMaxHeight(),
             contentAlignment = Alignment.CenterStart
         ) {
             Text(
                 text = message,
                 color = OnSurfaceVariantMuted,
                 fontSize = 13.sp,
-                fontWeight = FontWeight.Medium
+                fontWeight = FontWeight.Medium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
         }
         return
     }
 
     Row(
-        modifier = modifier.height(38.dp),
+        modifier = modifier.fillMaxHeight(),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Team color bar
+        // Team color capsule
         Box(
             modifier = Modifier
                 .width(4.dp)
-                .height(32.dp)
-                .clip(RoundedCornerShape(2.dp))
+                .height(30.dp)
+                .clip(RoundedCornerShape(percent = 50))
                 .background(portalStatus.teamColor)
         )
 
@@ -63,21 +82,22 @@ fun PortalStatusView(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.Center
         ) {
+            // Level, health & title row
             Row(
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Level badge
+                // Level badge (M3 Expressive 6dp pill)
                 val levelBg = parseHexColor(portalStatus.levelColor) ?: Color(0xFF808080)
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(3.dp))
+                        .clip(RoundedCornerShape(6.dp))
                         .background(levelBg)
-                        .padding(horizontal = 4.dp, vertical = 1.dp)
+                        .padding(horizontal = 5.dp, vertical = 1.dp)
                 ) {
                     Text(
                         text = "L${portalStatus.level}",
                         color = Color.Black,
-                        fontSize = 11.sp,
+                        fontSize = 10.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }
@@ -99,6 +119,7 @@ fun PortalStatusView(
                     text = portalStatus.title,
                     color = OnSurfaceWhite,
                     fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -106,29 +127,31 @@ fun PortalStatusView(
 
             Spacer(modifier = Modifier.height(4.dp))
 
-            // Resonators grid: 8 bars
-            val resonators = portalStatus.resonators
+            // Resonators grid (8 expressive slots)
             Row(
                 modifier = Modifier.fillMaxWidth().height(4.dp),
                 horizontalArrangement = Arrangement.spacedBy(2.dp)
             ) {
+                val resonators = portalStatus.resonators
                 for (i in 0 until 8) {
-                    val resonator = resonators?.getOrNull(i)
-                    val resColor = if (resonator != null) parseHexColor(resonator.levelColor) ?: AccentTeal else Color.Transparent
-                    val healthPct = resonator?.healthPct ?: 0
+                    val res = resonators?.getOrNull(i)
+                    val healthPct = res?.healthPct ?: 0
+                    val pct = (healthPct.toFloat() / 100f).coerceIn(0f, 1f)
+                    val resColor = parseHexColor(res?.levelColor) ?: AccentTeal
 
                     Box(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight()
-                            .clip(RoundedCornerShape(1.dp))
-                            .background(Color(0xFF20353A))
+                            .clip(RoundedCornerShape(2.dp))
+                            .background(SurfaceContainerHighDark)
                     ) {
-                        if (resonator != null && resonator.energy > 0) {
+                        if (pct > 0f) {
                             Box(
                                 modifier = Modifier
                                     .fillMaxHeight()
-                                    .fillMaxWidth(fraction = (healthPct.coerceIn(0, 100) / 100f))
+                                    .fillMaxWidth(pct)
+                                    .clip(RoundedCornerShape(2.dp))
                                     .background(resColor)
                             )
                         }
@@ -136,20 +159,5 @@ fun PortalStatusView(
                 }
             }
         }
-    }
-}
-
-private fun parseHexColor(colorStr: String?): Color? {
-    if (colorStr.isNullOrBlank()) return null
-    return try {
-        val clean = colorStr.trim().removePrefix("#")
-        val colorInt = when (clean.length) {
-            6 -> clean.toLong(16) or 0x00000000FF000000L
-            8 -> clean.toLong(16)
-            else -> return null
-        }
-        Color(colorInt)
-    } catch (e: Exception) {
-        null
     }
 }

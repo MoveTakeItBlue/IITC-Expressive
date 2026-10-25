@@ -135,9 +135,8 @@ class MainViewModel(
     private val _hasClipboardLink = MutableStateFlow(false)
     val hasClipboardLink: StateFlow<Boolean> = _hasClipboardLink.asStateFlow()
 
-    // Pending JS script to execute in webview
-    private val _pendingJsToEvaluate = MutableStateFlow<String?>(null)
-    val pendingJsToEvaluate: StateFlow<String?> = _pendingJsToEvaluate.asStateFlow()
+    // Queue of JS scripts to execute in webview
+    val jsChannel = kotlinx.coroutines.channels.Channel<String>(kotlinx.coroutines.channels.Channel.UNLIMITED)
 
     // Reload trigger
     private val _reloadTrigger = MutableStateFlow(0)
@@ -159,7 +158,11 @@ class MainViewModel(
 
     fun navigateBack(): Boolean {
         if (_currentScreen.value != "main") {
-            _currentScreen.value = "main"
+            if (_currentScreen.value in listOf("plugins", "update_channel", "backup", "about", "licenses")) {
+                _currentScreen.value = "settings"
+            } else {
+                _currentScreen.value = "main"
+            }
             return true
         }
         return handleBackPress()
@@ -174,6 +177,12 @@ class MainViewModel(
             _panelPosition.value = PanelPosition.MIDDLE
         } else if (_panelPosition.value == PanelPosition.MIDDLE || _panelPosition.value == PanelPosition.TOP) {
             _panelPosition.value = PanelPosition.BOTTOM
+        }
+    }
+
+    fun openPanel() {
+        if (_panelPosition.value == PanelPosition.BOTTOM || _panelPosition.value == PanelPosition.HIDDEN) {
+            _panelPosition.value = PanelPosition.MIDDLE
         }
     }
 
@@ -228,11 +237,7 @@ class MainViewModel(
     }
 
     fun evaluateJs(code: String) {
-        _pendingJsToEvaluate.value = code
-    }
-
-    fun onJsEvaluated() {
-        _pendingJsToEvaluate.value = null
+        jsChannel.trySend(code)
     }
 
     fun setWebviewLoaded(loaded: Boolean) {
@@ -303,6 +308,11 @@ class MainViewModel(
     fun switchToPane(name: String) {
         _currentPane.value = name
         evaluateJs(EventsToIitc.switchToPane(name))
+        if (name == "map") {
+            evaluateJs(EventsToIitc.removePaneSafeAreaInsets())
+        } else {
+            evaluateJs(EventsToIitc.applyPaneSafeAreaInsets())
+        }
         closePanel()
     }
 
@@ -413,6 +423,7 @@ class MainViewModel(
             "bootFinished" -> {
                 _isIitcLoaded.value = true
                 addLog("info", "IITC boot finished", "iitc")
+                evaluateJs(EventsToIitc.setSafeAreaInsets(top = 0f, bottom = 108f, left = 0f, right = 0f))
             }
             "setLayers" -> {
                 try {
