@@ -21,7 +21,10 @@ yarn-error.log*
 .DS_Store
 .AppleDouble
 .LSOverride
-.idea
+.idea/*
+!.idea/runConfigurations/
+!.idea/gradle.xml
+!.idea/misc.xml
 .cloud
 .project
 tmp/
