@@ -25,6 +25,7 @@ yarn-error.log*
 !.idea/runConfigurations/
 !.idea/gradle.xml
 !.idea/misc.xml
+!.idea/AndroidProjectSystem.xml
 .cloud
 .project
 tmp/
