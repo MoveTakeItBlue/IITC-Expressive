@@ -29,7 +29,7 @@ class MainActivity : ComponentActivity() {
         viewModel = MainViewModel(storage, manager)
 
         // Seed fallback core if needed
-        manager.seedFallbackCoreIfNeeded()
+        manager.startup()
 
         // Handle back press navigation
         onBackPressedDispatcher.addCallback(this) {
@@ -68,7 +68,7 @@ class MainActivity : ComponentActivity() {
                     contentResolver.openInputStream(dataUri)?.use { stream ->
                         val bytes = stream.readBytes()
                         val code = bytes.decodeToString()
-                        val plugin = manager.installUserPlugin(code)
+                        val plugin = manager.addUserScript(code)
                         if (plugin != null) {
                             viewModel.navigateTo("plugins")
                         }
@@ -80,7 +80,12 @@ class MainActivity : ComponentActivity() {
             }
 
             // Web URL or iitc:// URL
-            viewModel.processDeepLink(urlString)
+            if (urlString.startsWith("iitc://", ignoreCase = true)) {
+                val httpUrl = "https://" + urlString.removePrefix("iitc://")
+                viewModel.loadUrl(httpUrl)
+            } else if (urlString.startsWith("http://", ignoreCase = true) || urlString.startsWith("https://", ignoreCase = true)) {
+                viewModel.loadUrl(urlString)
+            }
         }
     }
 
