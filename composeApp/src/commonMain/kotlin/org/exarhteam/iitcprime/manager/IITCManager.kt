@@ -404,7 +404,7 @@ class IITCManager(
         // 3. Enabled plugins
         val ch = _currentChannel.value
         val host = getChannelHost(ch)
-        val enabled = _plugins.value.values.filter { it.isEnabled }
+        val enabled = _plugins.value.values.filter { it.isEnabled && !it.isCore }
 
         for (plugin in enabled) {
             var code = plugin.code

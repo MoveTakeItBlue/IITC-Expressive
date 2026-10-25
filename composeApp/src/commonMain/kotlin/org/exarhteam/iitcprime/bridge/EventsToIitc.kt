@@ -2,12 +2,12 @@ package org.exarhteam.iitcprime.bridge
 
 object EventsToIitc {
     fun showLayer(id: Int, show: Boolean): String {
-        return "window.layerChooser?.showLayer($id, $show); true;"
+        return "try { window.layerChooser?.showLayer($id, $show); } catch(e) {}; true;"
     }
 
     fun changePortalHighlights(name: String): String {
         val escaped = name.replace("'", "\\'")
-        return "window.changePortalHighlights?.('$escaped'); true;"
+        return "try { window.changePortalHighlights?.('$escaped'); } catch(e) {}; true;"
     }
 
     fun switchToPane(name: String): String {
@@ -40,19 +40,14 @@ object EventsToIitc {
                   if (typeof $ !== 'undefined') {
                     $('#map').css({ visibility: 'visible', opacity: '1', display: 'block' });
                     $('#updatestatus').show();
-                    $('#chat, #chatcontrols, #chatinput, #scrollwrapper').hide();
+                    $('#sidebartoggle, #sidebar, #scrollwrapper, #chat, #chatcontrols, #chatinput').hide();
                   }
                   if (window.map) window.map.invalidateSize();
                 } else if (id === 'all' || id === 'faction' || id === 'alerts') {
-                  var c = document.getElementById('chat');
-                  if (c) {
-                    c.style.display = 'block';
-                    c.style.visibility = 'visible';
-                    c.style.height = 'calc(100vh - 80px)';
-                    c.style.top = '0px';
+                  // Legacy HTML chat is permanently replaced by native M3E ChatSheet; ensure web chat stays hidden
+                  if (typeof $ !== 'undefined') {
+                    $('#sidebartoggle, #sidebar, #scrollwrapper, #chat, #chatcontrols, #chatinput').hide();
                   }
-                  var ci = document.getElementById('chatinput');
-                  if (ci) ci.style.display = 'block';
                 }
               } catch(e) {
                 console.error('[Bridge] switchToPane error: ' + e);
@@ -63,59 +58,112 @@ object EventsToIitc {
 
     fun closeDialog(id: String): String {
         val escaped = id.replace("\"", "\\\"")
-        return "(function() { var s = $(window.DIALOGS[\"$escaped\"]); if (s) { s.dialog('close'); s.remove(); } })(); true;"
+        return """
+            (function() {
+              try {
+                if (typeof $ !== 'undefined' && window.DIALOGS && window.DIALOGS["$escaped"]) {
+                  var s = $(window.DIALOGS["$escaped"]);
+                  if (s && s.dialog) s.dialog('close');
+                  if (s) s.remove();
+                }
+              } catch(e) {}
+            })(); true;
+        """.trimIndent()
     }
 
     fun userLocationLocate(lat: Double, lng: Double, accuracy: Double, persistentZoom: Boolean): String {
-        return "window.plugin?.userLocation?.locate($lat, $lng, $accuracy, $persistentZoom); true;"
+        val zoomExpr = if (persistentZoom) "window.map.getZoom()" else "(window.DEFAULT_ZOOM || 15)"
+        return """
+            (function() {
+              try {
+                if (window.plugin && window.plugin.userLocation && typeof window.plugin.userLocation.locate === 'function') {
+                  window.plugin.userLocation.locate($lat, $lng, $accuracy, $persistentZoom);
+                } else if (window.map) {
+                  window.map.setView([$lat, $lng], $zoomExpr);
+                }
+              } catch(e) {
+                console.error('[Bridge] userLocationLocate error: ' + e);
+              }
+            })(); true;
+        """.trimIndent()
     }
 
     fun userLocationUpdate(lat: Double, lng: Double): String {
-        return "window.plugin?.userLocation?.onLocationChange($lat, $lng); true;"
+        return """
+            (function() {
+              try {
+                if (window.plugin && window.plugin.userLocation && typeof window.plugin.userLocation.onLocationChange === 'function') {
+                  window.plugin.userLocation.onLocationChange($lat, $lng);
+                }
+              } catch(e) {}
+            })(); true;
+        """.trimIndent()
     }
 
     fun userLocationOrientation(direction: Double?): String {
         val dirStr = direction?.toString() ?: "null"
-        return "window.plugin?.userLocation?.onOrientationChange($dirStr); true;"
+        return """
+            (function() {
+              try {
+                if (window.plugin && window.plugin.userLocation && typeof window.plugin.userLocation.onOrientationChange === 'function') {
+                  window.plugin.userLocation.onOrientationChange($dirStr);
+                }
+              } catch(e) {}
+            })(); true;
+        """.trimIndent()
     }
 
     fun setView(lat: Double, lng: Double, persistentZoom: Boolean): String {
         val zoom = if (persistentZoom) "window.map?.getZoom() || 15" else "window.DEFAULT_ZOOM || 15"
-        return "window.map?.setView([$lat, $lng], $zoom); true;"
+        return "try { window.map?.setView([$lat, $lng], $zoom); } catch(e) {}; true;"
+    }
+
+    fun zoomIn(): String {
+        return "try { window.map?.zoomIn(); } catch(e) {}; true;"
+    }
+
+    fun zoomOut(): String {
+        return "try { window.map?.zoomOut(); } catch(e) {}; true;"
     }
 
     fun setSafeAreaInsets(top: Float = 0f, bottom: Float = 0f, left: Float = 0f, right: Float = 0f): String {
         return """
-            document.documentElement.style.setProperty('--safe-area-inset-top', '${top}px');
-            document.documentElement.style.setProperty('--safe-area-inset-bottom', '${bottom}px');
-            document.documentElement.style.setProperty('--safe-area-inset-left', '${left}px');
-            document.documentElement.style.setProperty('--safe-area-inset-right', '${right}px');
+            try {
+              document.documentElement.style.setProperty('--safe-area-inset-top', '${top}px');
+              document.documentElement.style.setProperty('--safe-area-inset-bottom', '${bottom}px');
+              document.documentElement.style.setProperty('--safe-area-inset-left', '${left}px');
+              document.documentElement.style.setProperty('--safe-area-inset-right', '${right}px');
+            } catch(e) {}
             true;
         """.trimIndent()
     }
 
     fun applyPaneSafeAreaInsets(): String = """
         (function() {
-          if (!window.__paneSafeAreaEls) window.__paneSafeAreaEls = [];
-          document.querySelectorAll('body > div').forEach(function(el) {
-            var cs = getComputedStyle(el);
-            if (!el.classList.contains('safe-area-insets') &&
-                cs.display !== 'none' &&
-                parseFloat(cs.paddingTop) === 0 &&
-                parseFloat(cs.marginTop) === 0) {
-              el.classList.add('safe-area-insets');
-              window.__paneSafeAreaEls.push(el);
-            }
-          });
+          try {
+            if (!window.__paneSafeAreaEls) window.__paneSafeAreaEls = [];
+            document.querySelectorAll('body > div').forEach(function(el) {
+              var cs = getComputedStyle(el);
+              if (!el.classList.contains('safe-area-insets') &&
+                  cs.display !== 'none' &&
+                  parseFloat(cs.paddingTop) === 0 &&
+                  parseFloat(cs.marginTop) === 0) {
+                el.classList.add('safe-area-insets');
+                window.__paneSafeAreaEls.push(el);
+              }
+            });
+          } catch(e) {}
         })(); true;
     """.trimIndent()
 
     fun removePaneSafeAreaInsets(): String = """
         (function() {
-          (window.__paneSafeAreaEls || []).forEach(function(el) {
-            el.classList.remove('safe-area-insets');
-          });
-          window.__paneSafeAreaEls = [];
+          try {
+            (window.__paneSafeAreaEls || []).forEach(function(el) {
+              el.classList.remove('safe-area-insets');
+            });
+            window.__paneSafeAreaEls = [];
+          } catch(e) {}
         })(); true;
     """.trimIndent()
 }

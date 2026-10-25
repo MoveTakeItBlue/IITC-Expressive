@@ -119,45 +119,31 @@ fun AppWebView(
             is LoadingState.Finished -> {
                 viewModel.setProgress(1f)
 
-                // Inject bridge scripts and styles
-                val bridgeScript = BridgeScripts.buildBridgeScript()
-                webViewNavigator.evaluateJavaScript(bridgeScript)
+                // 1. Inject bridge startup bundle (bridge, params, debug, demo)
+                val bridgeBundle = buildString {
+                    appendLine(BridgeScripts.buildBridgeScript())
+                    appendLine(";")
+                    appendLine(BridgeScripts.buildPrimeParamsScript("1.2.0", showZoom = zoomControl))
+                    appendLine(";")
+                    appendLine(BridgeScripts.buildDebugBridgeScript())
+                    appendLine(";")
+                    appendLine(BridgeScripts.buildDemoModeScript())
+                }
+                webViewNavigator.evaluateJavaScript(bridgeBundle)
 
-                val primeParams = BridgeScripts.buildPrimeParamsScript("1.2.0", showZoom = zoomControl)
-                webViewNavigator.evaluateJavaScript(primeParams)
-
-                val debugScript = BridgeScripts.buildDebugBridgeScript()
-                webViewNavigator.evaluateJavaScript(debugScript)
-
-                // Inject demo mode script for both login page (adds Try Demo button) and demo server
-                val demoScript = BridgeScripts.buildDemoModeScript()
-                webViewNavigator.evaluateJavaScript(demoScript)
-
-                // Inject enabled plugins (IITC Core + plugins)
+                // 2. Inject enabled plugins and core individually (avoids monolithic payload that causes renderer crash)
                 val scripts = viewModel.manager.getEnabledPluginScripts()
                 for (script in scripts) {
                     webViewNavigator.evaluateJavaScript(script)
                 }
 
-                // Ensure legacy HTML chat elements stay hidden in favor of native M3E ChatSheet
+                // 3. Signal bootFinished once IITC completes loading
                 webViewNavigator.evaluateJavaScript("""
                     (function() {
-                        var id = 'm3e-hide-legacy-chat';
-                        var el = document.getElementById(id);
-                        if (!el) {
-                            el = document.createElement('style');
-                            el.id = id;
-                            (document.head || document.documentElement).appendChild(el);
+                        if (window.iitcLoaded || window.bootDone || (window.map && window.portals)) {
+                            window.app?.bootFinished?.();
                         }
-                        el.textContent = '#map { visibility: visible !important; opacity: 1 !important; display: block !important; } #chat, #chatcontrols, #chatinput, #scrollwrapper { display: none !important; visibility: hidden !important; height: 0 !important; max-height: 0 !important; pointer-events: none !important; }';
                     })();
-                """.trimIndent())
-
-                // Ensure bootFinished is signaled if IITC has completed boot
-                webViewNavigator.evaluateJavaScript("""
-                    if (window.iitcLoaded || window.bootDone || (window.map && window.portals)) {
-                        window.app?.bootFinished?.();
-                    }
                 """.trimIndent())
             }
             else -> {}

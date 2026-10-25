@@ -858,6 +858,7 @@ class MainViewModel(
             "openDemo" -> {
                 loadUrl(UrlConfig.DEMO_INTEL_MAP)
             }
+            "spinnerEnabled" -> {}
             "gmBridgeRequest" -> {
                 val raw = data.jsonObject["data"]?.jsonPrimitive?.content ?: data.toString()
                 manager.handleGmBridgeRequest(raw)

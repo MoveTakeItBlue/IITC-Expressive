@@ -4,7 +4,437 @@ import org.exarhteam.iitcprime.model.Plugin
 
 object BridgeScripts {
 
+    const val M3_EXPRESSIVE_CSS = """
+/* Material 3 Expressive (M3E) In-WebView Style Adaptation */
+:root {
+  --m3-surface: #111415;
+  --m3-surface-container-lowest: #0C0F10;
+  --m3-surface-container-low: #191C1D;
+  --m3-surface-container: #1D2022;
+  --m3-surface-container-high: #282B2D;
+  --m3-surface-container-highest: #333638;
+  --m3-on-surface: #E0E3E3;
+  --m3-on-surface-variant: #C4C7C7;
+  --m3-outline: #8E9192;
+  --m3-outline-variant: #444748;
+  --m3-primary: #95F4E3;
+  --m3-primary-container: #005047;
+  --m3-on-primary-container: #95F4E3;
+  --m3-secondary-container: #334B46;
+  --m3-on-secondary-container: #CCE8E0;
+  --m3-faction-res: #70D2FF;
+  --m3-faction-enl: #66DC96;
+  --m3-faction-mac: #FF7164;
+  --m3-radius-sm: 8px;
+  --m3-radius-md: 16px;
+  --m3-radius-lg: 24px;
+  --m3-radius-full: 9999px;
+  --m3-font: system-ui, -apple-system, Roboto, "Segoe UI", sans-serif;
+}
+
+html, body {
+  min-height: initial;
+  min-width: initial;
+  font-family: var(--m3-font);
+  background-color: var(--m3-surface);
+  color: var(--m3-on-surface);
+  -webkit-tap-highlight-color: transparent;
+}
+
+a {
+  color: var(--m3-faction-res);
+  text-decoration: none;
+}
+a:hover, a:focus {
+  text-decoration: underline;
+}
+
+.res, .resistance, .text-res { color: var(--m3-faction-res) !important; }
+.enl, .enlightened, .text-enl { color: var(--m3-faction-enl) !important; }
+.mac, .machina, .text-mac { color: var(--m3-faction-mac) !important; }
+
+#sidebartoggle,
+#sidebar,
+#scrollwrapper,
+#chatcontrols,
+#chat,
+#chatinput,
+#chattext,
+body.show_controls #chatcontrols,
+#chatcontrols a,
+#chatcontrols .toggle {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  max-height: 0 !important;
+  width: 0 !important;
+  min-width: 0 !important;
+  max-width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  outline: none !important;
+  pointer-events: none !important;
+  position: absolute !important;
+  top: -9999px !important;
+  left: -9999px !important;
+  z-index: -9999 !important;
+  clip: rect(0, 0, 0, 0) !important;
+  clip-path: inset(50%) !important;
+  transform: scale(0) !important;
+}
+
+#map {
+  visibility: visible !important;
+  opacity: 1 !important;
+  display: block !important;
+}
+
+.ui-dialog {
+  position: absolute;
+  z-index: 9500;
+  background-color: var(--m3-surface-container) !important;
+  color: var(--m3-on-surface) !important;
+  border: none !important;
+  border-radius: var(--m3-radius-lg) !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55), 0 1px 3px rgba(0, 0, 0, 0.3) !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  font-family: var(--m3-font) !important;
+  max-width: calc(100vw - 32px) !important;
+  box-sizing: border-box !important;
+}
+
+@media (min-width: 600px) {
+  .ui-dialog { max-width: 540px !important; }
+}
+
+.ui-widget-overlay {
+  height: 100%;
+  left: 0;
+  position: fixed;
+  top: 0;
+  width: 100%;
+  z-index: 9000;
+  background: rgba(0, 0, 0, 0.65) !important;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.ui-dialog-titlebar {
+  background-color: var(--m3-surface-container-high) !important;
+  border: none !important;
+  color: var(--m3-on-surface) !important;
+  padding: 16px 20px 14px 20px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  line-height: 24px !important;
+  letter-spacing: 0.15px !important;
+  position: relative !important;
+}
+
+.ui-dialog-title {
+  color: var(--m3-on-surface) !important;
+  font-weight: 600 !important;
+  font-size: 16px !important;
+  margin: 0 !important;
+  width: auto !important;
+  flex: 1 1 auto !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.ui-dialog-title-active { color: var(--m3-primary) !important; }
+.ui-dialog-title-inactive { color: var(--m3-on-surface-variant) !important; }
+
+.ui-dialog-titlebar-button {
+  position: static !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: var(--m3-radius-full) !important;
+  border: none !important;
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  color: var(--m3-on-surface) !important;
+  cursor: pointer !important;
+  margin-left: 8px !important;
+  padding: 0 !important;
+  transition: background-color 0.2s ease !important;
+}
+
+.ui-dialog-titlebar-button:active,
+.ui-dialog-titlebar-button:hover {
+  background-color: rgba(255, 255, 255, 0.16) !important;
+}
+
+.ui-dialog-titlebar-button-close::after,
+.ui-dialog-titlebar-button-close::before {
+  content: "" !important;
+  position: absolute !important;
+  width: 14px !important;
+  height: 2px !important;
+  background-color: var(--m3-on-surface) !important;
+  border: none !important;
+  left: 50% !important;
+  top: 50% !important;
+  margin: 0 !important;
+}
+
+.ui-dialog-titlebar-button-close::after {
+  transform: translate(-50%, -50%) rotate(45deg) !important;
+  -webkit-transform: translate(-50%, -50%) rotate(45deg) !important;
+}
+
+.ui-dialog-titlebar-button-close::before {
+  transform: translate(-50%, -50%) rotate(-45deg) !important;
+  -webkit-transform: translate(-50%, -50%) rotate(-45deg) !important;
+}
+
+.ui-dialog-titlebar-button-collapse { display: none !important; }
+
+.ui-dialog-content {
+  padding: 16px 20px !important;
+  color: var(--m3-on-surface-variant) !important;
+  font-size: 14px !important;
+  line-height: 20px !important;
+  overflow-y: auto !important;
+  max-height: calc(85vh - 120px) !important;
+  background-color: transparent !important;
+}
+
+.ui-dialog-buttonpane {
+  padding: 12px 20px 16px 20px !important;
+  border-top: none !important;
+  background-color: transparent !important;
+  margin: 0 !important;
+}
+
+.ui-dialog-buttonset {
+  display: flex !important;
+  justify-content: flex-end !important;
+  gap: 8px !important;
+}
+
+.ui-dialog-buttonset button,
+.ui-dialog-content button,
+.ui-dialog input[type="button"],
+.ui-dialog input[type="submit"] {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-height: 40px !important;
+  padding: 8px 18px !important;
+  border-radius: var(--m3-radius-full) !important;
+  border: none !important;
+  background-color: var(--m3-primary-container) !important;
+  color: var(--m3-on-primary-container) !important;
+  font-family: var(--m3-font) !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.1px !important;
+  cursor: pointer !important;
+  transition: opacity 0.2s ease, transform 0.1s ease !important;
+  text-decoration: none !important;
+  box-shadow: none !important;
+}
+
+.ui-dialog-buttonset button:active,
+.ui-dialog-content button:active {
+  opacity: 0.8 !important;
+  transform: scale(0.98) !important;
+}
+
+.ui-dialog-buttonset button:not(:last-child) {
+  background-color: var(--m3-surface-container-high) !important;
+  color: var(--m3-on-surface) !important;
+}
+
+.ui-dialog input[type="text"],
+.ui-dialog input[type="number"],
+.ui-dialog input[type="search"],
+.ui-dialog select,
+.ui-dialog textarea {
+  background-color: var(--m3-surface-container-lowest) !important;
+  color: var(--m3-on-surface) !important;
+  border: 1px solid var(--m3-outline-variant) !important;
+  border-radius: var(--m3-radius-sm) !important;
+  padding: 8px 12px !important;
+  font-family: var(--m3-font) !important;
+  font-size: max(16px, 14px) !important;
+  box-sizing: border-box !important;
+  outline: none !important;
+  transition: border-color 0.2s ease !important;
+}
+
+.ui-dialog input:focus,
+.ui-dialog select:focus,
+.ui-dialog textarea:focus {
+  border-color: var(--m3-primary) !important;
+}
+
+.ui-tooltip {
+  position: absolute !important;
+  z-index: 10002 !important;
+  background-color: var(--m3-surface-container-high) !important;
+  color: var(--m3-on-surface) !important;
+  border: none !important;
+  border-radius: var(--m3-radius-sm) !important;
+  padding: 8px 12px !important;
+  font-size: 13px !important;
+  line-height: 18px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
+  pointer-events: none !important;
+}
+
+.leaflet-bar {
+  border: none !important;
+  border-radius: var(--m3-radius-md) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
+  background-color: var(--m3-surface-container) !important;
+  overflow: hidden !important;
+}
+
+.leaflet-bar a,
+.leaflet-bar a:hover {
+  background-color: var(--m3-surface-container) !important;
+  color: var(--m3-on-surface) !important;
+  border-bottom: 1px solid var(--m3-outline-variant) !important;
+  width: 40px !important;
+  height: 40px !important;
+  line-height: 40px !important;
+  font-size: 20px !important;
+  font-weight: 500 !important;
+  text-align: center !important;
+  transition: background-color 0.2s ease !important;
+}
+
+.leaflet-bar a:last-child {
+  border-bottom: none !important;
+}
+
+.leaflet-bar a:hover,
+.leaflet-bar a:active {
+  background-color: var(--m3-surface-container-highest) !important;
+}
+
+.leaflet-bar a.leaflet-disabled {
+  opacity: 0.38 !important;
+  background-color: var(--m3-surface-container) !important;
+}
+
+.leaflet-popup-content-wrapper {
+  background-color: var(--m3-surface-container) !important;
+  color: var(--m3-on-surface) !important;
+  border: none !important;
+  border-radius: var(--m3-radius-md) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5) !important;
+  padding: 6px !important;
+  font-family: var(--m3-font) !important;
+}
+
+.leaflet-popup-tip {
+  background-color: var(--m3-surface-container) !important;
+  box-shadow: none !important;
+}
+
+.leaflet-container a.leaflet-popup-close-button {
+  color: var(--m3-on-surface-variant) !important;
+  font-size: 18px !important;
+  padding: 4px 6px !important;
+}
+
+.leaflet-container a.leaflet-popup-close-button:hover {
+  color: var(--m3-on-surface) !important;
+}
+
+.leaflet-control-layers {
+  background-color: var(--m3-surface-container) !important;
+  color: var(--m3-on-surface) !important;
+  border: none !important;
+  border-radius: var(--m3-radius-md) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
+  padding: 8px 12px !important;
+}
+
+.leaflet-control-scale-line {
+  background: rgba(17, 20, 21, 0.8) !important;
+  color: var(--m3-on-surface) !important;
+  border-color: var(--m3-outline) !important;
+  border-radius: 4px !important;
+  padding: 2px 6px !important;
+  font-size: 11px !important;
+}
+
+#dashboard_container {
+  display: flex;
+  flex-direction: column;
+  min-width: 245px;
+  min-height: 365px;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  box-sizing: border-box;
+}
+
+.button {
+  margin: 12px auto;
+  padding: 0;
+  width: 100%;
+  max-width: 320px;
+}
+
+#dashboard_container a,
+.button_link {
+  display: block;
+  padding: 14px 20px;
+  border-radius: var(--m3-radius-full);
+  background-color: var(--m3-primary-container) !important;
+  color: var(--m3-on-primary-container) !important;
+  font-family: var(--m3-font);
+  font-size: 15px;
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none;
+  border: none !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  transition: opacity 0.2s ease;
+}
+
+#dashboard_container a:active,
+.button_link:active {
+  opacity: 0.85;
+}
+
+input, textarea, select {
+  font-size: max(16px, 1em) !important;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--m3-surface-container-highest);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--m3-outline);
+}
+"""
+
     fun buildBridgeScript(): String {
+        val escapedM3Css = escapeJsonString(M3_EXPRESSIVE_CSS)
         return """
         (function() {
             // Defensive localStorage fallback if uninitialized or broken
@@ -45,35 +475,48 @@ object BridgeScripts {
             if (typeof window.runOnAppBeforeBoot !== 'function') {
                 window.runOnAppBeforeBoot = function() {};
             }
+            if (!window.plugin) window.plugin = function() {};
+            if (!window.bootPlugins) window.bootPlugins = [];
+            if (window.iitcLoaded === undefined) window.iitcLoaded = false;
+            window.isApp = true;
 
-            // Permanently hide legacy HTML chat/sidebar controls so the native M3E UI and Leaflet map are completely unobstructed
+            // Permanently hide legacy HTML chat/sidebar controls so native M3E UI and Leaflet map are unobstructed
             (function() {
-                function applyHideChat() {
+                var styleId = 'm3e-hide-legacy-chat';
+                var hideCss = '#map { visibility: visible !important; opacity: 1 !important; display: block !important; } ' +
+                    '#sidebartoggle, #sidebar, #scrollwrapper, #chatcontrols, #chat, #chatinput, #chattext, body.show_controls #chatcontrols, #chatcontrols a, #chatcontrols .toggle { ' +
+                    'display: none !important; visibility: hidden !important; opacity: 0 !important; ' +
+                    'height: 0 !important; min-height: 0 !important; max-height: 0 !important; ' +
+                    'width: 0 !important; min-width: 0 !important; max-width: 0 !important; ' +
+                    'margin: 0 !important; padding: 0 !important; border: none !important; outline: none !important; ' +
+                    'pointer-events: none !important; position: absolute !important; top: -9999px !important; left: -9999px !important; ' +
+                    'z-index: -9999 !important; clip: rect(0,0,0,0) !important; clip-path: inset(50%) !important; transform: scale(0) !important; }';
+
+                function applyHideStyle() {
                     try {
-                        var id = 'm3e-hide-legacy-chat';
-                        var el = document.getElementById(id);
-                        if (!el) {
-                            el = document.createElement('style');
-                            el.id = id;
-                            (document.head || document.documentElement).appendChild(el);
+                        var existing = document.getElementById(styleId);
+                        if (!existing) {
+                            var style = document.createElement('style');
+                            style.id = styleId;
+                            style.textContent = hideCss;
+                            (document.documentElement || document.head).appendChild(style);
                         }
-                        el.textContent = '#map { visibility: visible !important; opacity: 1 !important; display: block !important; } #chat, #chatcontrols, #chatinput, #scrollwrapper { display: none !important; visibility: hidden !important; height: 0 !important; max-height: 0 !important; pointer-events: none !important; }';
                     } catch(e) {}
                 }
-                applyHideChat();
+
+                applyHideStyle();
                 if (document.readyState === 'loading') {
-                    document.addEventListener('DOMContentLoaded', applyHideChat);
+                    document.addEventListener('DOMContentLoaded', applyHideStyle);
                 }
-                window.addEventListener('load', applyHideChat);
-                try {
-                    var obs = new MutationObserver(function() {
-                        if (!document.getElementById('m3e-hide-legacy-chat')) applyHideChat();
-                    });
-                    obs.observe(document.documentElement, { childList: true, subtree: true });
-                } catch(e) {}
+                window.addEventListener('load', applyHideStyle);
             })();
 
-            if (window.nsWebViewBridge && window.app) return;
+            if (window.nsWebViewBridge && window.app) {
+                try {
+                    window.nsWebViewBridge.injectStyleSheet('iitcprimecss', $escapedM3Css, true);
+                } catch(e) {}
+                return;
+            }
             
             var bridge = {
                 _listeners: {},
@@ -118,7 +561,7 @@ object BridgeScripts {
                 'setLayers', 'addPortalHighlighter', 'setActiveHighlighter', 'addPane',
                 'setFollowMode', 'setMapDarkMode', 'setPortalStatus', 'setPortalDetails', 'setChatMessages', 'setMapStatus',
                 'setProgress', 'setPermalink', 'addInternalHostname', 'saveFile',
-                'reloadIITC', 'openDemo', 'dialogFocused', 'dialogOpened'
+                'reloadIITC', 'openDemo', 'dialogFocused', 'dialogOpened', 'spinnerEnabled'
             ];
 
             var argNames = {
@@ -144,7 +587,8 @@ object BridgeScripts {
                 reloadIITC: ['clearCache'],
                 openDemo: [],
                 dialogFocused: ['id'],
-                dialogOpened: ['id', 'open']
+                dialogOpened: ['id', 'open'],
+                spinnerEnabled: ['enabled']
             };
 
             syncEvents.forEach(function(evt) {
@@ -162,9 +606,10 @@ object BridgeScripts {
             window.nsWebViewBridge = bridge;
             window.app = bridge;
             window.android = bridge;
+            window.isApp = true;
 
-            // Hide legacy HTML chat/sidebar controls completely and ensure map is always visible
-            bridge.injectStyleSheet('m3e-hide-legacy-chat', '#map { visibility: visible !important; opacity: 1 !important; display: block !important; } #chat, #chatcontrols, #chatinput, #scrollwrapper { display: none !important; visibility: hidden !important; height: 0 !important; max-height: 0 !important; pointer-events: none !important; }', true);
+            // Inject M3E Expressive CSS Sheet
+            bridge.injectStyleSheet('iitcprimecss', $escapedM3Css, true);
 
             // Defensive override for window.hideall to never hide the Leaflet map in M3E native layout
             var origHideAll = window.hideall;
@@ -328,6 +773,30 @@ object BridgeScripts {
                 window.addHook('portalDetailsUpdated', function(data) {
                     sendPortalDetails(data ? data.guid : window.selectedPortal, data);
                 });
+                window.addHook('iitcLoaded', function() {
+                    if (bridge && bridge.bootFinished) {
+                        bridge.bootFinished();
+                    }
+                });
+
+                if (window.selectedPortal) {
+                    sendPortalDetails(window.selectedPortal);
+                }
+                if (window.iitcLoaded || window.bootDone || (window.map && window.portals)) {
+                    if (bridge && bridge.bootFinished) {
+                        bridge.bootFinished();
+                    }
+                }
+
+                if (window.chat && !window.chat.__m3e_hooked) {
+                    window.chat.__m3e_hooked = true;
+                    window.chat.show = function(name) {
+                        if (window.chat.chooseTab) {
+                            try { window.chat.chooseTab(name); } catch(e) {}
+                        }
+                    };
+                    window.chat.toggle = function() {};
+                }
 
                 // Chat message bridge
                 function extractChatMessages(channel) {
@@ -411,12 +880,13 @@ object BridgeScripts {
         return """
             window.__iitcVersionName = '$versionName';
             window.__iitcShowZoom = $showZoom;
+            window.isApp = true;
         """.trimIndent()
     }
 
     fun buildCustomStylesScript(css: String): String {
         val jsonCss = escapeJsonString(css)
-        return "window.nsWebViewBridge?.injectStyleSheet('iitcprimecss', $jsonCss, false);"
+        return "window.nsWebViewBridge?.injectStyleSheet('iitcprimecss', $jsonCss, true);"
     }
 
     fun buildDemoModeScript(): String {
@@ -563,21 +1033,97 @@ object BridgeScripts {
           }
 
           window.__iitc_gm__ = function(info) {
-            var dataKey = info.data_key;
-            var meta = info.meta || {};
+            var dataKey = (info && info.data_key) || 'default';
+            var meta = (info && info.meta) || {};
 
             return {
               info: { script: meta },
               _getValueSync: function(key, defaultValue) {
-                var stored = storageObj[dataKey + ':' + key];
-                return stored !== undefined ? stored : defaultValue;
+                var fullKey = '__gm__' + dataKey + ':' + key;
+                try {
+                  var v = localStorage.getItem(fullKey);
+                  if (v !== null && v !== undefined) {
+                    return JSON.parse(v);
+                  }
+                } catch(e) {}
+                var mem = storageObj[fullKey];
+                return mem !== undefined ? mem : defaultValue;
               },
               _setValueSync: function(key, value) {
-                storageObj[dataKey + ':' + key] = value;
+                var fullKey = '__gm__' + dataKey + ':' + key;
+                storageObj[fullKey] = value;
+                try {
+                  localStorage.setItem(fullKey, JSON.stringify(value));
+                } catch(e) {}
                 sendToBridge({ task_type: 'setValue', key: dataKey + ':' + key, value: value });
               },
+              _deleteValueSync: function(key) {
+                var fullKey = '__gm__' + dataKey + ':' + key;
+                delete storageObj[fullKey];
+                try {
+                  localStorage.removeItem(fullKey);
+                } catch(e) {}
+                sendToBridge({ task_type: 'delValue', key: dataKey + ':' + key });
+              },
+              _listValuesSync: function() {
+                var prefix = '__gm__' + dataKey + ':';
+                var list = [];
+                try {
+                  for (var i = 0; i < localStorage.length; i++) {
+                    var k = localStorage.key(i);
+                    if (k && k.indexOf(prefix) === 0) {
+                      list.push(k.substring(prefix.length));
+                    }
+                  }
+                } catch(e) {}
+                return list;
+              },
+              _addStyle: function(css) {
+                try {
+                  var style = document.createElement('style');
+                  style.textContent = css;
+                  (document.head || document.documentElement).appendChild(style);
+                  return style;
+                } catch(e) {
+                  return null;
+                }
+              },
               xmlHttpRequest: function(details) {
-                sendToBridge({ task_type: 'xmlHttpRequest', details: details });
+                if (!details || typeof details !== 'object') return;
+                try {
+                  var xhr = new XMLHttpRequest();
+                  xhr.open(details.method || 'GET', details.url, true);
+                  if (details.headers) {
+                    for (var h in details.headers) {
+                      if (details.headers.hasOwnProperty(h)) {
+                        xhr.setRequestHeader(h, details.headers[h]);
+                      }
+                    }
+                  }
+                  if (details.timeout) xhr.timeout = details.timeout;
+                  xhr.onload = function() {
+                    var resp = {
+                      status: xhr.status,
+                      statusText: xhr.statusText,
+                      responseText: xhr.responseText,
+                      readyState: xhr.readyState,
+                      responseHeaders: xhr.getAllResponseHeaders()
+                    };
+                    if (typeof details.onload === 'function') details.onload(resp);
+                    if (typeof details.onreadystatechange === 'function') details.onreadystatechange(resp);
+                  };
+                  xhr.onerror = function() {
+                    if (typeof details.onerror === 'function') {
+                      details.onerror({ status: xhr.status, statusText: xhr.statusText });
+                    }
+                  };
+                  xhr.ontimeout = function() {
+                    if (typeof details.ontimeout === 'function') details.ontimeout();
+                  };
+                  xhr.send(details.data || null);
+                } catch(e) {
+                  sendToBridge({ task_type: 'xmlHttpRequest', details: details });
+                }
               }
             };
           };
@@ -589,24 +1135,40 @@ object BridgeScripts {
         val code = plugin.code ?: return ""
         val uid = plugin.uid
         val safeCode = code.replace("\u0000", "")
-        val metaJson = """{"uid":"${escapeJsonString(uid)}","name":"${escapeJsonString(plugin.name)}","version":"${escapeJsonString(plugin.version)}"}"""
+        val escapedUid = escapeJsonString(uid)
+        val escapedName = escapeJsonString(plugin.name)
+        val escapedVersion = escapeJsonString(plugin.version)
+        val metaJson = """{"uid":$escapedUid,"name":$escapedName,"version":$escapedVersion}"""
         
         return """
-        ((GM) => {
-            const GM_info = GM.info;
-            const unsafeWindow = window;
-            const GM_getValue = (key, value) => GM._getValueSync(key, value);
-            const GM_setValue = (key, value) => GM._setValueSync(key, value);
-            const GM_xmlhttpRequest = (details) => GM.xmlHttpRequest(details);
+        (function() {
+            if (!window.__iitc_loaded_plugins) window.__iitc_loaded_plugins = {};
+            if (window.__iitc_loaded_plugins[$escapedUid]) return;
+            window.__iitc_loaded_plugins[$escapedUid] = true;
 
-            $safeCode
-        })(__iitc_gm__({ data_key: "${escapeJsonString(uid)}", meta: $metaJson }));
+            try {
+                ((GM) => {
+                    const GM_info = GM.info;
+                    const unsafeWindow = window;
+                    const GM_getValue = (key, value) => GM._getValueSync(key, value);
+                    const GM_setValue = (key, value) => GM._setValueSync(key, value);
+                    const GM_deleteValue = (key) => GM._deleteValueSync(key);
+                    const GM_listValues = () => GM._listValuesSync();
+                    const GM_addStyle = (css) => GM._addStyle(css);
+                    const GM_xmlhttpRequest = (details) => GM.xmlHttpRequest(details);
+
+                    $safeCode
+                })(__iitc_gm__({ data_key: $escapedUid, meta: $metaJson }));
+            } catch (pluginError) {
+                console.error('[IITC Plugin Error: ' + $escapedName + ']', pluginError);
+            }
+        })();
         void 0;
-        //# sourceURL=${plugin.name.replace(" ", "_")}.user.js
+        //# sourceURL=${plugin.name.replace(" ", "_").replace("'", "")}.user.js
         """.trimIndent()
     }
 
-    private fun escapeJsonString(str: String): String {
+    fun escapeJsonString(str: String): String {
         val sb = StringBuilder("\"")
         for (c in str) {
             when (c) {
