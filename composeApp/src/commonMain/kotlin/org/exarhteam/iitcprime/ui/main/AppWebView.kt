@@ -13,6 +13,7 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import org.exarhteam.iitcprime.bridge.BridgeScripts
 import org.exarhteam.iitcprime.bridge.UrlConfig
+import org.exarhteam.iitcprime.platform.PlatformUtils
 import org.exarhteam.iitcprime.viewmodel.MainViewModel
 
 @Composable
@@ -26,7 +27,17 @@ fun AppWebView(
     val reloadTrigger by viewModel.reloadTrigger.collectAsState()
     val pendingJs by viewModel.pendingJsToEvaluate.collectAsState()
 
-    val webViewState = rememberWebViewState(url = UrlConfig.addViewportParam(currentUrl, desktopMode))
+    val webViewState = rememberWebViewState(url = UrlConfig.addViewportParam(currentUrl, desktopMode)).apply {
+        webSettings.apply {
+            isJavaScriptEnabled = true
+            supportZoom = true
+            customUserAgentString = if (desktopMode) {
+                "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            } else null
+            androidWebSettings.domStorageEnabled = true
+            androidWebSettings.allowFileAccess = true
+        }
+    }
     val webViewNavigator = rememberWebViewNavigator()
     val jsBridge = rememberWebViewJsBridge(webViewNavigator)
 
@@ -53,7 +64,14 @@ fun AppWebView(
                     val parsed = Json.parseToJsonElement(payload)
                     if (parsed is JsonArray && parsed.size >= 2) {
                         val event = parsed[0].jsonPrimitive.content
-                        viewModel.handleBridgeMessage(event, parsed[1])
+                        val data = parsed[1]
+                        if (event == "JSBridge" && data is JsonArray && data.size >= 2) {
+                            val innerEvent = data[0].jsonPrimitive.content
+                            val innerData = data[1]
+                            viewModel.handleBridgeMessage(innerEvent, innerData)
+                        } else {
+                            viewModel.handleBridgeMessage(event, data)
+                        }
                     }
                 } catch (e: Exception) {
                     viewModel.addLog("debug", "Error parsing bridge message: ${e.message}", "WebViewBridge")
@@ -112,10 +130,9 @@ fun AppWebView(
                 val debugScript = BridgeScripts.buildDebugBridgeScript()
                 webViewNavigator.evaluateJavaScript(debugScript)
 
-                if (UrlConfig.isDemoUrl(currentUrl)) {
-                    val demoScript = BridgeScripts.buildDemoModeScript()
-                    webViewNavigator.evaluateJavaScript(demoScript)
-                }
+                // Inject demo mode script for both login page (adds Try Demo button) and demo server
+                val demoScript = BridgeScripts.buildDemoModeScript()
+                webViewNavigator.evaluateJavaScript(demoScript)
 
                 // Inject enabled plugins (IITC Core + plugins)
                 val scripts = viewModel.manager.getEnabledPluginScripts()
@@ -132,6 +149,9 @@ fun AppWebView(
         navigator = webViewNavigator,
         webViewJsBridge = jsBridge,
         modifier = modifier.fillMaxSize(),
-        captureBackPresses = false
+        captureBackPresses = false,
+        onCreated = { nativeWebView ->
+            PlatformUtils.configureNativeWebView(nativeWebView)
+        }
     )
 }

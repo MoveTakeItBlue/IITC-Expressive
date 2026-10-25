@@ -269,4 +269,29 @@ actual object PlatformUtils {
             listener.onError("Location permission required")
         }
     }
+
+    actual fun configureNativeWebView(webView: Any) {
+        val wv = webView as? android.webkit.WebView ?: return
+        wv.settings.apply {
+            javaScriptEnabled = true
+            domStorageEnabled = true
+            databaseEnabled = true
+            setSupportMultipleWindows(false)
+            useWideViewPort = false
+            allowFileAccess = true
+            allowContentAccess = true
+            mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
+        }
+        try {
+            val cookieManager = android.webkit.CookieManager.getInstance()
+            cookieManager.setAcceptCookie(true)
+            cookieManager.setAcceptThirdPartyCookies(wv, true)
+            cookieManager.setCookie(
+                "https://signin.nianticspatial.com",
+                "_ncc=0; Path=/; Domain=.nianticspatial.com"
+            )
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
 }

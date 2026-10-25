@@ -25,4 +25,5 @@ expect object PlatformUtils {
     fun startLocationTracking(listener: PlatformLocationListener)
     fun stopLocationTracking()
     fun requestSingleLocationFix(listener: PlatformLocationListener)
+    fun configureNativeWebView(webView: Any)
 }

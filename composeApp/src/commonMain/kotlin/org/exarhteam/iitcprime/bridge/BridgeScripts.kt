@@ -7,6 +7,45 @@ object BridgeScripts {
     fun buildBridgeScript(): String {
         return """
         (function() {
+            // Defensive localStorage fallback if uninitialized or broken
+            try {
+                if (!window.localStorage) throw new Error();
+                window.localStorage.getItem('__iitc_test__');
+            } catch(e) {
+                try {
+                    var _memStore = {};
+                    var fakeStorage = new Proxy(_memStore, {
+                        get: function(target, prop) {
+                            if (prop === 'getItem') return function(k) { return target.hasOwnProperty(k) ? target[k] : null; };
+                            if (prop === 'setItem') return function(k, v) { target[k] = String(v); };
+                            if (prop === 'removeItem') return function(k) { delete target[k]; };
+                            if (prop === 'clear') return function() { for (var k in target) delete target[k]; };
+                            if (prop === 'length') return Object.keys(target).length;
+                            if (prop === 'key') return function(i) { return Object.keys(target)[i] || null; };
+                            return target.hasOwnProperty(prop) ? target[prop] : undefined;
+                        },
+                        set: function(target, prop, val) {
+                            target[prop] = String(val);
+                            return true;
+                        }
+                    });
+                    Object.defineProperty(window, 'localStorage', {
+                        value: fakeStorage,
+                        configurable: true,
+                        enumerable: true,
+                        writable: true
+                    });
+                } catch(e2) {}
+            }
+
+            // Fallback stubs for pre-boot hooks to prevent race condition crashes
+            if (typeof window.runOnSmartphonesBeforeBoot !== 'function') {
+                window.runOnSmartphonesBeforeBoot = function() {};
+            }
+            if (typeof window.runOnAppBeforeBoot !== 'function') {
+                window.runOnAppBeforeBoot = function() {};
+            }
+
             if (window.nsWebViewBridge && window.app) return;
             
             var bridge = {
@@ -22,8 +61,10 @@ object BridgeScripts {
                 },
                 emit: function(event, data) {
                     var payload = JSON.stringify([event, data]);
-                    if (window.kmpJsBridge && window.kmpJsBridge.callNative) {
-                        window.kmpJsBridge.callNative("bridge", JSON.stringify({ payload: payload }));
+                    if (window.androidJsBridge && window.androidJsBridge.callAndroid) {
+                        window.androidJsBridge.callAndroid(0, "bridge", payload);
+                    } else if (window.kmpJsBridge && window.kmpJsBridge.callNative) {
+                        window.kmpJsBridge.callNative("bridge", payload);
                     } else if (window.androidBridge && window.androidBridge.postMessage) {
                         window.androidBridge.postMessage(payload);
                     } else if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.nsWebViewBridge) {
@@ -135,26 +176,40 @@ object BridgeScripts {
             } catch (e) {}
           }
 
-          var container = document.getElementById('dashboard_container');
-          if (!container || document.getElementById('iitc-demo-button')) return;
+          function tryAttachDemoButton() {
+            var container = document.getElementById('dashboard_container');
+            if (!container) return false;
+            if (document.getElementById('iitc-demo-button')) return true;
 
-          var wrapper = document.createElement('div');
-          wrapper.className = 'button unselectable';
+            var wrapper = document.createElement('div');
+            wrapper.className = 'button unselectable';
 
-          var link = document.createElement('a');
-          link.id = 'iitc-demo-button';
-          link.className = 'button_link';
-          link.href = '#';
-          link.textContent = 'Try demo (no sign-in required)';
-          link.addEventListener('click', function (event) {
-            event.preventDefault();
-            if (window.app && window.app.openDemo) {
-              window.app.openDemo();
-            }
-          });
+            var link = document.createElement('a');
+            link.id = 'iitc-demo-button';
+            link.className = 'button_link';
+            link.href = '#';
+            link.textContent = 'Try demo (no sign-in required)';
+            link.addEventListener('click', function (event) {
+              event.preventDefault();
+              if (window.app && window.app.openDemo) {
+                window.app.openDemo();
+              }
+            });
 
-          wrapper.appendChild(link);
-          container.appendChild(wrapper);
+            wrapper.appendChild(link);
+            container.appendChild(wrapper);
+            return true;
+          }
+
+          if (!tryAttachDemoButton()) {
+            var tries = 0;
+            var timer = setInterval(function() {
+              tries++;
+              if (tryAttachDemoButton() || tries > 30) {
+                clearInterval(timer);
+              }
+            }, 300);
+          }
         })();
         """.trimIndent()
     }

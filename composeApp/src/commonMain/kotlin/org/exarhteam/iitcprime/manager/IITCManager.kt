@@ -3,6 +3,7 @@ package org.exarhteam.iitcprime.manager
 import io.ktor.client.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
+import iitc_expressive.composeapp.generated.resources.Res
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -50,21 +51,52 @@ class IITCManager(
         val lastCheck = storage.getLong("last_check_update", 0L)
         if (lastCheck > 0) _lastCheckTime.value = lastCheck
 
-        // Seed fallback core if release channel has no core
-        if (channel == Channel.RELEASE && fallbackCoreCode != null) {
-            val existingCore = storage.getString("${Channel.RELEASE.key}_iitc_core", "")
-            if (existingCore.isBlank()) {
-                val parsed = PluginParser.parseMeta(fallbackCoreCode)
+        refreshPluginsView()
+
+        scope.launch {
+            seedBundledResourcesIfNeeded(fallbackCoreCode)
+            checkUpdates(force = false)
+        }
+    }
+
+    private suspend fun seedBundledResourcesIfNeeded(fallbackCoreCode: String? = null) = withContext(Dispatchers.Default) {
+        var needsRefresh = false
+        val ch = _currentChannel.value
+
+        // 1. Seed fallback core if needed
+        val existingCore = storage.getString("${ch.key}_iitc_core", "")
+        if (existingCore.isBlank()) {
+            val coreCode = fallbackCoreCode ?: try {
+                Res.readBytes("files/total-conversion-build.user.js").decodeToString()
+            } catch (e: Exception) {
+                println("Failed to read bundled total-conversion-build.user.js: ${e.message}")
+                null
+            }
+            if (!coreCode.isNullOrBlank()) {
+                val parsed = PluginParser.parseMeta(coreCode)
                 if (parsed != null) {
-                    saveCore(Channel.RELEASE, parsed.copy(code = fallbackCoreCode))
+                    saveCore(ch, parsed.copy(code = coreCode))
+                    needsRefresh = true
                 }
             }
         }
 
-        refreshPluginsView()
+        // 2. Seed fallback plugins catalog if needed
+        val existingCatalog = storage.getString("${ch.key}_plugins_catalog", "").removePrefix("\uFEFF").trim()
+        if (existingCatalog.isBlank() || existingCatalog == "{}") {
+            try {
+                val catalogJson = Res.readBytes("files/plugins_catalog.json").decodeToString().removePrefix("\uFEFF").trim()
+                if (catalogJson.isNotBlank()) {
+                    storage.setString("${ch.key}_plugins_catalog", catalogJson)
+                    needsRefresh = true
+                }
+            } catch (e: Exception) {
+                println("Failed to read bundled plugins_catalog.json: ${e.message}")
+            }
+        }
 
-        scope.launch {
-            checkUpdates(force = false)
+        if (needsRefresh) {
+            refreshPluginsView()
         }
     }
 
@@ -95,18 +127,22 @@ class IITCManager(
 
     fun refreshPluginsView() {
         val ch = _currentChannel.value.key
-        val catalogJson = storage.getString("${ch}_plugins_catalog", "{}")
+        val catalogJson = storage.getString("${ch}_plugins_catalog", "{}").removePrefix("\uFEFF").trim()
         val catalogMap = mutableMapOf<String, Plugin>()
         try {
             val rootObj = json.parseToJsonElement(catalogJson).jsonObject
             for ((key, elem) in rootObj) {
                 if (elem is JsonObject) {
-                    val p = json.decodeFromJsonElement<Plugin>(elem)
-                    catalogMap[p.uid.ifBlank { key }] = p
+                    try {
+                        val p = json.decodeFromJsonElement<Plugin>(elem)
+                        catalogMap[p.uid.ifBlank { key }] = p
+                    } catch (pe: Exception) {
+                        println("Failed to decode plugin $key: ${pe.message}")
+                    }
                 }
             }
         } catch (e: Exception) {
-            // Ignore parse errors
+            println("refreshPluginsView parse error: ${e.message}")
         }
 
         // Local downloaded code
@@ -206,21 +242,29 @@ class IITCManager(
         try {
             // 1. Fetch IITC Core
             val coreUrl = "$host/total-conversion-build.user.js"
-            val coreResponse = httpClient.get(coreUrl)
-            if (coreResponse.status.value in 200..299) {
-                val coreText = coreResponse.bodyAsText()
-                val parsedCore = PluginParser.parseMeta(coreText)
-                if (parsedCore != null) {
-                    saveCore(ch, parsedCore.copy(code = coreText))
+            try {
+                val coreResponse = httpClient.get(coreUrl)
+                if (coreResponse.status.value in 200..299) {
+                    val coreText = coreResponse.bodyAsText()
+                    val parsedCore = PluginParser.parseMeta(coreText)
+                    if (parsedCore != null) {
+                        saveCore(ch, parsedCore.copy(code = coreText))
+                    }
                 }
+            } catch (e: Exception) {
+                println("Failed to fetch core update: ${e.message}")
             }
 
-            // 2. Fetch plugins.json
-            val catalogUrl = "$host/plugins.json"
-            val catalogResponse = httpClient.get(catalogUrl)
-            if (catalogResponse.status.value in 200..299) {
-                val catalogText = catalogResponse.bodyAsText()
-                storage.setString("${ch.key}_plugins_catalog", catalogText)
+            // 2. Fetch plugins.json if available
+            try {
+                val catalogUrl = "$host/plugins.json"
+                val catalogResponse = httpClient.get(catalogUrl)
+                if (catalogResponse.status.value in 200..299) {
+                    val catalogText = catalogResponse.bodyAsText()
+                    storage.setString("${ch.key}_plugins_catalog", catalogText)
+                }
+            } catch (e: Exception) {
+                // Ignore 404
             }
 
             val now = ClockHelper.nowMillis()
@@ -292,7 +336,12 @@ class IITCManager(
 
     suspend fun downloadAndInstallPlugin(url: String): Plugin? = withContext(Dispatchers.Default) {
         try {
-            val response = httpClient.get(url)
+            val fullUrl = if (url.startsWith("http://", ignoreCase = true) || url.startsWith("https://", ignoreCase = true)) {
+                url
+            } else {
+                "${getChannelHost(_currentChannel.value)}/plugins/$url"
+            }
+            val response = httpClient.get(fullUrl)
             if (response.status.value in 200..299) {
                 val code = response.bodyAsText()
                 return@withContext addUserScript(code)
@@ -310,7 +359,22 @@ class IITCManager(
         scripts.add(BridgeScripts.getGmApiCode())
 
         // 2. Core script
-        val activeCore = _core.value
+        var activeCore = _core.value
+        if (activeCore?.code.isNullOrBlank()) {
+            try {
+                val coreCode = Res.readBytes("files/total-conversion-build.user.js").decodeToString()
+                val parsed = PluginParser.parseMeta(coreCode)
+                if (parsed != null) {
+                    val fullCore = parsed.copy(code = coreCode)
+                    saveCore(_currentChannel.value, fullCore)
+                    _core.value = fullCore
+                    activeCore = fullCore
+                }
+            } catch (e: Exception) {
+                println("Failed to read fallback core: ${e.message}")
+            }
+        }
+
         if (activeCore?.code != null) {
             scripts.add(activeCore.code)
         }
@@ -325,8 +389,8 @@ class IITCManager(
             // If code not cached locally yet, download it
             if (code == null) {
                 try {
-                    val filename = plugin.filename.ifBlank { "${plugin.name.replace(" ", "_")}.user.js" }
-                    val scriptUrl = "$host/$filename"
+                    val scriptUrl = plugin.downloadURL?.ifBlank { null }
+                        ?: "$host/plugins/${plugin.filename.ifBlank { "${plugin.name.replace(" ", "_")}.user.js" }}"
                     val resp = httpClient.get(scriptUrl)
                     if (resp.status.value in 200..299) {
                         code = resp.bodyAsText()

@@ -109,6 +109,10 @@ actual object PlatformUtils {
     actual fun requestSingleLocationFix(listener: PlatformLocationListener) {
         startLocationTracking(listener)
     }
+
+    actual fun configureNativeWebView(webView: Any) {
+        // Platform specific WKWebView configuration on iOS if needed
+    }
 }
 
 private fun ByteArray.toNSData(): NSData {
