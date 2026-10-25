@@ -65,6 +65,10 @@ a:hover, a:focus {
 #chat,
 #chatinput,
 #chattext,
+#updatestatus,
+#innerstatus,
+#mobileinfo,
+#loadlevel,
 body.show_controls #chatcontrols,
 #chatcontrols a,
 #chatcontrols .toggle {
@@ -91,8 +95,29 @@ body.show_controls #chatcontrols,
   transform: scale(0) !important;
 }
 
-#map {
+#map,
+body #map,
+body.show_controls #map {
   visibility: visible !important;
+  opacity: 1 !important;
+  display: block !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 100% !important;
+  max-height: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+body.show_controls {
+  padding-top: 0 !important;
+  margin-top: 0 !important;
+}
   opacity: 1 !important;
   display: block !important;
 }

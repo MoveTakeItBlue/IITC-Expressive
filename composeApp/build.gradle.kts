@@ -10,7 +10,7 @@ plugins {
 
 kotlin {
     android {
-        namespace = "org.exarhteam.iitcprime.shared"
+        namespace = "io.github.movetakeitblue.iitcexpressive.shared"
         compileSdk = libs.versions.android.compileSdk.get().toInt()
         minSdk = libs.versions.android.minSdk.get().toInt()
 

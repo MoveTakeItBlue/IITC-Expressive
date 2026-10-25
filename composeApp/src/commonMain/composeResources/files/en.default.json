@@ -1,9 +1,9 @@
 {
   "app": {
     "name": {
-      "release": "IITC Prime",
-      "beta": "IITC Prime Beta",
-      "debug": "IITC Prime Debug"
+      "release": "IITC Expressive",
+      "beta": "IITC Expressive Beta",
+      "debug": "IITC Expressive Debug"
     }
   },
 
@@ -54,7 +54,7 @@
   "settings.licenses.description": "View licenses of used libraries",
 
   "about.title": "About",
-  "about.description": "IITC Prime is a mobile client for Ingress Intel Total Conversion that provides an enhanced interface for the Ingress Intel Map.",
+  "about.description": "IITC Expressive is a mobile client for Ingress Intel Total Conversion that provides an enhanced interface for the Ingress Intel Map.",
   "about.iitc_website.title": "IITC-CE website",
   "about.iitc_website.url": "iitc.app",
   "about.iitc_github.title": "IITC-CE on GitHub",
