@@ -188,8 +188,7 @@ fun LocationShareDialog(
     Dialog(onDismissRequest = onDismiss) {
         Card(
             shape = RoundedCornerShape(28.dp),
-            colors = CardDefaults.cardColors(containerColor = SurfaceContainerDark),
-            border = androidx.compose.foundation.BorderStroke(1.dp, OutlineSubtle),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
             modifier = Modifier.fillMaxWidth().padding(16.dp)
         ) {
             Column(
@@ -290,8 +289,7 @@ fun SelectFieldDialog(
     Dialog(onDismissRequest = onDismiss) {
         Card(
             shape = RoundedCornerShape(28.dp),
-            colors = CardDefaults.cardColors(containerColor = SurfaceContainerDark),
-            border = androidx.compose.foundation.BorderStroke(1.dp, OutlineSubtle),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
             modifier = Modifier.fillMaxWidth().heightIn(max = 480.dp).padding(16.dp)
         ) {
             Column(modifier = Modifier.padding(vertical = 18.dp, horizontal = 16.dp)) {

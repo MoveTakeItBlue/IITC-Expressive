@@ -2,62 +2,85 @@ package org.exarhteam.iitcprime.theme
 
 import androidx.compose.ui.graphics.Color
 
-// ==========================================
-// Material 3 Expressive - IITC Prime Palette
-// ==========================================
+// ==============================================================
+// Material 3 Expressive (M3E) - IITC Prime Palette
+// Authentic M3 tonal palette, dynamic-ready, no harsh 2012 neon.
+// ==============================================================
 
-// Surfaces (Deep expressive dark theme)
-val SurfaceDark = Color(0xFF0B1318)
-val SurfaceContainerLowestDark = Color(0xFF060B0E)
-val SurfaceContainerLowDark = Color(0xFF0F1B22)
-val SurfaceContainerDark = Color(0xFF15242D)
-val SurfaceContainerHighDark = Color(0xFF1E313D)
-val SurfaceContainerHighestDark = Color(0xFF283F4E)
+// M3 Expressive Surfaces (Dark Theme)
+val SurfaceDark = Color(0xFF111415)
+val SurfaceContainerLowestDark = Color(0xFF0C0F10)
+val SurfaceContainerLowDark = Color(0xFF171C1D)
+val SurfaceContainerDark = Color(0xFF1B2022)
+val SurfaceContainerHighDark = Color(0xFF252B2D)
+val SurfaceContainerHighestDark = Color(0xFF303638)
 
-// Primary & Interactive Accent - Vibrant Teal / Cyan
-val AccentTeal = Color(0xFF4CE5D2)
-val AccentContainerTeal = Color(0xFF005048)
-val OnPrimaryContainerTeal = Color(0xFF6FF7E4)
-val AccentBorderTeal = Color(0x524CE5D2)
+// M3 Expressive Primary (Refined Mint / Sage Teal)
+val AccentTeal = Color(0xFF78D7C7)
+val AccentContainerTeal = Color(0xFF005047)
+val OnPrimaryContainerTeal = Color(0xFF95F4E3)
+val AccentBorderTeal = Color(0x3378D7C7)
 
 // Secondary & Tertiary Accents
-val SecondaryTeal = Color(0xFF26A69A)
-val TertiaryAmber = Color(0xFFFFB74D)
-val TertiaryContainerAmber = Color(0xFF452B00)
-val OnTertiaryContainerAmber = Color(0xFFFFDDB3)
+val SecondaryTeal = Color(0xFFB1CCC6)
+val TertiaryAmber = Color(0xFFE5C07B)
+val TertiaryContainerAmber = Color(0xFF3F3517)
+val OnTertiaryContainerAmber = Color(0xFFFFE088)
 
-// Outline & Borders
-val OutlineVariantMuted = Color(0x334CE5D2)
-val OutlineSubtle = Color(0x22FFFFFF)
+// Outline & Borders (Soft M3 tokens, no harsh neon)
+val OutlineVariantMuted = Color(0x2E899294)
+val OutlineSubtle = Color(0x1A899294)
 
 // Text on dark surfaces
-val OnSurfaceWhite = Color(0xFFF0F5F6)
-val OnSurfaceVariantMuted = Color(0xFF8BA5AD)
-val OnSurfaceSubtle = Color(0xFF5A757D)
+val OnSurfaceWhite = Color(0xFFE0E3E3)
+val OnSurfaceVariantMuted = Color(0xFFBFC8C9)
+val OnSurfaceSubtle = Color(0xFF899294)
 
-// Interaction & States
-val StateRipple = Color(0x1A4CE5D2)
-val StateSuccess = Color(0xFF43A047)
+// States
+val StateRipple = Color(0x1A78D7C7)
+val StateSuccess = Color(0xFF81C784)
 val StateWarning = Color(0xFFFFB74D)
-val StateError = Color(0xFFFF5252)
+val StateError = Color(0xFFFF8585)
 val StateDisabled = Color(0xFF5A757D)
 
-// Ingress Faction Colors (Accurate to Intel)
-val TeamNeutral = Color(0xFFFF6600)
-val TeamResistance = Color(0xFF00C0FF)
-val TeamEnlightened = Color(0xFF03DC03)
-val TeamMachina = Color(0xFFFF003C)
+// ==============================================================
+// Modern M3 Expressive Faction Colors
+// Refined, harmonious with Material You dynamic color schemes.
+// ==============================================================
 
-// Ingress Portal Levels (L0 - L8)
-val Level0Color = Color(0xFF555555)
-val Level1Color = Color(0xFFFECE5A)
-val Level2Color = Color(0xFFFFA630)
-val Level3Color = Color(0xFFFF7315)
-val Level4Color = Color(0xFFE40000)
-val Level5Color = Color(0xFFFD2992)
-val Level6Color = Color(0xFFEB26CD)
-val Level7Color = Color(0xFFC124E0)
-val Level8Color = Color(0xFF896BF8)
+// Enlightened (Modern M3 Mint / Emerald)
+val TeamEnlightened = Color(0xFF5CD88E)
+val TeamEnlightenedContainer = Color(0xFF0E4A26)
+val OnTeamEnlightenedContainer = Color(0xFF7FF8AC)
+
+// Resistance (Modern M3 Cerulean / Sky Blue)
+val TeamResistance = Color(0xFF6EACFE)
+val TeamResistanceContainer = Color(0xFF0C3D75)
+val OnTeamResistanceContainer = Color(0xFFA5CEFF)
+
+// Machina (Modern M3 Coral Rose)
+val TeamMachina = Color(0xFFFF6E6E)
+val TeamMachinaContainer = Color(0xFF5F1414)
+val OnTeamMachinaContainer = Color(0xFFFFB4AB)
+
+// Neutral (Warm Sand / Amber)
+val TeamNeutral = Color(0xFFE2C46E)
+val TeamNeutralContainer = Color(0xFF3F3517)
+val OnTeamNeutralContainer = Color(0xFFFFE088)
+
+// ==============================================================
+// Modern M3 Resonator Level Colors (L0 - L8)
+// Smooth tonal spectrum harmonious with M3 dark/light themes.
+// ==============================================================
+val Level0Color = Color(0xFF757575)
+val Level1Color = Color(0xFFFFD54F) // Amber
+val Level2Color = Color(0xFFFFB74D) // Orange
+val Level3Color = Color(0xFFFF8A65) // Deep Orange
+val Level4Color = Color(0xFFE57373) // Red
+val Level5Color = Color(0xFFF06292) // Pink
+val Level6Color = Color(0xFFBA68C8) // Purple
+val Level7Color = Color(0xFF9575CD) // Deep Purple
+val Level8Color = Color(0xFF7986CB) // Indigo
 
 // Component Aliases
 val Accent = AccentTeal

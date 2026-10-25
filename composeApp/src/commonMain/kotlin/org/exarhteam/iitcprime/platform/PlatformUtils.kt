@@ -26,4 +26,5 @@ expect object PlatformUtils {
     fun stopLocationTracking()
     fun requestSingleLocationFix(listener: PlatformLocationListener)
     fun configureNativeWebView(webView: Any)
+    fun decodeImageBitmap(bytes: ByteArray): androidx.compose.ui.graphics.ImageBitmap?
 }

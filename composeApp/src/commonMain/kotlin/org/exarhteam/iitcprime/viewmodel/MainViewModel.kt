@@ -40,7 +40,7 @@ class MainViewModel(
     val storage: AppStorage,
     val manager: IITCManager
 ) {
-    private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
+    val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
     private val json = Json { ignoreUnknownKeys = true; isLenient = true }
 
     // Navigation / Screen state
@@ -135,6 +135,99 @@ class MainViewModel(
     private val _hasClipboardLink = MutableStateFlow(false)
     val hasClipboardLink: StateFlow<Boolean> = _hasClipboardLink.asStateFlow()
 
+    // Secondary sheets & FAB menu state
+    private val _isLayersSheetOpen = MutableStateFlow(false)
+    val isLayersSheetOpen: StateFlow<Boolean> = _isLayersSheetOpen.asStateFlow()
+
+    private val _isChatSheetOpen = MutableStateFlow(false)
+    val isChatSheetOpen: StateFlow<Boolean> = _isChatSheetOpen.asStateFlow()
+
+    private val _isPortalDetailsExpanded = MutableStateFlow(false)
+    val isPortalDetailsExpanded: StateFlow<Boolean> = _isPortalDetailsExpanded.asStateFlow()
+
+    private val _isFabMenuExpanded = MutableStateFlow(false)
+    val isFabMenuExpanded: StateFlow<Boolean> = _isFabMenuExpanded.asStateFlow()
+
+    // Structured COMM Chat Messages by channel ("all", "faction", "alerts")
+    private val _chatMessages = MutableStateFlow<Map<String, List<ChatMessage>>>(
+        mapOf("all" to emptyList(), "faction" to emptyList(), "alerts" to emptyList())
+    )
+    val chatMessages: StateFlow<Map<String, List<ChatMessage>>> = _chatMessages.asStateFlow()
+
+    fun openLayersSheet() {
+        _isFabMenuExpanded.value = false
+        _isLayersSheetOpen.value = true
+    }
+
+    fun closeLayersSheet() {
+        _isLayersSheetOpen.value = false
+    }
+
+    fun openChatSheet() {
+        _isFabMenuExpanded.value = false
+        _isChatSheetOpen.value = true
+        requestChat("all")
+    }
+
+    fun closeChatSheet() {
+        _isChatSheetOpen.value = false
+    }
+
+    fun toggleFabMenu() {
+        _isFabMenuExpanded.value = !_isFabMenuExpanded.value
+    }
+
+    fun closeFabMenu() {
+        _isFabMenuExpanded.value = false
+    }
+
+    fun expandPortalDetails() {
+        _isPortalDetailsExpanded.value = true
+    }
+
+    fun collapsePortalDetails() {
+        _isPortalDetailsExpanded.value = false
+    }
+
+    fun deselectPortal() {
+        _portalStatus.value = PortalStatus()
+        _isPortalDetailsExpanded.value = false
+        evaluateJs("if (window.renderPortalDetails) window.renderPortalDetails(null);")
+    }
+
+    fun selectPortalByLatLng(lat: Double, lng: Double) {
+        evaluateJs("if (window.selectPortalByLatLng) window.selectPortalByLatLng($lat, $lng);")
+        closeChatSheet()
+    }
+
+    fun sendChatMessage(channel: String, message: String) {
+        if (message.isBlank()) return
+        val escaped = message.replace("'", "\\'").replace("\n", " ")
+        evaluateJs("""
+            (function() {
+                if (window.chat && window.chat.postMsg) {
+                    var inp = document.querySelector('#chatinput input');
+                    if (inp) inp.value = '$escaped';
+                    window.chat.postMsg('$channel');
+                }
+            })();
+        """.trimIndent())
+    }
+
+    fun requestChat(channel: String) {
+        evaluateJs("""
+            (function() {
+                if (window.chat) {
+                    if ('$channel' === 'faction' && window.chat.requestFaction) window.chat.requestFaction(false);
+                    else if ('$channel' === 'alerts' && window.chat.requestAlerts) window.chat.requestAlerts(false);
+                    else if (window.chat.requestPublic) window.chat.requestPublic(false);
+                    if (window.__sendChat) window.__sendChat('$channel');
+                }
+            })();
+        """.trimIndent())
+    }
+
+    // Pending JS script to execute in webview
     // Queue of JS scripts to execute in webview
     val jsChannel = kotlinx.coroutines.channels.Channel<String>(kotlinx.coroutines.channels.Channel.UNLIMITED)
 
@@ -360,19 +453,43 @@ class MainViewModel(
     }
 
     fun handleBackPress(): Boolean {
-        // 1. If debug console active, close it
+        // 1. If fab menu is expanded, collapse it
+        if (_isFabMenuExpanded.value) {
+            _isFabMenuExpanded.value = false
+            return true
+        }
+
+        // 2. If portal details expanded, collapse to peek
+        if (_isPortalDetailsExpanded.value) {
+            _isPortalDetailsExpanded.value = false
+            return true
+        }
+
+        // 3. If layers sheet open, close it
+        if (_isLayersSheetOpen.value) {
+            _isLayersSheetOpen.value = false
+            return true
+        }
+
+        // 4. If chat sheet open, close it
+        if (_isChatSheetOpen.value) {
+            _isChatSheetOpen.value = false
+            return true
+        }
+
+        // 5. If portal is selected, deselect it
+        if (_portalStatus.value.hasSelected) {
+            deselectPortal()
+            return true
+        }
+
+        // 6. If debug console active, close it
         if (_isDebugActive.value) {
             _isDebugActive.value = false
             return true
         }
 
-        // 2. If panel open (MIDDLE or TOP), collapse to BOTTOM
-        if (_panelPosition.value == PanelPosition.MIDDLE || _panelPosition.value == PanelPosition.TOP) {
-            _panelPosition.value = PanelPosition.BOTTOM
-            return true
-        }
-
-        // 3. If IITC dialog active, close top dialog
+        // 7. If IITC dialog active, close top dialog
         val dialogs = _dialogStack.value
         if (dialogs.isNotEmpty()) {
             val top = dialogs.last()
@@ -381,13 +498,13 @@ class MainViewModel(
             return true
         }
 
-        // 4. If panel is hidden, restore it
-        if (_panelPosition.value == PanelPosition.HIDDEN) {
+        // 8. If panel open (MIDDLE or TOP), collapse to BOTTOM
+        if (_panelPosition.value == PanelPosition.MIDDLE || _panelPosition.value == PanelPosition.TOP) {
             _panelPosition.value = PanelPosition.BOTTOM
             return true
         }
 
-        // 5. If not on map pane, switch to map
+        // 9. If not on map pane, switch to map
         if (_currentPane.value != "map") {
             switchToPane("map")
             return true
@@ -488,39 +605,190 @@ class MainViewModel(
                 try {
                     val obj = data.jsonObject
                     val guid = obj["guid"]?.jsonPrimitive?.contentOrNull
-                    val team = obj["team"]?.jsonPrimitive?.contentOrNull ?: "N"
-                    val level = obj["level"]?.jsonPrimitive?.intOrNull ?: 0
-                    val title = obj["title"]?.jsonPrimitive?.contentOrNull ?: "No portal selected"
-                    val health = obj["health"]?.jsonPrimitive?.intOrNull ?: 0
-                    val levelColor = obj["levelColor"]?.jsonPrimitive?.contentOrNull
-                    val isLoading = obj["isLoading"]?.jsonPrimitive?.booleanOrNull ?: false
+                    if (guid.isNullOrBlank()) {
+                        _portalStatus.value = PortalStatus()
+                    } else {
+                        val team = obj["team"]?.jsonPrimitive?.contentOrNull ?: "N"
+                        val level = obj["level"]?.jsonPrimitive?.intOrNull ?: 0
+                        val title = obj["title"]?.jsonPrimitive?.contentOrNull ?: "No portal selected"
+                        val health = obj["health"]?.jsonPrimitive?.intOrNull ?: 0
+                        val levelColor = obj["levelColor"]?.jsonPrimitive?.contentOrNull
+                        val isLoading = obj["isLoading"]?.jsonPrimitive?.booleanOrNull ?: false
 
-                    val resonatorsElem = obj["resonators"]
-                    val resonatorsList = if (resonatorsElem is JsonArray) {
-                        resonatorsElem.map { resElem ->
-                            val rObj = resElem.jsonObject
-                            Resonator(
-                                level = rObj["level"]?.jsonPrimitive?.intOrNull ?: 0,
-                                levelColor = rObj["levelColor"]?.jsonPrimitive?.contentOrNull ?: "#808080",
-                                healthPct = rObj["healthPct"]?.jsonPrimitive?.intOrNull ?: 0,
-                                energy = rObj["energy"]?.jsonPrimitive?.intOrNull ?: 0
-                            )
-                        }
-                    } else null
+                        val resonatorsElem = obj["resonators"]
+                        val resonatorsList = if (resonatorsElem is JsonArray) {
+                            resonatorsElem.mapIndexed { idx, resElem ->
+                                val rObj = resElem.jsonObject
+                                val prevOwner = _portalStatus.value.resonators?.getOrNull(idx)?.owner
+                                Resonator(
+                                    level = rObj["level"]?.jsonPrimitive?.intOrNull ?: 0,
+                                    levelColor = rObj["levelColor"]?.jsonPrimitive?.contentOrNull ?: "#808080",
+                                    healthPct = rObj["healthPct"]?.jsonPrimitive?.intOrNull ?: 0,
+                                    energy = rObj["energy"]?.jsonPrimitive?.intOrNull ?: 0,
+                                    owner = rObj["owner"]?.jsonPrimitive?.contentOrNull?.ifBlank { null } ?: prevOwner
+                                )
+                            }
+                        } else null
 
-                    _portalStatus.value = PortalStatus(
-                        guid = guid,
-                        team = team,
-                        level = level,
-                        isNeutral = team == "N",
-                        title = title,
-                        health = health,
-                        resonators = resonatorsList,
-                        levelColor = levelColor,
-                        isLoading = isLoading
-                    )
+                        val prev = _portalStatus.value
+                        val isSamePortal = prev.guid == guid
+                        _portalStatus.value = PortalStatus(
+                            guid = guid,
+                            team = team,
+                            level = level,
+                            isNeutral = team == "N",
+                            title = title,
+                            health = health,
+                            resonators = resonatorsList ?: if (isSamePortal) prev.resonators else null,
+                            levelColor = levelColor,
+                            isLoading = isLoading,
+                            image = if (isSamePortal) prev.image else null,
+                            owner = if (isSamePortal) prev.owner else null,
+                            latE6 = if (isSamePortal) prev.latE6 else null,
+                            lngE6 = if (isSamePortal) prev.lngE6 else null,
+                            address = if (isSamePortal) prev.address else null,
+                            mods = if (isSamePortal) prev.mods else null
+                        )
+                    }
                 } catch (e: Exception) {
                     println("setPortalStatus error: ${e.message}")
+                }
+            }
+            "setPortalDetails" -> {
+                try {
+                    val guid = data.jsonObject["guid"]?.jsonPrimitive?.contentOrNull
+                    if (guid.isNullOrBlank()) {
+                        _portalStatus.value = PortalStatus()
+                    } else {
+                        val d = data.jsonObject["details"]?.jsonObject
+                        if (d != null) {
+                            val title = d["title"]?.jsonPrimitive?.contentOrNull?.ifBlank { null } ?: _portalStatus.value.title
+                            val image = d["image"]?.jsonPrimitive?.contentOrNull?.ifBlank { null }
+                            val owner = d["owner"]?.jsonPrimitive?.contentOrNull?.ifBlank { null }
+                            val team = d["team"]?.jsonPrimitive?.contentOrNull ?: "N"
+                            val level = d["level"]?.jsonPrimitive?.intOrNull ?: 0
+                            val health = d["health"]?.jsonPrimitive?.intOrNull ?: 0
+                            val latE6 = d["latE6"]?.jsonPrimitive?.longOrNull
+                            val lngE6 = d["lngE6"]?.jsonPrimitive?.longOrNull
+                            val address = d["address"]?.jsonPrimitive?.contentOrNull
+
+                            // Parse resonators
+                            val resElem = d["resonators"]
+                            val resList = if (resElem is JsonArray) {
+                                resElem.mapNotNull { rItem ->
+                                    if (rItem is JsonObject) {
+                                        val rLevel = rItem["level"]?.jsonPrimitive?.intOrNull ?: 0
+                                        val rOwner = rItem["owner"]?.jsonPrimitive?.contentOrNull
+                                        val rEnergy = rItem["energy"]?.jsonPrimitive?.intOrNull ?: 0
+                                        val rMax = when (rLevel) {
+                                            1 -> 1000; 2 -> 1500; 3 -> 2000; 4 -> 2500; 5 -> 3000; 6 -> 4000; 7 -> 5000; 8 -> 6000; else -> 1000
+                                        }
+                                        val pct = if (rMax > 0) ((rEnergy * 100) / rMax).coerceIn(0, 100) else 0
+                                        Resonator(
+                                            level = rLevel,
+                                            levelColor = when (rLevel) {
+                                                1 -> "#fece5a"; 2 -> "#ffa630"; 3 -> "#ff7315"; 4 -> "#e40000"; 5 -> "#fd2992"; 6 -> "#eb26cd"; 7 -> "#c124e0"; 8 -> "#9627f4"; else -> "#808080"
+                                            },
+                                            healthPct = pct,
+                                            energy = rEnergy,
+                                            owner = rOwner
+                                        )
+                                    } else null
+                                }
+                            } else _portalStatus.value.resonators
+
+                            // Parse mods
+                            val modsElem = d["mods"]
+                            val modsList = if (modsElem is JsonArray) {
+                                modsElem.map { mItem ->
+                                    if (mItem is JsonObject) {
+                                        PortalMod(
+                                            name = mItem["name"]?.jsonPrimitive?.contentOrNull,
+                                            rarity = mItem["rarity"]?.jsonPrimitive?.contentOrNull,
+                                            owner = mItem["owner"]?.jsonPrimitive?.contentOrNull
+                                        )
+                                    } else PortalMod()
+                                }
+                            } else null
+
+                            val rangeMeters = d["rangeMeters"]?.jsonPrimitive?.longOrNull
+                            val linksIn = d["linksIn"]?.jsonPrimitive?.intOrNull ?: 0
+                            val linksOut = d["linksOut"]?.jsonPrimitive?.intOrNull ?: 0
+                            val fieldsCount = d["fieldsCount"]?.jsonPrimitive?.intOrNull ?: 0
+                            val energy = d["energy"]?.jsonPrimitive?.longOrNull ?: 0L
+                            val maxEnergy = d["maxEnergy"]?.jsonPrimitive?.longOrNull ?: 0L
+                            val apGain = d["apGain"]?.jsonPrimitive?.longOrNull ?: 0L
+                            val historyVisited = d["historyVisited"]?.jsonPrimitive?.booleanOrNull ?: false
+                            val historyCaptured = d["historyCaptured"]?.jsonPrimitive?.booleanOrNull ?: false
+                            val historyScoutControlled = d["historyScoutControlled"]?.jsonPrimitive?.booleanOrNull ?: false
+
+                            _portalStatus.value = _portalStatus.value.copy(
+                                guid = guid,
+                                title = title,
+                                image = image ?: _portalStatus.value.image,
+                                owner = owner ?: _portalStatus.value.owner,
+                                team = team,
+                                level = level,
+                                isNeutral = team == "N",
+                                health = health,
+                                latE6 = latE6 ?: _portalStatus.value.latE6,
+                                lngE6 = lngE6 ?: _portalStatus.value.lngE6,
+                                address = address ?: _portalStatus.value.address,
+                                rangeMeters = rangeMeters ?: _portalStatus.value.rangeMeters,
+                                linksIn = linksIn,
+                                linksOut = linksOut,
+                                fieldsCount = fieldsCount,
+                                energy = energy,
+                                maxEnergy = maxEnergy,
+                                apGain = apGain,
+                                historyVisited = historyVisited,
+                                historyCaptured = historyCaptured,
+                                historyScoutControlled = historyScoutControlled,
+                                resonators = resList,
+                                mods = modsList ?: _portalStatus.value.mods,
+                                isLoading = false
+                            )
+                        }
+                    }
+                } catch (e: Exception) {
+                    println("setPortalDetails error: ${e.message}")
+                }
+            }
+            "setChatMessages" -> {
+                try {
+                    val obj = data.jsonObject
+                    val channel = obj["channel"]?.jsonPrimitive?.contentOrNull ?: "all"
+                    val msgsElem = obj["messages"]
+                    if (msgsElem is JsonArray) {
+                        val parsedMsgs = msgsElem.mapNotNull { m ->
+                            if (m is JsonObject) {
+                                val pObj = m["portal"]?.jsonObject
+                                val chatPortal = if (pObj != null) {
+                                    ChatPortal(
+                                        name = pObj["name"]?.jsonPrimitive?.contentOrNull ?: "",
+                                        lat = pObj["lat"]?.jsonPrimitive?.doubleOrNull ?: 0.0,
+                                        lng = pObj["lng"]?.jsonPrimitive?.doubleOrNull ?: 0.0
+                                    )
+                                } else null
+
+                                ChatMessage(
+                                    id = m["id"]?.jsonPrimitive?.contentOrNull ?: "",
+                                    time = m["time"]?.jsonPrimitive?.longOrNull ?: 0L,
+                                    formattedTime = m["formattedTime"]?.jsonPrimitive?.contentOrNull ?: "",
+                                    sender = m["sender"]?.jsonPrimitive?.contentOrNull ?: "",
+                                    team = m["team"]?.jsonPrimitive?.contentOrNull ?: "NEUTRAL",
+                                    text = m["text"]?.jsonPrimitive?.contentOrNull ?: "",
+                                    isSecure = m["isSecure"]?.jsonPrimitive?.booleanOrNull ?: false,
+                                    portal = chatPortal
+                                )
+                            } else null
+                        }
+                        val current = _chatMessages.value.toMutableMap()
+                        current[channel] = parsedMsgs
+                        _chatMessages.value = current
+                    }
+                } catch (e: Exception) {
+                    println("setChatMessages error: ${e.message}")
                 }
             }
             "setMapStatus" -> {

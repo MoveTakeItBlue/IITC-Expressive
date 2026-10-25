@@ -113,6 +113,8 @@ actual object PlatformUtils {
     actual fun configureNativeWebView(webView: Any) {
         // Platform specific WKWebView configuration on iOS if needed
     }
+
+    actual fun decodeImageBitmap(bytes: ByteArray): androidx.compose.ui.graphics.ImageBitmap? = null
 }
 
 private fun ByteArray.toNSData(): NSData {

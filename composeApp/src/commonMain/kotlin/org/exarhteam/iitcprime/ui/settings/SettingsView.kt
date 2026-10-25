@@ -21,13 +21,14 @@ fun SettingsView(
     val persistentZoom by viewModel.persistentZoom.collectAsState()
     val showLocation by viewModel.showLocation.collectAsState()
     val currentChannel by viewModel.currentChannel.collectAsState()
+    val enabledPluginsCount by viewModel.enabledPluginsCount.collectAsState()
 
     var showClearCookiesConfirm by remember { mutableStateOf(false) }
 
     if (showClearCookiesConfirm) {
         ConfirmDialog(
             title = L("settings.clear_cookies.title"),
-            message = L("settings.clear_cookies.confirm"),
+            message = L("settings.clear_cookies.dialog.message"),
             onConfirm = {
                 viewModel.clearCookies()
                 showClearCookiesConfirm = false
@@ -46,13 +47,13 @@ fun SettingsView(
         SettingsSection(title = L("settings.section.iitc_management"))
         NavSettingsItem(
             title = L("settings.plugins.title"),
-            description = L("settings.plugins.description"),
+            description = L("settings.plugins.description", enabledPluginsCount),
             isFirst = true,
             onClick = onNavigateToPlugins
         )
         NavSettingsItem(
             title = L("settings.update_channel.title"),
-            description = L("update_channel.channel.${currentChannel.name.lowercase()}"),
+            description = L("settings.update_channel.description", L("update_channel.${currentChannel.key}")),
             isLast = true,
             onClick = onNavigateToUpdateChannel
         )

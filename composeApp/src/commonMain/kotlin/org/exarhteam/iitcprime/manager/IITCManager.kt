@@ -16,7 +16,7 @@ import org.exarhteam.iitcprime.storage.AppStorage
 
 class IITCManager(
     val storage: AppStorage,
-    private val httpClient: HttpClient = HttpClient()
+    val httpClient: HttpClient = HttpClient()
 ) {
     private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 

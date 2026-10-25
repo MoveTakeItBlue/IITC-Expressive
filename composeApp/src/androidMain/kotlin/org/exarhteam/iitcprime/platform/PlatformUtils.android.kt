@@ -16,6 +16,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.webkit.CookieManager
 import android.widget.Toast
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.core.content.FileProvider
 import androidx.core.view.WindowCompat
 import java.io.File
@@ -292,6 +293,15 @@ actual object PlatformUtils {
             )
         } catch (e: Exception) {
             e.printStackTrace()
+        }
+    }
+
+    actual fun decodeImageBitmap(bytes: ByteArray): androidx.compose.ui.graphics.ImageBitmap? {
+        return try {
+            val bmp = android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+            bmp?.asImageBitmap()
+        } catch (_: Exception) {
+            null
         }
     }
 }

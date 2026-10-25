@@ -21,21 +21,38 @@ object EventsToIitc {
                   window.show(id);
                 }
                 if (id === 'info') {
-                  if (window.smartphone && window.smartphone.sideButton) {
-                    window.smartphone.sideButton.click();
+                  if (window.selectedPortal && window.renderPortalDetails) {
+                    window.renderPortalDetails(window.selectedPortal);
                   }
+                  var sw = document.getElementById('scrollwrapper');
+                  if (sw) sw.style.display = 'block';
                   if (typeof $ !== 'undefined') {
                     $('#scrollwrapper').show();
                     if (window.resetScrollOnNewPortal) window.resetScrollOnNewPortal();
                   }
                 } else if (id === 'map') {
-                  if (window.smartphone && window.smartphone.mapButton) {
-                    window.smartphone.mapButton.click();
+                  var m = document.getElementById('map');
+                  if (m) {
+                    m.style.visibility = 'visible';
+                    m.style.opacity = '1';
+                    m.style.display = 'block';
                   }
                   if (typeof $ !== 'undefined') {
-                    $('#map').css({ visibility: 'visible', opacity: '1' });
+                    $('#map').css({ visibility: 'visible', opacity: '1', display: 'block' });
                     $('#updatestatus').show();
+                    $('#chat, #chatcontrols, #chatinput, #scrollwrapper').hide();
                   }
+                  if (window.map) window.map.invalidateSize();
+                } else if (id === 'all' || id === 'faction' || id === 'alerts') {
+                  var c = document.getElementById('chat');
+                  if (c) {
+                    c.style.display = 'block';
+                    c.style.visibility = 'visible';
+                    c.style.height = 'calc(100vh - 80px)';
+                    c.style.top = '0px';
+                  }
+                  var ci = document.getElementById('chatinput');
+                  if (ci) ci.style.display = 'block';
                 }
               } catch(e) {
                 console.error('[Bridge] switchToPane error: ' + e);

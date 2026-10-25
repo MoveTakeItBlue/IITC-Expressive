@@ -1,8 +1,6 @@
 package org.exarhteam.iitcprime.viewmodel
 
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.*
 import org.exarhteam.iitcprime.platform.PlatformUtils
 import org.exarhteam.iitcprime.storage.AppStorage
 
@@ -26,6 +24,10 @@ class SettingsViewModel(
     val showLocation: StateFlow<Boolean> = _showLocation.asStateFlow()
 
     val currentChannel: StateFlow<org.exarhteam.iitcprime.model.Channel> = mainViewModel.manager.currentChannel
+
+    val enabledPluginsCount: StateFlow<Int> = mainViewModel.manager.plugins
+        .map { it.values.count { p -> p.isEnabled } }
+        .stateIn(mainViewModel.scope, SharingStarted.Lazily, 0)
 
     fun setDesktopMode(enabled: Boolean) {
         _desktopMode.value = enabled

@@ -186,7 +186,7 @@ fun PluginInfoSheet(
                 ) {
                     if (!plugin.downloadURL.isNullOrBlank()) {
                         OutlinedButton(
-                            onClick = { plugin.downloadURL?.let { PlatformUtils.openUrl(it) } },
+                            onClick = { PlatformUtils.openUrl(plugin.downloadURL) },
                             modifier = Modifier.weight(1f).height(44.dp),
                             shape = RoundedCornerShape(percent = 50),
                             border = androidx.compose.foundation.BorderStroke(1.dp, OutlineSubtle)

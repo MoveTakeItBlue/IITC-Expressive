@@ -6,6 +6,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -15,13 +16,14 @@ import org.exarhteam.iitcprime.manager.BackupManager
 import org.exarhteam.iitcprime.theme.Accent
 import org.exarhteam.iitcprime.theme.AccentTeal
 import org.exarhteam.iitcprime.theme.SurfaceDark
+import org.exarhteam.iitcprime.ui.chat.ChatSheet
 import org.exarhteam.iitcprime.ui.common.AlertDialog
 import org.exarhteam.iitcprime.ui.common.ConfirmDialog
 import org.exarhteam.iitcprime.ui.common.LocationShareDialog
 import org.exarhteam.iitcprime.ui.debug.DebugConsole
-import org.exarhteam.iitcprime.ui.panel.BottomSheetPanel
-import org.exarhteam.iitcprime.ui.panel.MapStateBar
-import org.exarhteam.iitcprime.ui.panel.RestorePanelButton
+import org.exarhteam.iitcprime.ui.layers.LayersSheet
+import org.exarhteam.iitcprime.ui.menu.FabMenu
+import org.exarhteam.iitcprime.ui.portal.PortalDetailsSheet
 import org.exarhteam.iitcprime.ui.settings.*
 import org.exarhteam.iitcprime.viewmodel.*
 
@@ -35,6 +37,11 @@ fun MainScreen(
     val isDebugActive by viewModel.isDebugActive.collectAsState()
     val panelPosition by viewModel.panelPosition.collectAsState()
     val currentDialog by viewModel.currentDialog.collectAsState()
+    val isLayersSheetOpen by viewModel.isLayersSheetOpen.collectAsState()
+    val isChatSheetOpen by viewModel.isChatSheetOpen.collectAsState()
+    val isFabMenuExpanded by viewModel.isFabMenuExpanded.collectAsState()
+    val portalStatus by viewModel.portalStatus.collectAsState()
+    val isPortalDetailsExpanded by viewModel.isPortalDetailsExpanded.collectAsState()
 
     // ViewModels for sub-screens
     val settingsViewModel = remember(viewModel) { SettingsViewModel(viewModel.storage, viewModel) }
@@ -47,7 +54,84 @@ fun MainScreen(
         viewModel.checkClipboard()
     }
 
-    Box(modifier = modifier.fillMaxSize().background(SurfaceDark)) {
+    Box(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+        // AppWebView is always mounted so map state is preserved when navigating to settings/plugins
+        AppWebView(
+            viewModel = viewModel,
+            modifier = Modifier.fillMaxSize()
+        )
+
+        // Main Map UI overlay
+        if (currentScreen == "main") {
+            // Top progress indicator
+            AnimatedVisibility(
+                visible = progress < 1f,
+                enter = fadeIn(),
+                exit = fadeOut(),
+                modifier = Modifier.fillMaxWidth().align(Alignment.TopCenter)
+            ) {
+                LinearProgressIndicator(
+                    progress = { progress },
+                    modifier = Modifier.fillMaxWidth().statusBarsPadding().height(3.dp),
+                    color = AccentTeal,
+                    trackColor = Color.Transparent
+                )
+            }
+
+            if (!isDebugActive) {
+                // Portal Details Sheet (Collapsed peek bar or expanded full details)
+                PortalDetailsSheet(
+                    viewModel = viewModel,
+                    modifier = Modifier.fillMaxSize()
+                )
+
+                // FAB Menu for quick actions and settings
+                AnimatedVisibility(
+                    visible = !isPortalDetailsExpanded,
+                    enter = fadeIn(),
+                    exit = fadeOut()
+                ) {
+                    FabMenu(
+                        isExpanded = isFabMenuExpanded,
+                        onToggle = { viewModel.toggleFabMenu() },
+                        onNavigateToSettings = {
+                            viewModel.closeFabMenu()
+                            viewModel.navigateTo("settings")
+                        },
+                        onNavigateToPlugins = {
+                            viewModel.closeFabMenu()
+                            viewModel.navigateTo("plugins")
+                        },
+                        onOpenLayers = { viewModel.openLayersSheet() },
+                        onOpenChat = { viewModel.openChatSheet() },
+                        onLocate = {
+                            viewModel.closeFabMenu()
+                            viewModel.triggerUserLocate()
+                        },
+                        onDebug = {
+                            viewModel.closeFabMenu()
+                            viewModel.toggleDebugMode()
+                        },
+                        onReload = {
+                            viewModel.closeFabMenu()
+                            viewModel.reloadWebView()
+                        },
+                        bottomOffset = if (portalStatus.hasSelected) 96.dp else 16.dp,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+            }
+
+            // Debug Console overlay
+            if (isDebugActive) {
+                DebugConsole(
+                    viewModel = viewModel,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+        }
+
+        // Sub-screens layered on top of map
         when (currentScreen) {
             "settings" -> {
                 SettingsView(
@@ -88,62 +172,21 @@ fun MainScreen(
                     onBack = { viewModel.navigateTo("settings") }
                 )
             }
-            else -> {
-                // Main Map & IITC UI
-                Box(modifier = Modifier.fillMaxSize()) {
-                    // WebView
-                    AppWebView(
-                        viewModel = viewModel,
-                        modifier = Modifier.fillMaxSize()
-                    )
+        }
 
-                    // Top progress indicator
-                    AnimatedVisibility(
-                        visible = progress < 1f,
-                        enter = fadeIn(),
-                        exit = fadeOut(),
-                        modifier = Modifier.fillMaxWidth().align(Alignment.TopCenter)
-                    ) {
-                        LinearProgressIndicator(
-                            progress = { progress },
-                            modifier = Modifier.fillMaxWidth().statusBarsPadding().height(3.dp),
-                            color = AccentTeal,
-                            trackColor = Color.Transparent
-                        )
-                    }
+        // Secondary Bottom Sheets
+        if (isLayersSheetOpen) {
+            LayersSheet(
+                viewModel = viewModel,
+                onDismiss = { viewModel.closeLayersSheet() }
+            )
+        }
 
-                    // Bottom sheet panel
-                    if (!isDebugActive) {
-                        BottomSheetPanel(
-                            viewModel = viewModel,
-                            onNavigateToSettings = { viewModel.navigateTo("settings") },
-                            onNavigateToPlugins = { viewModel.navigateTo("plugins") },
-                            modifier = Modifier.fillMaxSize()
-                        )
-
-                        // MapStateBar overlay
-                        MapStateBar(
-                            viewModel = viewModel,
-                            modifier = Modifier.align(Alignment.BottomStart)
-                        )
-
-                        // Restore panel button when hidden
-                        if (panelPosition == PanelPosition.HIDDEN) {
-                            RestorePanelButton(
-                                onRestore = { viewModel.restorePanel() }
-                            )
-                        }
-                    }
-
-                    // Debug Console overlay
-                    if (isDebugActive) {
-                        DebugConsole(
-                            viewModel = viewModel,
-                            modifier = Modifier.fillMaxSize()
-                        )
-                    }
-                }
-            }
+        if (isChatSheetOpen) {
+            ChatSheet(
+                viewModel = viewModel,
+                onDismiss = { viewModel.closeChatSheet() }
+            )
         }
 
         // Global Dialogs Layer

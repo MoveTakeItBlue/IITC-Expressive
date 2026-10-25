@@ -46,6 +46,33 @@ object BridgeScripts {
                 window.runOnAppBeforeBoot = function() {};
             }
 
+            // Permanently hide legacy HTML chat/sidebar controls so the native M3E UI and Leaflet map are completely unobstructed
+            (function() {
+                function applyHideChat() {
+                    try {
+                        var id = 'm3e-hide-legacy-chat';
+                        var el = document.getElementById(id);
+                        if (!el) {
+                            el = document.createElement('style');
+                            el.id = id;
+                            (document.head || document.documentElement).appendChild(el);
+                        }
+                        el.textContent = '#map { visibility: visible !important; opacity: 1 !important; display: block !important; } #chat, #chatcontrols, #chatinput, #scrollwrapper { display: none !important; visibility: hidden !important; height: 0 !important; max-height: 0 !important; pointer-events: none !important; }';
+                    } catch(e) {}
+                }
+                applyHideChat();
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', applyHideChat);
+                }
+                window.addEventListener('load', applyHideChat);
+                try {
+                    var obs = new MutationObserver(function() {
+                        if (!document.getElementById('m3e-hide-legacy-chat')) applyHideChat();
+                    });
+                    obs.observe(document.documentElement, { childList: true, subtree: true });
+                } catch(e) {}
+            })();
+
             if (window.nsWebViewBridge && window.app) return;
             
             var bridge = {
@@ -89,7 +116,7 @@ object BridgeScripts {
             var syncEvents = [
                 'intentPosLink', 'shareString', 'copy', 'switchToPane', 'bootFinished',
                 'setLayers', 'addPortalHighlighter', 'setActiveHighlighter', 'addPane',
-                'setFollowMode', 'setMapDarkMode', 'setPortalStatus', 'setMapStatus',
+                'setFollowMode', 'setMapDarkMode', 'setPortalStatus', 'setPortalDetails', 'setChatMessages', 'setMapStatus',
                 'setProgress', 'setPermalink', 'addInternalHostname', 'saveFile',
                 'reloadIITC', 'openDemo', 'dialogFocused', 'dialogOpened'
             ];
@@ -107,6 +134,8 @@ object BridgeScripts {
                 setFollowMode: ['follow'],
                 setMapDarkMode: ['isDark'],
                 setPortalStatus: ['guid', 'team', 'level', 'title', 'health', 'resonators', 'levelColor', 'isLoading'],
+                setPortalDetails: ['guid', 'details'],
+                setChatMessages: ['channel', 'messages'],
                 setMapStatus: ['portalLevels', 'mapStatus', 'requests'],
                 setProgress: ['progress'],
                 setPermalink: ['href'],
@@ -133,6 +162,235 @@ object BridgeScripts {
             window.nsWebViewBridge = bridge;
             window.app = bridge;
             window.android = bridge;
+
+            // Hide legacy HTML chat/sidebar controls completely and ensure map is always visible
+            bridge.injectStyleSheet('m3e-hide-legacy-chat', '#map { visibility: visible !important; opacity: 1 !important; display: block !important; } #chat, #chatcontrols, #chatinput, #scrollwrapper { display: none !important; visibility: hidden !important; height: 0 !important; max-height: 0 !important; pointer-events: none !important; }', true);
+
+            // Defensive override for window.hideall to never hide the Leaflet map in M3E native layout
+            var origHideAll = window.hideall;
+            window.hideall = function() {
+                if (origHideAll) {
+                    try { origHideAll(); } catch(e) {}
+                }
+                var mapEl = document.getElementById('map');
+                if (mapEl) {
+                    mapEl.style.visibility = 'visible';
+                    mapEl.style.opacity = '1';
+                    mapEl.style.display = 'block';
+                }
+            };
+
+            // Polyfill smartphone button references to prevent window.show crashes
+            if (!window.smartphone) window.smartphone = function() {};
+            if (!window.smartphone.mapButton) {
+                window.smartphone.mapButton = {
+                    click: function() {
+                        var el = document.getElementById('map');
+                        if (el) { el.style.visibility = 'visible'; el.style.opacity = '1'; el.style.display = 'block'; }
+                        var us = document.getElementById('updatestatus');
+                        if (us) us.style.display = 'block';
+                    }
+                };
+            }
+            if (!window.smartphone.sideButton) {
+                window.smartphone.sideButton = {
+                    click: function() {
+                        var el = document.getElementById('scrollwrapper');
+                        if (el) el.style.display = 'block';
+                    }
+                };
+            }
+
+            // Safe window.show wrapper that restores map display safely
+            var origShow = window.show;
+            window.show = function(id) {
+                try {
+                    if (window.smartphone && !window.smartphone.mapButton) {
+                        window.smartphone.mapButton = { click: function() { var el = document.getElementById('map'); if (el) { el.style.visibility = 'visible'; el.style.opacity = '1'; } } };
+                    }
+                    if (window.smartphone && !window.smartphone.sideButton) {
+                        window.smartphone.sideButton = { click: function() { var el = document.getElementById('scrollwrapper'); if (el) el.style.display = 'block'; } };
+                    }
+                    if (origShow) origShow(id);
+                } catch(e) {
+                    console.warn('[Bridge] safe show exception: ' + e);
+                }
+                if (id === 'map') {
+                    var m = document.getElementById('map');
+                    if (m) {
+                        m.style.visibility = 'visible';
+                        m.style.opacity = '1';
+                        m.style.display = 'block';
+                    }
+                    var us = document.getElementById('updatestatus');
+                    if (us) us.style.display = 'block';
+                }
+            };
+
+            // Hook for automatic portal details extraction
+            function setupPortalHook() {
+                if (window.__portalHookInstalled) return;
+                if (typeof window.addHook !== 'function') {
+                    setTimeout(setupPortalHook, 300);
+                    return;
+                }
+                window.__portalHookInstalled = true;
+
+                function sendPortalDetails(guid, hookData) {
+                    if (!guid) {
+                        bridge.setPortalDetails(null, {});
+                        return;
+                    }
+                    var p = window.portals && window.portals[guid];
+                    var d = (hookData && hookData.portalDetails) || (window.portalDetail && window.portalDetail.get(guid)) || (p && p.options && p.options.data) || {};
+                    var rangeObj = window.getPortalRange ? window.getPortalRange(d) : null;
+                    var linksObj = window.getPortalLinks ? window.getPortalLinks(guid) : null;
+                    var fieldsCount = window.getPortalFieldsCount ? window.getPortalFieldsCount(guid) : 0;
+                    var energyVal = 0;
+                    var maxEnergyVal = 0;
+                    var resList = d.resonators || [];
+                    if (resList.length) {
+                        var energyCaps = [0, 1000, 1500, 2000, 2500, 3000, 4000, 5000, 6000];
+                        resList.forEach(function(r) {
+                            if (r) {
+                                energyVal += (r.energy || 0);
+                                maxEnergyVal += (energyCaps[r.level || 0] || 0);
+                            }
+                        });
+                    }
+
+                    var mappedResonators = [];
+                    var rawRes = d.resonators || [];
+                    for (var rIdx = 0; rIdx < rawRes.length; rIdx++) {
+                        var rItem = rawRes[rIdx];
+                        if (rItem) {
+                            var rLvl = rItem.level || 0;
+                            var rNrg = rItem.energy || 0;
+                            var rMax = [0, 1000, 1500, 2000, 2500, 3000, 4000, 5000, 6000][rLvl] || 1000;
+                            mappedResonators.push({
+                                level: rLvl,
+                                energy: rNrg,
+                                owner: rItem.owner || '',
+                                healthPct: Math.min(100, Math.round((rNrg * 100) / rMax))
+                            });
+                        } else {
+                            mappedResonators.push(null);
+                        }
+                    }
+
+                    var mappedMods = [];
+                    var rawMods = d.mods || [];
+                    for (var mIdx = 0; mIdx < rawMods.length; mIdx++) {
+                        var mItem = rawMods[mIdx];
+                        if (mItem) {
+                            mappedMods.push({
+                                name: mItem.name || '',
+                                rarity: mItem.rarity || '',
+                                owner: mItem.owner || '',
+                                stats: mItem.stats || null
+                            });
+                        } else {
+                            mappedMods.push(null);
+                        }
+                    }
+
+                    var payload = {
+                        guid: guid,
+                        title: d.title || (p && p.options && p.options.data && p.options.data.title) || '',
+                        image: d.image || (p && p.options && p.options.data && p.options.data.image) || '',
+                        owner: d.owner || (p && p.options && p.options.data && p.options.data.owner) || '',
+                        team: d.team || (p && p.options && p.options.data && p.options.data.team) || 'N',
+                        level: d.level !== undefined ? d.level : ((p && p.options && p.options.data && p.options.data.level) || 0),
+                        health: d.health !== undefined ? d.health : ((p && p.options && p.options.data && p.options.data.health) || 0),
+                        latE6: d.latE6 || (p && p.options && p.options.data && p.options.data.latE6) || 0,
+                        lngE6: d.lngE6 || (p && p.options && p.options.data && p.options.data.lngE6) || 0,
+                        address: d.address || '',
+                        rangeMeters: rangeObj ? Math.round(rangeObj.range) : 0,
+                        linksIn: linksObj && linksObj.in ? linksObj.in.length : 0,
+                        linksOut: linksObj && linksObj.out ? linksObj.out.length : 0,
+                        fieldsCount: fieldsCount || 0,
+                        energy: energyVal,
+                        maxEnergy: maxEnergyVal,
+                        apGain: window.portalApGain ? window.portalApGain(d) : 0,
+                        historyVisited: !!(d.history && d.history.visited),
+                        historyCaptured: !!(d.history && d.history.captured),
+                        historyScoutControlled: !!(d.history && d.history.scoutControlled),
+                        resCount: d.resCount !== undefined ? d.resCount : (d.resonators ? d.resonators.length : 0),
+                        resonators: mappedResonators,
+                        mods: mappedMods
+                    };
+                    bridge.setPortalDetails(guid, payload);
+                }
+
+                window.addHook('portalSelected', function(data) {
+                    sendPortalDetails(data ? data.selectedPortalGuid : null, data);
+                });
+                window.addHook('portalDetailsUpdated', function(data) {
+                    sendPortalDetails(data ? data.guid : window.selectedPortal, data);
+                });
+
+                // Chat message bridge
+                function extractChatMessages(channel) {
+                    if (!window.chat) return;
+                    var cData = channel === 'faction' ? window.chat._faction : (channel === 'alerts' ? window.chat._alerts : window.chat._public);
+                    if (!cData || !cData.data) return;
+                    var list = [];
+                    var dMap = cData.data;
+                    var keys = Object.keys(dMap);
+                    for (var i = 0; i < keys.length; i++) {
+                        var item = dMap[keys[i]];
+                        if (!item) continue;
+                        var time = item[0];
+                        var sender = item[3] || (item[4] && item[4].player && item[4].player.name) || '';
+                        var msgObj = item[4] || {};
+                        var text = '';
+                        var portal = null;
+                        if (msgObj.markup) {
+                            msgObj.markup.forEach(function(m) {
+                                var type = m[0];
+                                var data = m[1] || {};
+                                if (type === 'TEXT') text += data.plain || '';
+                                else if (type === 'PLAYER') text += (data.plain || '');
+                                else if (type === 'PORTAL') {
+                                    text += (data.name || data.plain || '');
+                                    portal = {
+                                        name: data.name || data.plain || '',
+                                        lat: (data.latE6 || 0) / 1e6,
+                                        lng: (data.lngE6 || 0) / 1e6
+                                    };
+                                }
+                            });
+                        } else {
+                            text = item[2] ? item[2].replace(/<[^>]*>/g, '') : '';
+                        }
+                        var team = (msgObj.player && (msgObj.player.team === 2 ? 'ENLIGHTENED' : (msgObj.player.team === 1 ? 'RESISTANCE' : 'NEUTRAL'))) ||
+                                   (item[2] && item[2].indexOf('class="nickname enl"') !== -1 ? 'ENLIGHTENED' : (item[2] && item[2].indexOf('class="nickname res"') !== -1 ? 'RESISTANCE' : 'NEUTRAL'));
+
+                        var date = new Date(time);
+                        var hours = ('0' + date.getHours()).slice(-2);
+                        var mins = ('0' + date.getMinutes()).slice(-2);
+
+                        list.push({
+                            id: keys[i],
+                            time: time,
+                            formattedTime: hours + ':' + mins,
+                            sender: sender,
+                            team: team,
+                            text: text.trim(),
+                            isSecure: channel === 'faction',
+                            portal: portal
+                        });
+                    }
+                    list.sort(function(a, b) { return a.time - b.time; });
+                    bridge.setChatMessages(channel, list.slice(-100));
+                }
+
+                window.__sendChat = extractChatMessages;
+                window.addHook('factionChatDataAvailable', function() { extractChatMessages('faction'); });
+                window.addHook('publicChatDataAvailable', function() { extractChatMessages('all'); });
+                window.addHook('alertsChatDataAvailable', function() { extractChatMessages('alerts'); });
+            }
+            setupPortalHook();
 
             // GM bridge transport
             window.__iitc_gm_bridge__ = {
