@@ -12,9 +12,11 @@ import io.github.movetakeitblue.iitcexpressive.model.NativeBaseMap
 import io.github.movetakeitblue.iitcexpressive.model.NativeMapEntities
 import io.github.movetakeitblue.iitcexpressive.viewmodel.MainViewModel
 import org.maplibre.android.MapLibre
+import org.maplibre.android.camera.CameraPosition
 import org.maplibre.android.camera.CameraUpdateFactory
 import org.maplibre.android.geometry.LatLng
 import org.maplibre.android.maps.MapLibreMap
+import org.maplibre.android.maps.MapLibreMapOptions
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
 import org.maplibre.android.style.expressions.Expression.get
@@ -23,6 +25,7 @@ import org.maplibre.android.style.layers.FillLayer
 import org.maplibre.android.style.layers.LineLayer
 import org.maplibre.android.style.layers.Property
 import org.maplibre.android.style.layers.PropertyFactory.*
+import org.maplibre.android.style.layers.SymbolLayer
 import org.maplibre.android.style.sources.GeoJsonSource
 import org.maplibre.geojson.Feature
 import org.maplibre.geojson.FeatureCollection
@@ -35,18 +38,29 @@ import kotlinx.coroutines.withContext
 private const val SOURCE_FIELDS = "iitc-fields-source"
 private const val SOURCE_LINKS = "iitc-links-source"
 private const val SOURCE_PORTALS = "iitc-portals-source"
+private const val SOURCE_PORTAL_SELECTION = "iitc-portal-selection-source"
 private const val SOURCE_PLAYER_TRAILS = "iitc-player-trails-source"
 private const val SOURCE_PLAYER_MARKERS = "iitc-player-markers-source"
 
 private const val LAYER_FIELDS_FILL = "iitc-fields-fill"
 private const val LAYER_FIELDS_STROKE = "iitc-fields-stroke"
 private const val LAYER_LINKS = "iitc-links-layer"
+private const val LAYER_PORTAL_SELECTION_HALO = "iitc-portal-selection-halo"
+private const val LAYER_PORTAL_SELECTION_RING = "iitc-portal-selection-ring"
 private const val LAYER_PORTALS_HALO = "iitc-portals-halo"
 private const val LAYER_PORTALS = "iitc-portals-layer"
+private const val LAYER_PORTALS_TITLE = "iitc-portals-title"
 private const val LAYER_PLAYER_TRAILS_CASING = "iitc-player-trails-casing"
 private const val LAYER_PLAYER_TRAILS = "iitc-player-trails"
 private const val LAYER_PLAYER_MARKERS_HALO = "iitc-player-markers-halo"
 private const val LAYER_PLAYER_MARKERS = "iitc-player-markers"
+
+private data class SelectedPortalInfo(
+    val lat: Double,
+    val lng: Double,
+    val level: Int,
+    val team: Int
+)
 
 /**
  * Generates MapLibre raster base map style JSON without requiring any API keys.
@@ -56,6 +70,7 @@ private fun getBaseMapStyleJson(baseMap: NativeBaseMap): String = when (baseMap)
     {
       "version": 8,
       "name": "DarkGrayCanvas",
+      "glyphs": "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf",
       "sources": {
         "esri-dark-base": {
           "type": "raster",
@@ -63,6 +78,7 @@ private fun getBaseMapStyleJson(baseMap: NativeBaseMap): String = when (baseMap)
             "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}"
           ],
           "tileSize": 256,
+          "maxzoom": 16,
           "attribution": "&copy; Esri, HERE, Garmin, &copy; OpenStreetMap contributors"
         },
         "esri-dark-ref": {
@@ -70,7 +86,8 @@ private fun getBaseMapStyleJson(baseMap: NativeBaseMap): String = when (baseMap)
           "tiles": [
             "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}"
           ],
-          "tileSize": 256
+          "tileSize": 256,
+          "maxzoom": 16
         }
       },
       "layers": [
@@ -79,14 +96,14 @@ private fun getBaseMapStyleJson(baseMap: NativeBaseMap): String = when (baseMap)
           "type": "raster",
           "source": "esri-dark-base",
           "minzoom": 0,
-          "maxzoom": 19
+          "maxzoom": 22
         },
         {
           "id": "esri-dark-ref-layer",
           "type": "raster",
           "source": "esri-dark-ref",
           "minzoom": 0,
-          "maxzoom": 19
+          "maxzoom": 22
         }
       ]
     }
@@ -96,6 +113,7 @@ private fun getBaseMapStyleJson(baseMap: NativeBaseMap): String = when (baseMap)
     {
       "version": 8,
       "name": "LightGrayCanvas",
+      "glyphs": "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf",
       "sources": {
         "esri-light-base": {
           "type": "raster",
@@ -103,6 +121,7 @@ private fun getBaseMapStyleJson(baseMap: NativeBaseMap): String = when (baseMap)
             "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}"
           ],
           "tileSize": 256,
+          "maxzoom": 16,
           "attribution": "&copy; Esri, HERE, Garmin, &copy; OpenStreetMap contributors"
         },
         "esri-light-ref": {
@@ -110,7 +129,8 @@ private fun getBaseMapStyleJson(baseMap: NativeBaseMap): String = when (baseMap)
           "tiles": [
             "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}"
           ],
-          "tileSize": 256
+          "tileSize": 256,
+          "maxzoom": 16
         }
       },
       "layers": [
@@ -119,14 +139,14 @@ private fun getBaseMapStyleJson(baseMap: NativeBaseMap): String = when (baseMap)
           "type": "raster",
           "source": "esri-light-base",
           "minzoom": 0,
-          "maxzoom": 19
+          "maxzoom": 22
         },
         {
           "id": "esri-light-ref-layer",
           "type": "raster",
           "source": "esri-light-ref",
           "minzoom": 0,
-          "maxzoom": 19
+          "maxzoom": 22
         }
       ]
     }
@@ -136,6 +156,7 @@ private fun getBaseMapStyleJson(baseMap: NativeBaseMap): String = when (baseMap)
     {
       "version": 8,
       "name": "WorldImagery",
+      "glyphs": "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf",
       "sources": {
         "esri-satellite": {
           "type": "raster",
@@ -143,6 +164,7 @@ private fun getBaseMapStyleJson(baseMap: NativeBaseMap): String = when (baseMap)
             "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
           ],
           "tileSize": 256,
+          "maxzoom": 18,
           "attribution": "&copy; Esri, Maxar, Earthstar Geographics"
         }
       },
@@ -152,7 +174,7 @@ private fun getBaseMapStyleJson(baseMap: NativeBaseMap): String = when (baseMap)
           "type": "raster",
           "source": "esri-satellite",
           "minzoom": 0,
-          "maxzoom": 19
+          "maxzoom": 22
         }
       ]
     }
@@ -162,6 +184,7 @@ private fun getBaseMapStyleJson(baseMap: NativeBaseMap): String = when (baseMap)
     {
       "version": 8,
       "name": "OpenStreetMap",
+      "glyphs": "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf",
       "sources": {
         "osm-color": {
           "type": "raster",
@@ -169,6 +192,7 @@ private fun getBaseMapStyleJson(baseMap: NativeBaseMap): String = when (baseMap)
             "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
           ],
           "tileSize": 256,
+          "maxzoom": 19,
           "attribution": "&copy; OpenStreetMap contributors"
         }
       },
@@ -178,7 +202,7 @@ private fun getBaseMapStyleJson(baseMap: NativeBaseMap): String = when (baseMap)
           "type": "raster",
           "source": "osm-color",
           "minzoom": 0,
-          "maxzoom": 19
+          "maxzoom": 22
         }
       ]
     }
@@ -207,6 +231,7 @@ actual fun NativeMapView(
     val selectedHighlighter by viewModel.selectedHighlighter.collectAsState()
     val isPlayerTrackerEnabled by viewModel.isPlayerTrackerEnabled.collectAsState()
     val playerTrails by viewModel.playerTrails.collectAsState()
+    val portalStatus by viewModel.portalStatus.collectAsState()
 
     if (!isNativeMapEnabled) {
         return
@@ -221,6 +246,7 @@ actual fun NativeMapView(
         styleBuilder.withSource(GeoJsonSource(SOURCE_FIELDS))
         styleBuilder.withSource(GeoJsonSource(SOURCE_LINKS))
         styleBuilder.withSource(GeoJsonSource(SOURCE_PORTALS))
+        styleBuilder.withSource(GeoJsonSource(SOURCE_PORTAL_SELECTION))
         styleBuilder.withSource(GeoJsonSource(SOURCE_PLAYER_TRAILS))
         styleBuilder.withSource(GeoJsonSource(SOURCE_PLAYER_MARKERS))
 
@@ -281,7 +307,31 @@ actual fun NativeMapView(
         }
         styleBuilder.withLayer(playerTrailsLayer)
 
-        // 6. Portals glowing halo layer (M3E dynamic light bloom)
+        // 6. Selected Portal glowing halo layer
+        val selectionHaloLayer = CircleLayer(LAYER_PORTAL_SELECTION_HALO, SOURCE_PORTAL_SELECTION).apply {
+            setProperties(
+                circleRadius(get("haloRadius")),
+                circleColor(get("haloColor")),
+                circleOpacity(0.55f),
+                circleBlur(0.6f)
+            )
+        }
+        styleBuilder.withLayer(selectionHaloLayer)
+
+        // 7. Selected Portal prominent ring layer
+        val selectionRingLayer = CircleLayer(LAYER_PORTAL_SELECTION_RING, SOURCE_PORTAL_SELECTION).apply {
+            setProperties(
+                circleRadius(get("ringRadius")),
+                circleColor("rgba(0,0,0,0)"),
+                circleOpacity(0f),
+                circleStrokeColor(get("strokeColor")),
+                circleStrokeWidth(3.5f),
+                circleStrokeOpacity(1f)
+            )
+        }
+        styleBuilder.withLayer(selectionRingLayer)
+
+        // 8. Portals glowing halo layer (M3E dynamic light bloom)
         val portalsHaloLayer = CircleLayer(LAYER_PORTALS_HALO, SOURCE_PORTALS).apply {
             setProperties(
                 circleRadius(get("haloRadius")),
@@ -292,7 +342,7 @@ actual fun NativeMapView(
         }
         styleBuilder.withLayer(portalsHaloLayer)
 
-        // 7. Portals core circle layer
+        // 9. Portals core circle layer
         val portalsLayer = CircleLayer(LAYER_PORTALS, SOURCE_PORTALS).apply {
             setProperties(
                 circleRadius(get("radius")),
@@ -305,7 +355,7 @@ actual fun NativeMapView(
         }
         styleBuilder.withLayer(portalsLayer)
 
-        // 8. Player Activity Tracker - Agent position radiant glow
+        // 10. Player Activity Tracker - Agent position radiant glow
         val playerMarkersHaloLayer = CircleLayer(LAYER_PLAYER_MARKERS_HALO, SOURCE_PLAYER_MARKERS).apply {
             setProperties(
                 circleRadius(16f),
@@ -316,7 +366,7 @@ actual fun NativeMapView(
         }
         styleBuilder.withLayer(playerMarkersHaloLayer)
 
-        // 9. Player Activity Tracker - Agent position marker
+        // 11. Player Activity Tracker - Agent position marker
         val playerMarkersLayer = CircleLayer(LAYER_PLAYER_MARKERS, SOURCE_PLAYER_MARKERS).apply {
             setProperties(
                 circleRadius(7f),
@@ -327,6 +377,26 @@ actual fun NativeMapView(
             )
         }
         styleBuilder.withLayer(playerMarkersLayer)
+
+        // 12. Portals title symbol layer (shown at high zoom)
+        val portalTitlesLayer = SymbolLayer(LAYER_PORTALS_TITLE, SOURCE_PORTALS).apply {
+            setProperties(
+                textField(get("title")),
+                textSize(11.5f),
+                textColor("#ffffff"),
+                textHaloColor("#000000"),
+                textHaloWidth(2f),
+                textHaloBlur(0.5f),
+                textAnchor(Property.TEXT_ANCHOR_TOP),
+                textOffset(arrayOf(0f, 1.35f)),
+                textAllowOverlap(false),
+                textIgnorePlacement(false),
+                textFont(arrayOf("Noto Sans Regular", "Open Sans Regular", "sans-serif"))
+            )
+            minZoom = 15.5f
+            maxZoom = 22f
+        }
+        styleBuilder.withLayer(portalTitlesLayer)
 
         map.setStyle(styleBuilder) { loadedStyle ->
             mapStyle = loadedStyle
@@ -354,7 +424,7 @@ actual fun NativeMapView(
     }
 
     // Update GeoJSON layers when entities, highlighters, or player activity changes
-    LaunchedEffect(entities, selectedHighlighter, isPlayerTrackerEnabled, playerTrails, mapStyle) {
+    LaunchedEffect(entities, selectedHighlighter, isPlayerTrackerEnabled, playerTrails, portalStatus, mapStyle) {
         val style = mapStyle ?: return@LaunchedEffect
         withContext(Dispatchers.Default) {
             val levelColors = listOf(
@@ -368,6 +438,7 @@ actual fun NativeMapView(
                 val point = Point.fromLngLat(p.lng, p.lat)
                 val feat = Feature.fromGeometry(point)
                 feat.addStringProperty("guid", p.guid)
+                feat.addStringProperty("title", p.title)
                 feat.addNumberProperty("team", p.team)
                 feat.addNumberProperty("level", p.level)
                 feat.addNumberProperty("health", p.health)
@@ -631,9 +702,57 @@ actual fun NativeMapView(
                 }
             }
 
+            // Build Selected Portal Halo & Ring Feature
+            val selectionFeatures = ArrayList<Feature>(1)
+            val pStatus = portalStatus
+            val currentGuid = pStatus.guid
+            val latE6 = pStatus.latE6
+            val lngE6 = pStatus.lngE6
+            if (!currentGuid.isNullOrBlank()) {
+                val selPortal = entities.portals.find { it.guid == currentGuid }
+                val selInfo = when {
+                    selPortal != null -> SelectedPortalInfo(selPortal.lat, selPortal.lng, selPortal.level, selPortal.team)
+                    latE6 != null && lngE6 != null -> {
+                        val teamInt = when (pStatus.team.uppercase()) {
+                            "R", "RESISTANCE" -> 1
+                            "E", "ENLIGHTENED" -> 2
+                            "M", "MACHINA" -> 3
+                            else -> 0
+                        }
+                        SelectedPortalInfo(latE6 / 1e6, lngE6 / 1e6, pStatus.level, teamInt)
+                    }
+                    else -> null
+                }
+
+                if (selInfo != null && selInfo.lat != 0.0 && selInfo.lng != 0.0) {
+                    val selPoint = Point.fromLngLat(selInfo.lng, selInfo.lat)
+                    val selFeat = Feature.fromGeometry(selPoint)
+                    val baseRadius = when (selInfo.level) {
+                        0 -> 8f
+                        1, 2 -> 9.5f
+                        3, 4 -> 11f
+                        5, 6 -> 13f
+                        7, 8 -> 15.5f
+                        else -> 9f
+                    }
+                    val haloCol = when (selInfo.team) {
+                        1 -> "#70d2ff"
+                        2 -> "#66dc96"
+                        3 -> "#ff7164"
+                        else -> "#ffa630"
+                    }
+                    selFeat.addNumberProperty("ringRadius", baseRadius + 4.5f)
+                    selFeat.addStringProperty("strokeColor", "#ffffff")
+                    selFeat.addNumberProperty("haloRadius", baseRadius + 11f)
+                    selFeat.addStringProperty("haloColor", haloCol)
+                    selectionFeatures.add(selFeat)
+                }
+            }
+
             val portalCollection = FeatureCollection.fromFeatures(portalFeatures)
             val linkCollection = FeatureCollection.fromFeatures(linkFeatures)
             val fieldCollection = FeatureCollection.fromFeatures(fieldFeatures)
+            val selectionCollection = FeatureCollection.fromFeatures(selectionFeatures)
             val trailCollection = FeatureCollection.fromFeatures(trailFeatures)
             val markerCollection = FeatureCollection.fromFeatures(markerFeatures)
 
@@ -641,6 +760,7 @@ actual fun NativeMapView(
                 style.getSourceAs<GeoJsonSource>(SOURCE_FIELDS)?.setGeoJson(fieldCollection)
                 style.getSourceAs<GeoJsonSource>(SOURCE_LINKS)?.setGeoJson(linkCollection)
                 style.getSourceAs<GeoJsonSource>(SOURCE_PORTALS)?.setGeoJson(portalCollection)
+                style.getSourceAs<GeoJsonSource>(SOURCE_PORTAL_SELECTION)?.setGeoJson(selectionCollection)
                 style.getSourceAs<GeoJsonSource>(SOURCE_PLAYER_TRAILS)?.setGeoJson(trailCollection)
                 style.getSourceAs<GeoJsonSource>(SOURCE_PLAYER_MARKERS)?.setGeoJson(markerCollection)
             }
@@ -650,7 +770,11 @@ actual fun NativeMapView(
     // AndroidView hosting MapView
     AndroidView(
         factory = { ctx ->
-            MapView(ctx).apply {
+            val options = MapLibreMapOptions.createFromAttributes(ctx).apply {
+                localIdeographFontFamily("sans-serif")
+                localIdeographFontFamilyEnabled(true)
+            }
+            MapView(ctx, options).apply {
                 onCreate(null)
                 getMapAsync { map ->
                     mapLibreMap = map
@@ -662,6 +786,20 @@ actual fun NativeMapView(
                         isTiltGesturesEnabled = true
                         isZoomGesturesEnabled = true
                         isScrollGesturesEnabled = true
+                    }
+
+                    // Limit zoom range to eliminate "map data not yet available" and ensure optimal display
+                    map.setMinZoomPreference(2.0)
+                    map.setMaxZoomPreference(18.5)
+
+                    // Restore saved map camera position if available
+                    val savedPos = viewModel.getSavedMapPosition()
+                    if (savedPos != null) {
+                        val (lat, lng, zoom) = savedPos
+                        map.cameraPosition = CameraPosition.Builder()
+                            .target(LatLng(lat, lng))
+                            .zoom(zoom.coerceIn(2.0, 18.5))
+                            .build()
                     }
 
                     loadMapStyle(map, nativeBaseMap)

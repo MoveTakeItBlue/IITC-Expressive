@@ -54,6 +54,7 @@ object Strings {
         "about.prime_github.title" to "IITC Prime on GitHub",
         "about.prime_github.url" to "github.com/IITC-CE/IITC-Prime",
 
+        "panel.locate" to "Locate",
         "plugins.search_hint" to "Search plugins...",
         "plugins.add_plugin" to "Add plugin",
         "plugins.no_plugins" to "No plugins",

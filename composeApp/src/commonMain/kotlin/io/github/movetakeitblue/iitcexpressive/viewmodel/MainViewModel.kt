@@ -307,8 +307,20 @@ class MainViewModel(
         """.trimIndent())
     }
 
+    fun getSavedMapPosition(): Triple<Double, Double, Double>? {
+        val lat = storage.getString("saved_map_lat", "").toDoubleOrNull() ?: return null
+        val lng = storage.getString("saved_map_lng", "").toDoubleOrNull() ?: return null
+        val zoom = storage.getString("saved_map_zoom", "").toDoubleOrNull() ?: return null
+        return Triple(lat, lng, zoom)
+    }
+
     private var lastCameraSyncJob: Job? = null
     fun onNativeMapCameraChanged(lat: Double, lng: Double, zoom: Double) {
+        // Persist map position and zoom level for session restore
+        storage.setString("saved_map_lat", lat.toString())
+        storage.setString("saved_map_lng", lng.toString())
+        storage.setString("saved_map_zoom", zoom.toString())
+
         lastCameraSyncJob?.cancel()
         lastCameraSyncJob = scope.launch {
             delay(150)
@@ -1098,6 +1110,7 @@ class MainViewModel(
                 val portalsList = portalsJson?.mapNotNull { item ->
                     if (item is JsonArray && item.size >= 6) {
                         val resCount = if (item.size >= 7) item[6].jsonPrimitive.intOrNull ?: 8 else 8
+                        val title = if (item.size >= 8) item[7].jsonPrimitive.contentOrNull ?: "" else ""
                         NativePortal(
                             guid = item[0].jsonPrimitive.content,
                             lat = item[1].jsonPrimitive.double,
@@ -1105,7 +1118,8 @@ class MainViewModel(
                             team = item[3].jsonPrimitive.int,
                             level = item[4].jsonPrimitive.int,
                             health = item[5].jsonPrimitive.int,
-                            resCount = resCount
+                            resCount = resCount,
+                            title = title
                         )
                     } else null
                 } ?: emptyList()

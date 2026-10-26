@@ -1023,7 +1023,8 @@ input, textarea, select {
                             var l = p.options.level !== undefined ? p.options.level : (d.level || 0);
                             var h = d.health !== undefined ? d.health : 100;
                             var resCount = d.resCount !== undefined ? d.resCount : (d.resonators ? d.resonators.filter(Boolean).length : 8);
-                            portals.push([guid, ll.lat, ll.lng, t, l, h, resCount]);
+                            var title = d.title || (p.options && p.options.data && p.options.data.title) || '';
+                            portals.push([guid, ll.lat, ll.lng, t, l, h, resCount, title]);
                         }
                     }
 

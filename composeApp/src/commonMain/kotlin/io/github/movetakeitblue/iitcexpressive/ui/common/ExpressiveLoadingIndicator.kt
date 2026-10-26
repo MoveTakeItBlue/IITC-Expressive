@@ -12,9 +12,10 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /**
- * Material 3 Expressive (M3E) Circular Progress Indicator
- * Features smooth rounded stroke caps and expressive container track color.
+ * Material 3 Expressive (M3E) Circular Wavy Progress Indicator (alpha)
+ * Features official Material 3 Expressive animated wavy circular path with pill caps.
  */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun ExpressiveCircularProgressIndicator(
     modifier: Modifier = Modifier,
@@ -23,12 +24,10 @@ fun ExpressiveCircularProgressIndicator(
     strokeWidth: Dp = 3.dp,
     strokeCap: StrokeCap = StrokeCap.Round
 ) {
-    CircularProgressIndicator(
+    CircularWavyProgressIndicator(
         modifier = modifier,
         color = color,
-        trackColor = trackColor,
-        strokeWidth = strokeWidth,
-        strokeCap = strokeCap
+        trackColor = trackColor
     )
 }
 
