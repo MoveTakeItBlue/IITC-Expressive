@@ -25,6 +25,7 @@ fun AppWebView(
     val desktopMode by viewModel.desktopMode.collectAsState()
     val zoomControl by viewModel.zoomControl.collectAsState()
     val reloadTrigger by viewModel.reloadTrigger.collectAsState()
+    val isNativeMapEnabled by viewModel.isNativeMapEnabled.collectAsState()
 
     val webViewState = rememberWebViewState(url = UrlConfig.addViewportParam(currentUrl, desktopMode)).apply {
         webSettings.apply {
@@ -39,6 +40,16 @@ fun AppWebView(
     }
     val webViewNavigator = rememberWebViewNavigator()
     val jsBridge = rememberWebViewJsBridge(webViewNavigator)
+
+    // Sync native_map class to DOM when native map mode changes
+    LaunchedEffect(isNativeMapEnabled) {
+        val js = if (isNativeMapEnabled) {
+            "document.body && document.body.classList.add('native_map');"
+        } else {
+            "document.body && document.body.classList.remove('native_map');"
+        }
+        webViewNavigator.evaluateJavaScript(js)
+    }
 
     // Bridge message handler
     DisposableEffect(jsBridge) {

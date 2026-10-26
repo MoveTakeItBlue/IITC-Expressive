@@ -109,6 +109,18 @@ body.show_controls #map {
   padding: 0 !important;
 }
 
+body.native_map,
+body.native_map #map {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+body.native_map .leaflet-pane,
+body.native_map .leaflet-control-container {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
 body.show_controls {
   padding-top: 0 !important;
   margin-top: 0 !important;
@@ -590,7 +602,8 @@ input, textarea, select {
                 'setLayers', 'addPortalHighlighter', 'setActiveHighlighter', 'addPane',
                 'setFollowMode', 'setMapDarkMode', 'setPortalStatus', 'setPortalDetails', 'setChatMessages', 'setMapStatus',
                 'setProgress', 'setPermalink', 'addInternalHostname', 'saveFile',
-                'reloadIITC', 'openDemo', 'dialogFocused', 'dialogOpened', 'spinnerEnabled'
+                'reloadIITC', 'openDemo', 'dialogFocused', 'dialogOpened', 'spinnerEnabled',
+                'setEntities'
             ];
 
             var argNames = {
@@ -617,7 +630,8 @@ input, textarea, select {
                 openDemo: [],
                 dialogFocused: ['id'],
                 dialogOpened: ['id', 'open'],
-                spinnerEnabled: ['enabled']
+                spinnerEnabled: ['enabled'],
+                setEntities: ['data']
             };
 
             syncEvents.forEach(function(evt) {
@@ -887,6 +901,80 @@ input, textarea, select {
                 window.addHook('factionChatDataAvailable', function() { extractChatMessages('faction'); });
                 window.addHook('publicChatDataAvailable', function() { extractChatMessages('all'); });
                 window.addHook('alertsChatDataAvailable', function() { extractChatMessages('alerts'); });
+
+                // Native Map Entity Extraction and Synchronization
+                var entitySyncTimer = null;
+                function scheduleEntitySync() {
+                    if (entitySyncTimer) clearTimeout(entitySyncTimer);
+                    entitySyncTimer = setTimeout(extractAndSendEntities, 200);
+                }
+
+                function extractAndSendEntities() {
+                    if (!bridge || !bridge.setEntities) return;
+                    var portals = [];
+                    if (window.portals) {
+                        for (var guid in window.portals) {
+                            var p = window.portals[guid];
+                            if (!p) continue;
+                            var ll = p.getLatLng ? p.getLatLng() : p._latlng;
+                            if (!ll) continue;
+                            var d = (p.options && p.options.data) || {};
+                            var t = p.options.team !== undefined ? p.options.team : (d.team !== undefined ? d.team : 0);
+                            var l = p.options.level !== undefined ? p.options.level : (d.level || 0);
+                            var h = d.health !== undefined ? d.health : 100;
+                            portals.push([guid, ll.lat, ll.lng, t, l, h]);
+                        }
+                    }
+
+                    var links = [];
+                    if (window.links) {
+                        for (var lGuid in window.links) {
+                            var l = window.links[lGuid];
+                            if (!l) continue;
+                            var lls = l.getLatLngs ? l.getLatLngs() : l._latlngs;
+                            if (!lls || lls.length < 2) continue;
+                            var lt = l.options.team !== undefined ? l.options.team : ((l.options.data && l.options.data.team) || 0);
+                            links.push([lGuid, lt, lls[0].lat, lls[0].lng, lls[1].lat, lls[1].lng]);
+                        }
+                    }
+
+                    var fields = [];
+                    if (window.fields) {
+                        for (var fGuid in window.fields) {
+                            var f = window.fields[fGuid];
+                            if (!f) continue;
+                            var flls = f.getLatLngs ? f.getLatLngs() : f._latlngs;
+                            if (!flls || flls.length < 3) continue;
+                            var pts = Array.isArray(flls[0]) ? flls[0] : flls;
+                            if (pts.length < 3) continue;
+                            var ft = f.options.team !== undefined ? f.options.team : ((f.options.data && f.options.data.team) || 0);
+                            fields.push([
+                                fGuid,
+                                ft,
+                                [
+                                    [pts[0].lat, pts[0].lng],
+                                    [pts[1].lat, pts[1].lng],
+                                    [pts[2].lat, pts[2].lng]
+                                ]
+                            ]);
+                        }
+                    }
+
+                    bridge.setEntities(JSON.stringify({
+                        portals: portals,
+                        links: links,
+                        fields: fields
+                    }));
+                }
+
+                window.__syncEntitiesToNative = extractAndSendEntities;
+                window.addHook('mapDataRefreshEnd', scheduleEntitySync);
+                window.addHook('iitcLoaded', scheduleEntitySync);
+
+                // Initial extraction if portals already loaded
+                if (window.portals && Object.keys(window.portals).length > 0) {
+                    scheduleEntitySync();
+                }
             }
             setupPortalHook();
 

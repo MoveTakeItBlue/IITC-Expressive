@@ -43,6 +43,12 @@ class IITCManager(
 
     private val json = Json { ignoreUnknownKeys = true; isLenient = true }
 
+    fun setMockPlugins(pluginsList: List<Plugin>) {
+        val map = pluginsList.associateBy { it.uid.ifBlank { it.name } }
+        _plugins.value = map
+        _categories.value = listOf("All") + pluginsList.map { it.category }.distinct().sorted()
+    }
+
     fun startup(fallbackCoreCode: String? = null) {
         val channelStr = storage.getString("channel", Channel.RELEASE.key)
         val channel = Channel.fromKey(channelStr)

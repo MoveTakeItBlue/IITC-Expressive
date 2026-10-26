@@ -176,7 +176,10 @@ actual object PlatformUtils {
         activity.runOnUiThread {
             val window = activity.window ?: return@runOnUiThread
             val insetsController = WindowCompat.getInsetsController(window, window.decorView)
-            insetsController.isAppearanceLightStatusBars = !isDarkContent
+            // isDarkContent == true: status bar background is light -> render dark/black text
+            // isDarkContent == false: status bar background is dark -> render light/white text
+            insetsController.isAppearanceLightStatusBars = isDarkContent
+            insetsController.isAppearanceLightNavigationBars = isDarkContent
         }
     }
 

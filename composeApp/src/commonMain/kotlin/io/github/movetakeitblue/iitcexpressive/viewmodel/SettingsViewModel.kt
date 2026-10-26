@@ -23,6 +23,12 @@ class SettingsViewModel(
     private val _showLocation = MutableStateFlow(storage.getBoolean("show_location", false))
     val showLocation: StateFlow<Boolean> = _showLocation.asStateFlow()
 
+    val nativeMapEnabled: StateFlow<Boolean> = mainViewModel.isNativeMapEnabled
+
+    fun setNativeMapEnabled(enabled: Boolean) {
+        mainViewModel.setNativeMapEnabled(enabled)
+    }
+
     val currentChannel: StateFlow<io.github.movetakeitblue.iitcexpressive.model.Channel> = mainViewModel.manager.currentChannel
 
     val enabledPluginsCount: StateFlow<Int> = mainViewModel.manager.plugins

@@ -94,6 +94,18 @@ class MainViewModel(
     private val _dialogStack = MutableStateFlow<List<String>>(emptyList())
     val dialogStack: StateFlow<List<String>> = _dialogStack.asStateFlow()
 
+    // Native Map state
+    private val _isNativeMapEnabled = MutableStateFlow(storage.getBoolean("native_map_enabled", true))
+    val isNativeMapEnabled: StateFlow<Boolean> = _isNativeMapEnabled.asStateFlow()
+
+    fun setNativeMapEnabled(enabled: Boolean) {
+        _isNativeMapEnabled.value = enabled
+        storage.setBoolean("native_map_enabled", enabled)
+    }
+
+    private val _nativeMapEntities = MutableStateFlow(NativeMapEntities())
+    val nativeMapEntities: StateFlow<NativeMapEntities> = _nativeMapEntities.asStateFlow()
+
     // Map & Portal state
     private val _portalStatus = MutableStateFlow(PortalStatus())
     val portalStatus: StateFlow<PortalStatus> = _portalStatus.asStateFlow()
@@ -222,6 +234,35 @@ class MainViewModel(
                     else if ('$channel' === 'alerts' && window.chat.requestAlerts) window.chat.requestAlerts(false);
                     else if (window.chat.requestPublic) window.chat.requestPublic(false);
                     if (window.__sendChat) window.__sendChat('$channel');
+                }
+            })();
+        """.trimIndent())
+    }
+
+    private var lastCameraSyncJob: Job? = null
+    fun onNativeMapCameraChanged(lat: Double, lng: Double, zoom: Double) {
+        lastCameraSyncJob?.cancel()
+        lastCameraSyncJob = scope.launch {
+            delay(150)
+            evaluateJs("""
+                (function() {
+                    if (window.map) {
+                        window.__syncFromNative = true;
+                        window.map.setView([$lat, $lng], Math.round($zoom), { animate: false });
+                        window.__syncFromNative = false;
+                    }
+                })();
+            """.trimIndent())
+        }
+    }
+
+    fun onPortalTapped(guid: String) {
+        evaluateJs("""
+            (function() {
+                if (window.renderPortalDetails) {
+                    window.renderPortalDetails('$guid');
+                } else if (window.selectPortal) {
+                    window.selectPortal('$guid');
                 }
             })();
         """.trimIndent())
@@ -862,6 +903,80 @@ class MainViewModel(
             "gmBridgeRequest" -> {
                 val raw = data.jsonObject["data"]?.jsonPrimitive?.content ?: data.toString()
                 manager.handleGmBridgeRequest(raw)
+            }
+            "setEntities" -> {
+                try {
+                    val raw = when {
+                        data is JsonObject && data.containsKey("data") -> data["data"]?.jsonPrimitive?.content ?: ""
+                        data is JsonObject -> data.toString()
+                        data is JsonPrimitive -> data.content
+                        else -> ""
+                    }
+                    if (raw.isNotBlank()) {
+                        parseNativeEntities(raw)
+                    }
+                } catch (e: Exception) {
+                    println("setEntities error: ${e.message}")
+                }
+            }
+        }
+    }
+
+    private fun parseNativeEntities(raw: String) {
+        scope.launch(Dispatchers.Default) {
+            try {
+                val root = json.parseToJsonElement(raw).jsonObject
+                val portalsJson = root["portals"]?.jsonArray
+                val linksJson = root["links"]?.jsonArray
+                val fieldsJson = root["fields"]?.jsonArray
+
+                val portalsList = portalsJson?.mapNotNull { item ->
+                    if (item is JsonArray && item.size >= 6) {
+                        NativePortal(
+                            guid = item[0].jsonPrimitive.content,
+                            lat = item[1].jsonPrimitive.double,
+                            lng = item[2].jsonPrimitive.double,
+                            team = item[3].jsonPrimitive.int,
+                            level = item[4].jsonPrimitive.int,
+                            health = item[5].jsonPrimitive.int
+                        )
+                    } else null
+                } ?: emptyList()
+
+                val linksList = linksJson?.mapNotNull { item ->
+                    if (item is JsonArray && item.size >= 6) {
+                        NativeLink(
+                            guid = item[0].jsonPrimitive.content,
+                            team = item[1].jsonPrimitive.int,
+                            oLat = item[2].jsonPrimitive.double,
+                            oLng = item[3].jsonPrimitive.double,
+                            dLat = item[4].jsonPrimitive.double,
+                            dLng = item[5].jsonPrimitive.double
+                        )
+                    } else null
+                } ?: emptyList()
+
+                val fieldsList = fieldsJson?.mapNotNull { item ->
+                    if (item is JsonArray && item.size >= 3) {
+                        val guid = item[0].jsonPrimitive.content
+                        val team = item[1].jsonPrimitive.int
+                        val ptsArr = item[2].jsonArray
+                        val pts = ptsArr.mapNotNull { pt ->
+                            if (pt is JsonArray && pt.size >= 2) {
+                                listOf(pt[0].jsonPrimitive.double, pt[1].jsonPrimitive.double)
+                            } else null
+                        }
+                        NativeField(guid = guid, team = team, points = pts)
+                    } else null
+                } ?: emptyList()
+
+                _nativeMapEntities.value = NativeMapEntities(
+                    portals = portalsList,
+                    links = linksList,
+                    fields = fieldsList
+                )
+            } catch (e: Exception) {
+                println("parseNativeEntities error: ${e.message}")
             }
         }
     }

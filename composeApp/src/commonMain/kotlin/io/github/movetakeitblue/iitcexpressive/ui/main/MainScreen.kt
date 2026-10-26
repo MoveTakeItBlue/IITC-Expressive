@@ -20,6 +20,7 @@ import io.github.movetakeitblue.iitcexpressive.ui.common.ExpressiveLinearProgres
 import io.github.movetakeitblue.iitcexpressive.ui.common.LocationShareDialog
 import io.github.movetakeitblue.iitcexpressive.ui.debug.DebugConsole
 import io.github.movetakeitblue.iitcexpressive.ui.layers.LayersSheet
+import io.github.movetakeitblue.iitcexpressive.ui.map.NativeMapView
 import io.github.movetakeitblue.iitcexpressive.ui.menu.FabMenu
 import io.github.movetakeitblue.iitcexpressive.ui.portal.PortalDetailsSheet
 import io.github.movetakeitblue.iitcexpressive.ui.portal.PortalSheetDefaults
@@ -69,6 +70,17 @@ fun MainScreen(
                 viewModel = viewModel,
                 modifier = Modifier.fillMaxSize()
             )
+
+            // Native GPU MapView: renders when IITC is loaded and native map is enabled
+            val isNativeMapEnabled by viewModel.isNativeMapEnabled.collectAsState()
+            val isIitcLoaded by viewModel.isIitcLoaded.collectAsState()
+
+            if (isNativeMapEnabled && isIitcLoaded) {
+                NativeMapView(
+                    viewModel = viewModel,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
 
             // Main Map UI overlay
             if (currentScreen == "main") {

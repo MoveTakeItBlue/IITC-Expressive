@@ -20,6 +20,7 @@ fun SettingsView(
     val fakeUserAgent by viewModel.fakeUserAgent.collectAsState()
     val persistentZoom by viewModel.persistentZoom.collectAsState()
     val showLocation by viewModel.showLocation.collectAsState()
+    val nativeMapEnabled by viewModel.nativeMapEnabled.collectAsState()
     val currentChannel by viewModel.currentChannel.collectAsState()
     val enabledPluginsCount by viewModel.enabledPluginsCount.collectAsState()
 
@@ -61,11 +62,17 @@ fun SettingsView(
         // Map settings section
         SettingsSection(title = L("settings.section.map"))
         SwitchSettingsItem(
+            title = "原生硬件加速地图 (120fps)",
+            description = "使用 MapLibre 硬件加速渲染地图与所有实体，大幅提升交互与缩放流畅度",
+            checked = nativeMapEnabled,
+            onCheckedChange = { viewModel.setNativeMapEnabled(it) },
+            isFirst = true
+        )
+        SwitchSettingsItem(
             title = L("settings.location.title"),
             description = L("settings.location.description"),
             checked = showLocation,
-            onCheckedChange = { viewModel.setShowLocation(it) },
-            isFirst = true
+            onCheckedChange = { viewModel.setShowLocation(it) }
         )
         SwitchSettingsItem(
             title = L("settings.persistent_zoom.title"),
