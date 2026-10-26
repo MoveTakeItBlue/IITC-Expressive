@@ -135,7 +135,8 @@ class MainViewModel(
         _nativeBaseMap.value = baseMap
         storage.setString("native_basemap", baseMap.id)
         _isMapDark.value = baseMap.isDark
-        PlatformUtils.setStatusBarContrast(!baseMap.isDark)
+        // Dark status bar background requires white text (isDarkContent = false)
+        PlatformUtils.setStatusBarContrast(false)
     }
 
     // Camera move event for Linked Portals & search navigation
@@ -287,10 +288,19 @@ class MainViewModel(
     fun requestChat(channel: String) {
         evaluateJs("""
             (function() {
+                if (window.idleReset) window.idleReset();
                 if (window.chat) {
-                    if ('$channel' === 'faction' && window.chat.requestFaction) window.chat.requestFaction(false);
-                    else if ('$channel' === 'alerts' && window.chat.requestAlerts) window.chat.requestAlerts(false);
-                    else if (window.chat.requestPublic) window.chat.requestPublic(false);
+                    if (window.chat.chooseTab) window.chat.chooseTab('$channel');
+                    if ('$channel' === 'faction') {
+                        if (window.chat.requestFaction) window.chat.requestFaction(false);
+                        else if (window.IITC && window.IITC.comm && window.IITC.comm.requestChannel) window.IITC.comm.requestChannel('faction', false);
+                    } else if ('$channel' === 'alerts') {
+                        if (window.chat.requestAlerts) window.chat.requestAlerts(false);
+                        else if (window.IITC && window.IITC.comm && window.IITC.comm.requestChannel) window.IITC.comm.requestChannel('alerts', false);
+                    } else {
+                        if (window.chat.requestPublic) window.chat.requestPublic(false);
+                        else if (window.IITC && window.IITC.comm && window.IITC.comm.requestChannel) window.IITC.comm.requestChannel('all', false);
+                    }
                     if (window.__sendChat) window.__sendChat('$channel');
                 }
             })();
@@ -346,7 +356,7 @@ class MainViewModel(
         val savedBaseMap = NativeBaseMap.fromId(storage.getString("native_basemap", "dark"))
         _nativeBaseMap.value = savedBaseMap
         _isMapDark.value = savedBaseMap.isDark
-        PlatformUtils.setStatusBarContrast(!savedBaseMap.isDark)
+        PlatformUtils.setStatusBarContrast(false)
 
         scope.launch {
             manager.plugins.collect { pluginsMap ->
@@ -771,7 +781,7 @@ class MainViewModel(
             "setMapDarkMode" -> {
                 val isDark = data.jsonObject["isDark"]?.jsonPrimitive?.booleanOrNull ?: true
                 _isMapDark.value = isDark
-                PlatformUtils.setStatusBarContrast(!isDark)
+                // Status bar contrast is tied to UI surface container, not leaflet tile dark filter
             }
             "setPortalStatus" -> {
                 try {

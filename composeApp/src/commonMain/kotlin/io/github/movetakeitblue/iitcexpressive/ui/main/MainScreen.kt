@@ -3,6 +3,13 @@ package io.github.movetakeitblue.iitcexpressive.ui.main
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.ui.text.font.FontWeight
+import io.github.movetakeitblue.iitcexpressive.platform.PlatformUtils
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.HorizontalDivider
@@ -42,6 +49,14 @@ fun MainScreen(
     val isFabMenuExpanded by viewModel.isFabMenuExpanded.collectAsState()
     val portalStatus by viewModel.portalStatus.collectAsState()
     val isPortalDetailsExpanded by viewModel.isPortalDetailsExpanded.collectAsState()
+    val mapStatus by viewModel.mapStatus.collectAsState()
+
+    // Adapt status bar icons/text contrast dynamically based on status bar container color
+    val statusBarColor = MaterialTheme.colorScheme.surfaceContainer
+    val isStatusBarLight = (statusBarColor.red * 0.299f + statusBarColor.green * 0.587f + statusBarColor.blue * 0.114f) >= 0.5f
+    LaunchedEffect(isStatusBarLight) {
+        PlatformUtils.setStatusBarContrast(isStatusBarLight)
+    }
 
     // ViewModels for sub-screens
     val settingsViewModel = remember(viewModel) { SettingsViewModel(viewModel.storage, viewModel) }
@@ -84,19 +99,57 @@ fun MainScreen(
 
             // Main Map UI overlay
             if (currentScreen == "main") {
-                // Top progress indicator
+                val isMapSyncing = progress < 1f || mapStatus.requests.hasActive
+
+                // Top Expressive Floating Pill Indicator
                 AnimatedVisibility(
-                    visible = progress < 1f,
-                    enter = fadeIn(),
-                    exit = fadeOut(),
-                    modifier = Modifier.fillMaxWidth().align(Alignment.TopCenter)
+                    visible = isMapSyncing,
+                    enter = fadeIn() + slideInVertically { -it },
+                    exit = fadeOut() + slideOutVertically { -it },
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(top = 10.dp)
                 ) {
-                    ExpressiveLinearProgressIndicator(
-                        progress = { progress },
-                        modifier = Modifier.fillMaxWidth().height(3.dp),
-                        color = MaterialTheme.colorScheme.primary,
-                        trackColor = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.5f)
-                    )
+                    Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.95f),
+                        tonalElevation = 6.dp,
+                        shadowElevation = 4.dp
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            if (progress in 0.01f..0.99f) {
+                                ExpressiveLinearProgressIndicator(
+                                    progress = { progress },
+                                    modifier = Modifier.width(72.dp).height(6.dp),
+                                    color = MaterialTheme.colorScheme.primary,
+                                    trackColor = MaterialTheme.colorScheme.surfaceContainerHighest
+                                )
+                            } else {
+                                ExpressiveLinearProgressIndicator(
+                                    modifier = Modifier.width(72.dp).height(6.dp),
+                                    color = MaterialTheme.colorScheme.primary,
+                                    trackColor = MaterialTheme.colorScheme.surfaceContainerHighest
+                                )
+                            }
+
+                            Text(
+                                text = if (mapStatus.requests.hasActive) {
+                                    if (mapStatus.requests.active > 0) "SYNCING (${mapStatus.requests.active})" else "SYNCING"
+                                } else if (progress < 1f) {
+                                    "${(progress * 100).toInt()}%"
+                                } else {
+                                    "SYNCING"
+                                },
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    }
                 }
 
                 if (!isDebugActive) {

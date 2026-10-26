@@ -19,6 +19,13 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -194,6 +201,8 @@ fun PortalDetailsSheet(
                 }
             }
         }
+
+
     }
 }
 
@@ -342,6 +351,7 @@ private fun PortalExpandedDetails(
     // Dialog state for showing deployed agent name on click
     var selectedModForDetail by remember { mutableStateOf<PortalMod?>(null) }
     var selectedResonatorForDetail by remember { mutableStateOf<Pair<String, Resonator>?>(null) } // (direction, resonator)
+    var isFullscreenImageOpen by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -428,15 +438,41 @@ private fun PortalExpandedDetails(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    // Portal Photo
-                    PortalAsyncImage(
-                        url = portalStatus.image,
-                        teamColor = portalStatus.teamColor,
-                        httpClient = viewModel.manager.httpClient,
+                    // Portal Photo (Clickable to view full size)
+                    Box(
                         modifier = Modifier
                             .size(96.dp)
                             .clip(RoundedCornerShape(18.dp))
-                    )
+                            .clickable(enabled = !portalStatus.image.isNullOrBlank()) {
+                                isFullscreenImageOpen = true
+                            }
+                    ) {
+                        PortalAsyncImage(
+                            url = portalStatus.image,
+                            teamColor = portalStatus.teamColor,
+                            httpClient = viewModel.manager.httpClient,
+                            modifier = Modifier.fillMaxSize()
+                        )
+
+                        if (!portalStatus.image.isNullOrBlank()) {
+                            Box(
+                                modifier = Modifier
+                                    .align(Alignment.BottomEnd)
+                                    .padding(5.dp)
+                                    .size(24.dp)
+                                    .clip(CircleShape)
+                                    .background(Color.Black.copy(alpha = 0.65f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.ZoomIn,
+                                    contentDescription = "Expand photo",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(15.dp)
+                                )
+                            }
+                        }
+                    }
 
                     // Metadata
                     Column(
@@ -1013,6 +1049,18 @@ private fun PortalExpandedDetails(
             }
         )
     }
+
+    // Fullscreen Portal Image Viewer Dialog
+    val imageUrl = portalStatus.image
+    if (isFullscreenImageOpen && !imageUrl.isNullOrBlank()) {
+        PortalFullscreenImageDialog(
+            imageUrl = imageUrl,
+            title = portalStatus.title,
+            teamColor = portalStatus.teamColor,
+            httpClient = viewModel.manager.httpClient,
+            onDismiss = { isFullscreenImageOpen = false }
+        )
+    }
 }
 
 @Composable
@@ -1129,6 +1177,217 @@ private fun PortalAsyncImage(
                 tint = teamColor,
                 modifier = Modifier.size(36.dp)
             )
+        }
+    }
+}
+
+/**
+ * Fullscreen Interactive Portal Image Viewer
+ * Features pinch-to-zoom, double-tap zoom toggle, panning, and header controls.
+ */
+@Composable
+fun PortalFullscreenImageDialog(
+    imageUrl: String,
+    title: String,
+    teamColor: Color,
+    httpClient: io.ktor.client.HttpClient,
+    onDismiss: () -> Unit
+) {
+    var scale by remember { mutableStateOf(1f) }
+    var offset by remember { mutableStateOf(Offset.Zero) }
+    var imageBitmap by remember(imageUrl) { mutableStateOf<ImageBitmap?>(null) }
+    var isLoading by remember(imageUrl) { mutableStateOf(true) }
+
+    LaunchedEffect(imageUrl) {
+        isLoading = true
+        try {
+            val bytes = withContext(Dispatchers.Default) {
+                val resp = httpClient.get(imageUrl)
+                resp.readRawBytes()
+            }
+            imageBitmap = PlatformUtils.decodeImageBitmap(bytes)
+        } catch (_: Exception) {
+            imageBitmap = null
+        } finally {
+            isLoading = false
+        }
+    }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0xF5000000))
+        ) {
+            // Interactive Zoomable / Pannable Image Layer
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .pointerInput(Unit) {
+                        detectTapGestures(
+                            onDoubleTap = {
+                                if (scale > 1.2f) {
+                                    scale = 1f
+                                    offset = Offset.Zero
+                                } else {
+                                    scale = 2.5f
+                                }
+                            },
+                            onTap = {
+                                if (scale > 1.2f) {
+                                    scale = 1f
+                                    offset = Offset.Zero
+                                } else {
+                                    onDismiss()
+                                }
+                            }
+                        )
+                    }
+                    .pointerInput(Unit) {
+                        detectTransformGestures { _, pan, zoom, _ ->
+                            scale = (scale * zoom).coerceIn(1f, 5f)
+                            offset = if (scale > 1f) offset + pan else Offset.Zero
+                        }
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                val bmp = imageBitmap
+                if (bmp != null) {
+                    Image(
+                        bitmap = bmp,
+                        contentDescription = title,
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .graphicsLayer(
+                                scaleX = scale,
+                                scaleY = scale,
+                                translationX = offset.x,
+                                translationY = offset.y
+                            )
+                    )
+                } else if (isLoading) {
+                    ExpressiveCircularProgressIndicator(
+                        modifier = Modifier.size(52.dp),
+                        color = MaterialTheme.colorScheme.primary,
+                        strokeWidth = 3.5.dp
+                    )
+                } else {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.BrokenImage,
+                            contentDescription = null,
+                            tint = Color.Gray,
+                            modifier = Modifier.size(48.dp)
+                        )
+                        Text("Failed to load photo", color = Color.Gray, fontSize = 14.sp)
+                    }
+                }
+            }
+
+            // Top Floating Controls Bar
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .windowInsetsPadding(WindowInsets.statusBars)
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                    .align(Alignment.TopCenter),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Surface(
+                    shape = CircleShape,
+                    color = Color.Black.copy(alpha = 0.65f),
+                    modifier = Modifier.weight(1f, fill = false)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(10.dp)
+                                .clip(CircleShape)
+                                .background(teamColor)
+                        )
+                        Text(
+                            text = title,
+                            color = Color.White,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                IconButton(
+                    onClick = onDismiss,
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(Color.Black.copy(alpha = 0.65f))
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Close",
+                        tint = Color.White,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+            }
+
+            // Bottom Floating Hint & Browser Open Bar
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .windowInsetsPadding(WindowInsets.navigationBars)
+                    .padding(horizontal = 16.dp, vertical = 16.dp)
+                    .align(Alignment.BottomCenter),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Surface(
+                    shape = CircleShape,
+                    color = Color.Black.copy(alpha = 0.6f)
+                ) {
+                    Text(
+                        text = "Double-tap to zoom • Drag to pan",
+                        color = Color.White.copy(alpha = 0.75f),
+                        fontSize = 12.sp,
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
+                    )
+                }
+
+                FilledTonalButton(
+                    onClick = {
+                        PlatformUtils.openUrl(imageUrl)
+                    },
+                    shape = CircleShape,
+                    colors = ButtonDefaults.filledTonalButtonColors(
+                        containerColor = Color.White.copy(alpha = 0.25f),
+                        contentColor = Color.White
+                    ),
+                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.OpenInBrowser,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Browser", fontSize = 12.sp)
+                }
+            }
         }
     }
 }

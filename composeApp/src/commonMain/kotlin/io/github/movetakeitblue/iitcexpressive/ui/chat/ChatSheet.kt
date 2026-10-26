@@ -56,6 +56,13 @@ fun ChatSheet(
     val messages = chatMessagesMap[selectedChannel] ?: emptyList()
     val listState = rememberLazyListState()
 
+    // On open, request channels so message counts and messages populate
+    LaunchedEffect(Unit) {
+        viewModel.requestChat("all")
+        viewModel.requestChat("faction")
+        viewModel.requestChat("alerts")
+    }
+
     // Request chat data when channel changes or opens
     LaunchedEffect(selectedChannel) {
         viewModel.requestChat(selectedChannel)

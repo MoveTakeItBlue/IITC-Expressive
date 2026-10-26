@@ -25,6 +25,7 @@ object BridgeScripts {
   --m3-faction-res: #70D2FF;
   --m3-faction-enl: #66DC96;
   --m3-faction-mac: #FF7164;
+  --m3-faction-neutral: #FF9E40;
   --m3-radius-sm: 8px;
   --m3-radius-md: 16px;
   --m3-radius-lg: 24px;
@@ -52,6 +53,7 @@ a:hover, a:focus {
 .res, .resistance, .text-res { color: var(--m3-faction-res) !important; }
 .enl, .enlightened, .text-enl { color: var(--m3-faction-enl) !important; }
 .mac, .machina, .text-mac { color: var(--m3-faction-mac) !important; }
+.none, .neutral, .text-none, .text-neutral { color: var(--m3-faction-neutral) !important; }
 
 #sidebartoggle,
 #sidebar,
@@ -724,13 +726,31 @@ input, textarea, select {
                 }
                 window.__portalHookInstalled = true;
 
+                // Configure Orange Unclaimed / Neutral color and enlarged portal markers on Leaflet
+                try {
+                    if (window.COLORS) {
+                        window.COLORS[0] = '#ff7a00';
+                        if (window.TEAM_NONE !== undefined) window.COLORS[window.TEAM_NONE] = '#ff7a00';
+                    }
+                    if (window.portalMarkerScale && !window.__origPortalMarkerScale) {
+                        window.__origPortalMarkerScale = window.portalMarkerScale;
+                        window.portalMarkerScale = function() {
+                            return Math.max(window.__origPortalMarkerScale() * 1.35, 1.2);
+                        };
+                    }
+                    if (window.L && window.L.PortalMarker) {
+                        window.L.PortalMarker.LEVEL_TO_RADIUS = [10, 10, 11, 12, 13, 14, 15, 17, 19];
+                        window.L.PortalMarker.LEVEL_TO_WEIGHT = [2.5, 2.5, 2.5, 3, 3, 3.5, 4, 4.5, 5];
+                    }
+                } catch(e) {}
+
                 function sendPortalDetails(guid, hookData) {
                     if (!guid) {
                         bridge.setPortalDetails(null, {});
                         return;
                     }
                     var p = window.portals && window.portals[guid];
-                    var d = (hookData && hookData.portalDetails) || (window.portalDetail && window.portalDetail.get(guid)) || (p && p.options && p.options.data) || {};
+                    var d = (hookData && (hookData.details || hookData.portalDetails)) || (window.portalDetail && window.portalDetail.get(guid)) || (p && p.options && p.options.data) || {};
                     var rangeObj = window.getPortalRange ? window.getPortalRange(d) : null;
                     var linksObj = window.getPortalLinks ? window.getPortalLinks(guid) : null;
                     var fieldsCount = window.getPortalFieldsCount ? window.getPortalFieldsCount(guid) : 0;
@@ -791,8 +811,8 @@ input, textarea, select {
                                 var ld = l.options.data || {};
                                 var otherGuid = ld.dGuid;
                                 var lls = l.getLatLngs ? l.getLatLngs() : l._latlngs;
-                                var otherLat = ld.dLat || (lls && lls[1] && lls[1].lat) || 0;
-                                var otherLng = ld.dLng || (lls && lls[1] && lls[1].lng) || 0;
+                                var otherLat = (ld.dLatE6 ? ld.dLatE6 / 1e6 : (lls && lls[1] ? lls[1].lat : 0));
+                                var otherLng = (ld.dLngE6 ? ld.dLngE6 / 1e6 : (lls && lls[1] ? lls[1].lng : 0));
                                 var otherP = window.portals && window.portals[otherGuid];
                                 var opd = (otherP && otherP.options && otherP.options.data) || {};
                                 var pLat = (d.latE6 ? d.latE6/1e6 : (p && p.getLatLng ? p.getLatLng().lat : 0));
@@ -819,8 +839,8 @@ input, textarea, select {
                                 var ld = l.options.data || {};
                                 var otherGuid = ld.oGuid;
                                 var lls = l.getLatLngs ? l.getLatLngs() : l._latlngs;
-                                var otherLat = ld.oLat || (lls && lls[0] && lls[0].lat) || 0;
-                                var otherLng = ld.oLng || (lls && lls[0] && lls[0].lng) || 0;
+                                var otherLat = (ld.oLatE6 ? ld.oLatE6 / 1e6 : (lls && lls[0] ? lls[0].lat : 0));
+                                var otherLng = (ld.oLngE6 ? ld.oLngE6 / 1e6 : (lls && lls[0] ? lls[0].lng : 0));
                                 var otherP = window.portals && window.portals[otherGuid];
                                 var opd = (otherP && otherP.options && otherP.options.data) || {};
                                 var pLat = (d.latE6 ? d.latE6/1e6 : (p && p.getLatLng ? p.getLatLng().lat : 0));
@@ -877,6 +897,14 @@ input, textarea, select {
                 window.addHook('portalDetailsUpdated', function(data) {
                     sendPortalDetails(data ? data.guid : window.selectedPortal, data);
                 });
+                window.addHook('portalDetailLoaded', function(data) {
+                    sendPortalDetails(data ? data.guid : window.selectedPortal, data);
+                });
+                window.addHook('mapDataRefreshEnd', function() {
+                    if (window.selectedPortal) {
+                        sendPortalDetails(window.selectedPortal);
+                    }
+                });
                 window.addHook('iitcLoaded', function() {
                     if (bridge && bridge.bootFinished) {
                         bridge.bootFinished();
@@ -905,7 +933,8 @@ input, textarea, select {
                 // Chat message bridge
                 function extractChatMessages(channel) {
                     if (!window.chat) return;
-                    var cData = channel === 'faction' ? window.chat._faction : (channel === 'alerts' ? window.chat._alerts : window.chat._public);
+                    var cData = (window.chat && (channel === 'faction' ? window.chat._faction : (channel === 'alerts' ? window.chat._alerts : window.chat._public))) ||
+                                (window.IITC && window.IITC.comm && window.IITC.comm._channelsData && window.IITC.comm._channelsData[channel]);
                     if (!cData || !cData.data) return;
                     var list = [];
                     var dMap = cData.data;
@@ -962,6 +991,16 @@ input, textarea, select {
                 window.addHook('factionChatDataAvailable', function() { extractChatMessages('faction'); });
                 window.addHook('publicChatDataAvailable', function() { extractChatMessages('all'); });
                 window.addHook('alertsChatDataAvailable', function() { extractChatMessages('alerts'); });
+                window.addHook('commDataAvailable', function(data) {
+                    var ch = data && data.channel;
+                    if (ch) {
+                        extractChatMessages(ch === 'all' ? 'all' : ch);
+                    } else {
+                        extractChatMessages('all');
+                        extractChatMessages('faction');
+                        extractChatMessages('alerts');
+                    }
+                });
 
                 // Native Map Entity Extraction and Synchronization
                 var entitySyncTimer = null;

@@ -2,9 +2,7 @@ package io.github.movetakeitblue.iitcexpressive.ui.common
 
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -35,9 +33,10 @@ fun ExpressiveCircularProgressIndicator(
 }
 
 /**
- * Material 3 Expressive (M3E) Linear Progress Indicator (determinate)
- * Features rounded pill caps and expressive tonal track.
+ * Material 3 Expressive (M3E) Linear Wavy Progress Indicator (determinate)
+ * Features official Material 3 Expressive animated wavy path with pill caps.
  */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun ExpressiveLinearProgressIndicator(
     progress: () -> Float,
@@ -46,18 +45,18 @@ fun ExpressiveLinearProgressIndicator(
     trackColor: Color = MaterialTheme.colorScheme.surfaceContainerHighest,
     strokeCap: StrokeCap = StrokeCap.Round
 ) {
-    LinearProgressIndicator(
+    LinearWavyProgressIndicator(
         progress = progress,
-        modifier = modifier.clip(RoundedCornerShape(percent = 50)),
+        modifier = modifier,
         color = color,
-        trackColor = trackColor,
-        strokeCap = strokeCap
+        trackColor = trackColor
     )
 }
 
 /**
- * Material 3 Expressive (M3E) Linear Progress Indicator (indeterminate)
+ * Material 3 Expressive (M3E) Linear Wavy Progress Indicator (indeterminate)
  */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun ExpressiveLinearProgressIndicator(
     modifier: Modifier = Modifier,
@@ -65,10 +64,9 @@ fun ExpressiveLinearProgressIndicator(
     trackColor: Color = MaterialTheme.colorScheme.surfaceContainerHighest,
     strokeCap: StrokeCap = StrokeCap.Round
 ) {
-    LinearProgressIndicator(
-        modifier = modifier.clip(RoundedCornerShape(percent = 50)),
+    LinearWavyProgressIndicator(
+        modifier = modifier,
         color = color,
-        trackColor = trackColor,
-        strokeCap = strokeCap
+        trackColor = trackColor
     )
 }

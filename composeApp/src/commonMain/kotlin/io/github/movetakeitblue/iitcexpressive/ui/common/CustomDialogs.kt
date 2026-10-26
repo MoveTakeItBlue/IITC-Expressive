@@ -184,6 +184,15 @@ fun LocationShareDialog(
     val isPortal = dialog.isPortal
     val guid = dialog.guid
 
+    // Niantic Ingress Prime Deep Link (makePrimeLink standard)
+    val primeLink = if (!guid.isNullOrBlank()) {
+        "https://link.ingress.com/?link=https%3A%2F%2Fintel.ingress.com%2Fportal%2F$guid&apn=com.nianticproject.ingress&isi=576505181&ibi=com.google.ingress&ifl=https%3A%2F%2Fapps.apple.com%2Fapp%2Fingress%2Fid576505181&ofl=https%3A%2F%2Fintel.ingress.com%2Fintel%3Fpll%3D$lat%2C$lng"
+    } else {
+        "https://link.ingress.com/?link=https%3A%2F%2Fintel.ingress.com%2Fintel%3Fpll%3D$lat%2C$lng&apn=com.nianticproject.ingress&isi=576505181&ibi=com.google.ingress&ifl=https%3A%2F%2Fapps.apple.com%2Fapp%2Fingress%2Fid576505181&ofl=https%3A%2F%2Fintel.ingress.com%2Fintel%3Fpll%3D$lat%2C$lng"
+    }
+    // Standard Intel Map Link
+    val intelLink = "https://intel.ingress.com/intel?ll=$lat,$lng&z=17&pll=$lat,$lng"
+
     Dialog(onDismissRequest = onDismiss) {
         Card(
             shape = RoundedCornerShape(28.dp),
@@ -191,7 +200,7 @@ fun LocationShareDialog(
             modifier = Modifier.fillMaxWidth().padding(16.dp)
         ) {
             Column(
-                modifier = Modifier.padding(24.dp),
+                modifier = Modifier.padding(20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Box(
@@ -209,64 +218,218 @@ fun LocationShareDialog(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
                 Text(
                     text = if (title.isNotBlank()) title else L("share.title"),
                     color = MaterialTheme.colorScheme.onSurface,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 2
                 )
 
-                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(4.dp))
 
                 Text(
                     text = "$lat, $lng",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontSize = 13.sp
+                    fontSize = 12.sp
                 )
 
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
-                // Actions
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    FilledTonalButton(
-                        onClick = {
-                            val coordStr = "$lat,$lng"
-                            PlatformUtils.copyToClipboard(coordStr, L("share.toast.coordinates_copied"))
-                            onDismiss()
-                        },
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(percent = 50),
-                        colors = ButtonDefaults.filledTonalButtonColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                            contentColor = MaterialTheme.colorScheme.onSurface
-                        )
+                if (isPortal) {
+                    // Portal Specific Share Options (M3E Options List)
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(L("share.copy"), fontSize = 13.sp)
+                        // 1. Ingress Prime Game Link
+                        Surface(
+                            shape = RoundedCornerShape(16.dp),
+                            color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "Ingress Prime",
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 13.sp,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Text(
+                                        text = L("share.action.ingress_prime"),
+                                        fontSize = 11.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    FilledTonalButton(
+                                        onClick = {
+                                            PlatformUtils.copyToClipboard(primeLink, L("share.toast.prime_copied"))
+                                            onDismiss()
+                                        },
+                                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                        shape = RoundedCornerShape(percent = 50)
+                                    ) {
+                                        Text(L("share.copy"), fontSize = 11.sp)
+                                    }
+                                    Button(
+                                        onClick = {
+                                            PlatformUtils.openUrl(primeLink)
+                                            onDismiss()
+                                        },
+                                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                        shape = RoundedCornerShape(percent = 50)
+                                    ) {
+                                        Text(L("share.action.open_prime"), fontSize = 11.sp)
+                                    }
+                                }
+                            }
+                        }
+
+                        // 2. Intel Map Link
+                        Surface(
+                            shape = RoundedCornerShape(16.dp),
+                            color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "Intel Map",
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 13.sp,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Text(
+                                        text = L("share.action.link"),
+                                        fontSize = 11.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    FilledTonalButton(
+                                        onClick = {
+                                            PlatformUtils.copyToClipboard(intelLink, L("share.toast.intel_copied"))
+                                            onDismiss()
+                                        },
+                                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                        shape = RoundedCornerShape(percent = 50)
+                                    ) {
+                                        Text(L("share.copy"), fontSize = 11.sp)
+                                    }
+                                    Button(
+                                        onClick = {
+                                            PlatformUtils.openUrl(intelLink)
+                                            onDismiss()
+                                        },
+                                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                        shape = RoundedCornerShape(percent = 50)
+                                    ) {
+                                        Text(L("share.action.open_intel"), fontSize = 11.sp)
+                                    }
+                                }
+                            }
+                        }
+
+                        // 3. Navigation & Coordinates
+                        Surface(
+                            shape = RoundedCornerShape(16.dp),
+                            color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "Coordinates & Maps",
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 13.sp,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Text(
+                                        text = L("share.action.maps"),
+                                        fontSize = 11.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    FilledTonalButton(
+                                        onClick = {
+                                            PlatformUtils.copyToClipboard("$lat,$lng", L("share.toast.coordinates_copied"))
+                                            onDismiss()
+                                        },
+                                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                        shape = RoundedCornerShape(percent = 50)
+                                    ) {
+                                        Text(L("share.copy"), fontSize = 11.sp)
+                                    }
+                                    Button(
+                                        onClick = {
+                                            val geoUrl = "geo:$lat,$lng?q=$lat,$lng($title)"
+                                            PlatformUtils.openUrl(geoUrl)
+                                            onDismiss()
+                                        },
+                                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                        shape = RoundedCornerShape(percent = 50)
+                                    ) {
+                                        Text(L("share.open_map"), fontSize = 11.sp)
+                                    }
+                                }
+                            }
+                        }
                     }
-
-                    FilledTonalButton(
-                        onClick = {
-                            val geoUrl = "geo:$lat,$lng?q=$lat,$lng($title)"
-                            PlatformUtils.openUrl(geoUrl)
-                            onDismiss()
-                        },
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(percent = 50),
-                        colors = ButtonDefaults.filledTonalButtonColors(
-                            containerColor = MaterialTheme.colorScheme.primaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
+                } else {
+                    // Standard Location Share Actions
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Icon(Icons.Default.Map, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(L("share.open_map"), fontSize = 13.sp)
+                        FilledTonalButton(
+                            onClick = {
+                                val coordStr = "$lat,$lng"
+                                PlatformUtils.copyToClipboard(coordStr, L("share.toast.coordinates_copied"))
+                                onDismiss()
+                            },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(percent = 50),
+                            colors = ButtonDefaults.filledTonalButtonColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                                contentColor = MaterialTheme.colorScheme.onSurface
+                            )
+                        ) {
+                            Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(L("share.copy"), fontSize = 13.sp)
+                        }
+
+                        FilledTonalButton(
+                            onClick = {
+                                val geoUrl = "geo:$lat,$lng?q=$lat,$lng($title)"
+                                PlatformUtils.openUrl(geoUrl)
+                                onDismiss()
+                            },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(percent = 50),
+                            colors = ButtonDefaults.filledTonalButtonColors(
+                                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        ) {
+                            Icon(Icons.Default.Map, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(L("share.open_map"), fontSize = 13.sp)
+                        }
                     }
                 }
             }

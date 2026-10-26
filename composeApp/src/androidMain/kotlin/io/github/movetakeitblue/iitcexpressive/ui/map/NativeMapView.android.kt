@@ -376,25 +376,25 @@ actual fun NativeMapView(
                     1 -> Pair("#70d2ff", "#004f7a") // RES
                     2 -> Pair("#66dc96", "#005a2e") // ENL
                     3 -> Pair("#ff7164", "#7a1000") // MACHINA
-                    else -> Pair("#c0c7c7", "#3c4043") // Neutral
+                    else -> Pair("#ffa630", "#e65100") // Unclaimed: Orange!
                 }
 
                 var strokeColor = baseStroke
                 var fillColor = baseFill
-                var strokeWidth = 1.8f
+                var strokeWidth = 2.2f
                 var radius = when (p.level) {
-                    0 -> 4f
-                    1, 2 -> 5f
-                    3, 4 -> 6f
-                    5, 6 -> 7f
-                    7, 8 -> 8.5f
-                    else -> 5f
+                    0 -> 8f
+                    1, 2 -> 9.5f
+                    3, 4 -> 11f
+                    5, 6 -> 13f
+                    7, 8 -> 15.5f
+                    else -> 9f
                 }
                 var opacity = 0.95f
                 var strokeOpacity = 1f
-                var haloColor = "#000000"
-                var haloRadius = 0f
-                var haloOpacity = 0f
+                var haloColor = if (p.team == 0) "#ff7a00" else "#000000"
+                var haloRadius = if (p.team == 0) radius + 3.5f else 0f
+                var haloOpacity = if (p.team == 0) 0.35f else 0f
 
                 when (selectedHighlighter) {
                     "Portal Level Color" -> {
@@ -521,13 +521,13 @@ actual fun NativeMapView(
                     }
                     "Unclaimed Portals" -> {
                         if (p.team == 0) {
-                            fillColor = "#ffffff"
-                            strokeColor = "#80deea"
-                            strokeWidth = 2.5f
-                            radius = 8.5f
-                            haloColor = "#00e5ff"
-                            haloRadius = 15f
-                            haloOpacity = 0.9f
+                            fillColor = "#ff7a00"
+                            strokeColor = "#ffffff"
+                            strokeWidth = 3f
+                            radius = radius + 3.5f
+                            haloColor = "#ff9100"
+                            haloRadius = radius + 10f
+                            haloOpacity = 0.95f
                         } else {
                             opacity = 0.2f
                             strokeOpacity = 0.2f
@@ -669,9 +669,16 @@ actual fun NativeMapView(
                     // Handle map clicks (Portals & Player Markers)
                     map.addOnMapClickListener { point ->
                         val screenPoint = map.projection.toScreenLocation(point)
+                        val touchSlop = 36f
+                        val touchBox = android.graphics.RectF(
+                            screenPoint.x - touchSlop,
+                            screenPoint.y - touchSlop,
+                            screenPoint.x + touchSlop,
+                            screenPoint.y + touchSlop
+                        )
 
                         // 1. Check Agent marker click
-                        val agentFeatures = map.queryRenderedFeatures(screenPoint, LAYER_PLAYER_MARKERS)
+                        val agentFeatures = map.queryRenderedFeatures(touchBox, LAYER_PLAYER_MARKERS)
                         if (agentFeatures.isNotEmpty()) {
                             val sender = agentFeatures[0].getStringProperty("sender") ?: "Agent"
                             val team = agentFeatures[0].getStringProperty("team") ?: ""
@@ -681,7 +688,7 @@ actual fun NativeMapView(
                         }
 
                         // 2. Check Portal click
-                        val features = map.queryRenderedFeatures(screenPoint, LAYER_PORTALS)
+                        val features = map.queryRenderedFeatures(touchBox, LAYER_PORTALS)
                         if (features.isNotEmpty()) {
                             val guid = features[0].getStringProperty("guid")
                             if (!guid.isNullOrBlank()) {
