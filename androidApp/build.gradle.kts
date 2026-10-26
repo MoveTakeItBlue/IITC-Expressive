@@ -49,4 +49,8 @@ dependencies {
     implementation(libs.androidx.activity.compose)
     implementation(libs.compose.material3)
     implementation("com.google.android.material:material:1.12.0")
+
+    // Compose Preview：代码放在 src/debug，注解与渲染器都只进 debug 变体，release 包零影响
+    debugImplementation("org.jetbrains.compose.ui:ui-tooling-preview:${libs.versions.compose.multiplatform.get()}")
+    debugImplementation("org.jetbrains.compose.ui:ui-tooling:${libs.versions.compose.multiplatform.get()}")
 }

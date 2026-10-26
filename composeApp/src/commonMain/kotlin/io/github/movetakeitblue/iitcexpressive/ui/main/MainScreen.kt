@@ -5,6 +5,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -21,6 +22,7 @@ import io.github.movetakeitblue.iitcexpressive.ui.debug.DebugConsole
 import io.github.movetakeitblue.iitcexpressive.ui.layers.LayersSheet
 import io.github.movetakeitblue.iitcexpressive.ui.menu.FabMenu
 import io.github.movetakeitblue.iitcexpressive.ui.portal.PortalDetailsSheet
+import io.github.movetakeitblue.iitcexpressive.ui.portal.PortalSheetDefaults
 import io.github.movetakeitblue.iitcexpressive.ui.settings.*
 import io.github.movetakeitblue.iitcexpressive.viewmodel.*
 
@@ -51,14 +53,16 @@ fun MainScreen(
         viewModel.checkClipboard()
     }
 
-    val topInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-
     Box(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-        // Map and main overlay container (extending from below status bar down to the navigation bar)
+        // Map and main overlay container.
+        // 地图安全区：顶部避开状态栏，底部避开导航栏，正好占满「状态栏下沿 → 导航栏上沿」，
+        // 因此地图下边缘与导航栏相邻、上边缘与状态栏分隔，地图内容不会画到系统栏上。
+        // 注意：windowInsetsPadding 会消费 inset，内部子组件再调用 navigationBarsPadding() 会自动变 0，不会二次留白。
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = topInset)
+                .windowInsetsPadding(WindowInsets.statusBars)
+                .windowInsetsPadding(WindowInsets.navigationBars)
         ) {
             // AppWebView is always mounted so map state is preserved when navigating to settings/plugins
             AppWebView(
@@ -84,6 +88,11 @@ fun MainScreen(
                 }
 
                 if (!isDebugActive) {
+                    // Portal 详情 sheet 收起时占用的高度（含导航栏 inset）。
+                    // FAB 必须让出这块空间，否则会被 sheet 压住；这里与 sheet 内部用的是同一套计算。
+                    val sheetPeekHeight = PortalSheetDefaults.PeekHeight +
+                        WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+
                     // Portal Details Sheet (Collapsed peek bar or expanded full details)
                     PortalDetailsSheet(
                         viewModel = viewModel,
@@ -121,7 +130,12 @@ fun MainScreen(
                                 viewModel.closeFabMenu()
                                 viewModel.reloadWebView()
                             },
-                            bottomOffset = if (portalStatus.hasSelected) 96.dp else 16.dp,
+                            // portal 被选中后，FAB 跟随 sheet 一起向上让位
+                            bottomOffset = if (portalStatus.hasSelected) {
+                                sheetPeekHeight + PortalSheetDefaults.FabGap
+                            } else {
+                                16.dp
+                            },
                             modifier = Modifier.fillMaxSize()
                         )
                     }
@@ -137,12 +151,27 @@ fun MainScreen(
             }
         }
 
-        // M3E status bar solid separation surface at the top
-        Box(
+        // 状态栏：M3E 实色表面覆盖，底部带一条细分割线，让地图与状态栏有明确的视觉分隔
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .windowInsetsTopHeight(WindowInsets.statusBars)
                 .align(Alignment.TopCenter)
+                .background(MaterialTheme.colorScheme.surfaceContainer),
+            verticalArrangement = Arrangement.Bottom
+        ) {
+            HorizontalDivider(
+                thickness = 0.5.dp,
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
+            )
+        }
+
+        // 导航栏：同样用实色表面填充，让地图下边缘正好与导航栏相邻
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .windowInsetsBottomHeight(WindowInsets.navigationBars)
+                .align(Alignment.BottomCenter)
                 .background(MaterialTheme.colorScheme.surfaceContainer)
         )
 

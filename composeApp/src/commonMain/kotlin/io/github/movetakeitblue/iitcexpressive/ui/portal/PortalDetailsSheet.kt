@@ -45,6 +45,18 @@ import io.github.movetakeitblue.iitcexpressive.viewmodel.AppDialog
 import io.github.movetakeitblue.iitcexpressive.viewmodel.MainViewModel
 
 /**
+ * Portal 详情 sheet 的几何常量。
+ * FAB 等悬浮元素复用这里的值来计算避让距离，避免硬编码偏移导致与 sheet 重叠。
+ */
+object PortalSheetDefaults {
+    /** 收起态（peek）内容高度，不含导航栏 inset */
+    val PeekHeight = 88.dp
+
+    /** 悬浮按钮底边与 sheet 上沿之间保留的间距 */
+    val FabGap = 16.dp
+}
+
+/**
  * Material 3 Expressive Portal Details Bottom Sheet
  * Seamlessly transitions between a collapsed peek bar and a full expanded details sheet.
  * Fully compliant with Material 3 Expressive guidelines, dynamic color, and tonal depth.
@@ -62,7 +74,7 @@ fun PortalDetailsSheet(
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
         val screenHeight = maxHeight
         val navBottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
-        val peekHeight = 88.dp + navBottom
+        val peekHeight = PortalSheetDefaults.PeekHeight + navBottom
         val expandedHeight = (screenHeight * 0.85f).coerceAtLeast(460.dp)
 
         val animatedHeight by animateDpAsState(
@@ -560,86 +572,12 @@ private fun PortalExpandedDetails(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    text = L("portal.mods").uppercase(),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.sp
-                )
+            PortalModsHeader()
 
-                Text(
-                    text = "Tap to inspect",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                    fontSize = 11.sp
-                )
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                val mods = portalStatus.mods ?: listOf(PortalMod(), PortalMod(), PortalMod(), PortalMod())
-                for (i in 0..3) {
-                    val mod = mods.getOrNull(i)
-                    val hasMod = mod != null && !mod.name.isNullOrBlank()
-
-                    Card(
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(68.dp)
-                            .clickable(enabled = hasMod) {
-                                if (hasMod) selectedModForDetail = mod
-                            },
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = if (hasMod) MaterialTheme.colorScheme.surfaceContainerHigh else MaterialTheme.colorScheme.surfaceContainerLow
-                        )
-                    ) {
-                        Box(
-                            modifier = Modifier.fillMaxSize().padding(horizontal = 4.dp, vertical = 6.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            if (hasMod) {
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.Center
-                                ) {
-                                    Text(
-                                        text = mod.name,
-                                        color = mod.rarityColor,
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        textAlign = TextAlign.Center,
-                                        maxLines = 2,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                    if (!mod.rarity.isNullOrBlank()) {
-                                        Text(
-                                            text = mod.rarity,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            fontSize = 9.sp,
-                                            textAlign = TextAlign.Center,
-                                            maxLines = 1
-                                        )
-                                    }
-                                }
-                            } else {
-                                Text(
-                                    text = "Empty",
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f),
-                                    fontSize = 11.sp
-                                )
-                            }
-                        }
-                    }
-                }
-            }
+            PortalModsRow(
+                mods = portalStatus.mods,
+                onModClick = { selectedModForDetail = it }
+            )
         }
 
         // Resonators Section (8 interactive slots - clicking displays deploying agent name)
@@ -813,95 +751,11 @@ private fun PortalExpandedDetails(
         }
     }
 
-    // Interactive Mod Detail Inspection Dialog
+    // Interactive Mod Detail Inspection Dialog（无状态组件，可在 Compose Preview 中单独预览）
     selectedModForDetail?.let { mod ->
-        AlertDialog(
-            onDismissRequest = { selectedModForDetail = null },
-            shape = RoundedCornerShape(28.dp),
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-            icon = {
-                Icon(
-                    imageVector = Icons.Default.Shield,
-                    contentDescription = null,
-                    tint = mod.rarityColor,
-                    modifier = Modifier.size(28.dp)
-                )
-            },
-            title = {
-                Text(
-                    text = mod.name ?: "Mod Detail",
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    if (!mod.rarity.isNullOrBlank()) {
-                        Surface(
-                            color = mod.rarityColor.copy(alpha = 0.2f),
-                            shape = RoundedCornerShape(8.dp)
-                        ) {
-                            Text(
-                                text = mod.rarity,
-                                color = mod.rarityColor,
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
-                            )
-                        }
-                    }
-
-                    // Deployed Agent Row
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Person,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Text(
-                            text = if (!mod.owner.isNullOrBlank()) "Deployed by: ${mod.owner}" else "Deployed by: Unknown Agent",
-                            color = MaterialTheme.colorScheme.onSurface,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-
-                    // Stats if present
-                    val stats = mod.stats
-                    if (stats != null && stats.isNotEmpty()) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(MaterialTheme.colorScheme.surfaceContainer)
-                                .padding(10.dp),
-                            verticalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            stats.forEach { (k, v) ->
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Text(text = k, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
-                                    Text(text = v, color = MaterialTheme.colorScheme.onSurface, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = { selectedModForDetail = null }
-                ) {
-                    Text(text = "Close", color = MaterialTheme.colorScheme.primary)
-                }
-            }
+        PortalModDetailDialog(
+            mod = mod,
+            onDismiss = { selectedModForDetail = null }
         )
     }
 
