@@ -25,6 +25,7 @@ import io.github.movetakeitblue.iitcexpressive.ui.common.AlertDialog
 import io.github.movetakeitblue.iitcexpressive.ui.common.ConfirmDialog
 import io.github.movetakeitblue.iitcexpressive.ui.common.ExpressiveLinearProgressIndicator
 import io.github.movetakeitblue.iitcexpressive.ui.common.LocationShareDialog
+import io.github.movetakeitblue.iitcexpressive.ui.common.PlayerTrailDialog
 import io.github.movetakeitblue.iitcexpressive.ui.debug.DebugConsole
 import io.github.movetakeitblue.iitcexpressive.ui.layers.LayersSheet
 import io.github.movetakeitblue.iitcexpressive.ui.map.NativeMapView
@@ -349,6 +350,16 @@ fun MainScreen(
             is AppDialog.PluginInfo -> {
                 PluginInfoSheet(
                     plugin = dialog.plugin,
+                    onDismiss = { viewModel.setDialog(null) }
+                )
+            }
+            is AppDialog.PlayerTrailInfo -> {
+                PlayerTrailDialog(
+                    trail = dialog.trail,
+                    onPortalClick = { lat, lng ->
+                        viewModel.zoomToLocation(lat, lng, 17.0)
+                        viewModel.setDialog(null)
+                    },
                     onDismiss = { viewModel.setDialog(null) }
                 )
             }

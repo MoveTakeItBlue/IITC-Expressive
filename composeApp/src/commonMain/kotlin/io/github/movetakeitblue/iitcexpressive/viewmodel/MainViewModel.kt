@@ -37,6 +37,7 @@ sealed class AppDialog {
     data class LocationShare(val lat: Double, val lng: Double, val title: String, val isPortal: Boolean, val guid: String?) : AppDialog()
     data class AddPlugin(val initialUrl: String? = null) : AppDialog()
     data class PluginInfo(val plugin: Plugin) : AppDialog()
+    data class PlayerTrailInfo(val trail: PlayerTrail) : AppDialog()
 }
 
 val DEFAULT_HIGHLIGHTERS = listOf(
@@ -416,7 +417,15 @@ class MainViewModel(
                 if (p.lat == 0.0 && p.lng == 0.0) continue
                 val last = points.lastOrNull()
                 if (last == null || last.lat != p.lat || last.lng != p.lng) {
-                    points.add(PlayerActivityPoint(lat = p.lat, lng = p.lng, portalName = p.name, time = m.time))
+                    points.add(
+                        PlayerActivityPoint(
+                            lat = p.lat,
+                            lng = p.lng,
+                            portalName = p.name,
+                            time = m.time,
+                            formattedTime = m.formattedTime
+                        )
+                    )
                 }
             }
             if (points.isNotEmpty()) {

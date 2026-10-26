@@ -8,6 +8,7 @@ object Strings {
 
         "dialog.ok" to "OK",
         "dialog.cancel" to "Cancel",
+        "dialog.close" to "Close",
         "dialog.error.title" to "Error",
 
         "demo.welcome.title" to "Demo mode",
@@ -188,6 +189,19 @@ object Strings {
         "manager.server_not_available" to "Server is not available. Retry after %s seconds",
         "clipboard.copy_failed" to "Failed to copy to clipboard",
 
+        "share.copy" to "Copy",
+        "share.open" to "Open",
+        "share.open_map" to "Open in maps",
+        "player_tracker.dialog_title" to "Agent Activity",
+        "player_tracker.locations_count" to "%s portals",
+        "player_tracker.latest" to "LATEST",
+        "player_tracker.focus" to "Locate",
+        "share.item.prime" to "Ingress Prime",
+        "share.item.prime_desc" to "Scanner game link",
+        "share.item.intel" to "Intel Map",
+        "share.item.intel_desc" to "Intel map link",
+        "share.item.coordinates" to "Coordinates",
+        "share.item.coordinates_desc" to "Maps & navigation",
         "share.title" to "Share location",
         "share.message" to "Choose how to share",
         "share.action.text" to "Share as text",

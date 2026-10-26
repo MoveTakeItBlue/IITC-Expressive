@@ -10,6 +10,10 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import io.github.movetakeitblue.iitcexpressive.model.NativeBaseMap
 import io.github.movetakeitblue.iitcexpressive.model.NativeMapEntities
+import io.github.movetakeitblue.iitcexpressive.model.PlayerActivityPoint
+import io.github.movetakeitblue.iitcexpressive.model.PlayerTrail
+import io.github.movetakeitblue.iitcexpressive.platform.PlatformUtils
+import io.github.movetakeitblue.iitcexpressive.viewmodel.AppDialog
 import io.github.movetakeitblue.iitcexpressive.viewmodel.MainViewModel
 import org.maplibre.android.MapLibre
 import org.maplibre.android.camera.CameraPosition
@@ -382,16 +386,16 @@ actual fun NativeMapView(
         val portalTitlesLayer = SymbolLayer(LAYER_PORTALS_TITLE, SOURCE_PORTALS).apply {
             setProperties(
                 textField(get("title")),
-                textSize(11.5f),
+                textSize(12f),
                 textColor("#ffffff"),
-                textHaloColor("#000000"),
-                textHaloWidth(2f),
-                textHaloBlur(0.5f),
+                textHaloColor("#191a1c"),
+                textHaloWidth(1.2f),
+                textHaloBlur(0.8f),
                 textAnchor(Property.TEXT_ANCHOR_TOP),
                 textOffset(arrayOf(0f, 1.35f)),
                 textAllowOverlap(false),
                 textIgnorePlacement(false),
-                textFont(arrayOf("Noto Sans Regular", "Open Sans Regular", "sans-serif"))
+                textFont(arrayOf("Noto Sans Regular"))
             )
             minZoom = 15.5f
             maxZoom = 22f
@@ -815,13 +819,32 @@ actual fun NativeMapView(
                             screenPoint.y + touchSlop
                         )
 
-                        // 1. Check Agent marker click
-                        val agentFeatures = map.queryRenderedFeatures(touchBox, LAYER_PLAYER_MARKERS)
+                        // 1. Check Agent marker or trail click -> Show Player Activity Timeline Dialog
+                        val agentFeatures = map.queryRenderedFeatures(touchBox, LAYER_PLAYER_MARKERS, LAYER_PLAYER_TRAILS)
                         if (agentFeatures.isNotEmpty()) {
                             val sender = agentFeatures[0].getStringProperty("sender") ?: "Agent"
                             val team = agentFeatures[0].getStringProperty("team") ?: ""
                             val portal = agentFeatures[0].getStringProperty("portal") ?: ""
-                            Toast.makeText(context, "Agent: $sender\nFaction: $team\nNear: $portal", Toast.LENGTH_SHORT).show()
+                            val trail = viewModel.playerTrails.value.find { it.sender == sender }
+                                ?: playerTrails.find { it.sender == sender }
+                                ?: PlayerTrail(
+                                    sender = sender,
+                                    team = team,
+                                    points = listOf(
+                                        PlayerActivityPoint(
+                                            lat = point.latitude,
+                                            lng = point.longitude,
+                                            portalName = portal,
+                                            time = PlatformUtils.currentTimeMillis(),
+                                            formattedTime = ""
+                                        )
+                                    ),
+                                    lastSeenTime = PlatformUtils.currentTimeMillis(),
+                                    latestLat = point.latitude,
+                                    latestLng = point.longitude,
+                                    latestPortalName = portal
+                                )
+                            viewModel.setDialog(AppDialog.PlayerTrailInfo(trail))
                             return@addOnMapClickListener true
                         }
 
