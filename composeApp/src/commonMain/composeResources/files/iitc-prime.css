@@ -20,6 +20,7 @@
   --m3-faction-res: #70D2FF;
   --m3-faction-enl: #66DC96;
   --m3-faction-mac: #FF7164;
+  --m3-faction-none: #C0C7C7;
   --m3-radius-sm: 8px;
   --m3-radius-md: 16px;
   --m3-radius-lg: 24px;
@@ -55,6 +56,9 @@ a:hover, a:focus {
 }
 .mac, .machina, .text-mac {
   color: var(--m3-faction-mac) !important;
+}
+.none, .neutral, .text-neutral, .text-none {
+  color: var(--m3-faction-none) !important;
 }
 
 /* Permanently hide legacy sidebar toggle, sidebar, and chat controls */
@@ -488,4 +492,59 @@ select {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: var(--m3-outline);
+}
+
+/* Portal Names styling: Project typography, transparent background, adaptive colors */
+.portal-name,
+.plugin-portal-names,
+.leaflet-pane .portal-name,
+.leaflet-popup-pane .portal-name {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  font-family: var(--m3-font) !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.2px !important;
+  pointer-events: none !important;
+  color: var(--m3-faction-none) !important;
+  text-shadow: none !important;
+}
+
+.portal-name.res,
+.plugin-portal-names.res,
+.portal-name[data-team="1"],
+.leaflet-pane .portal-name.res {
+  color: #004f7a !important;
+}
+
+.portal-name.enl,
+.plugin-portal-names.enl,
+.portal-name[data-team="2"],
+.leaflet-pane .portal-name.enl {
+  color: #005a2e !important;
+}
+
+.portal-name.mac,
+.plugin-portal-names.mac,
+.portal-name[data-team="3"],
+.leaflet-pane .portal-name.mac {
+  color: #7a1000 !important;
+}
+
+.portal-name.none,
+.portal-name.neutral,
+.plugin-portal-names.none,
+.portal-name[data-team="0"],
+.leaflet-pane .portal-name.none {
+  color: #3c4043 !important;
+}
+
+/* Remove text-shadow on light map */
+body.light-map .portal-name,
+body.light-map .plugin-portal-names,
+body.light-map .leaflet-pane .portal-name,
+body.light-map .leaflet-popup-pane .portal-name {
+  text-shadow: none !important;
 }

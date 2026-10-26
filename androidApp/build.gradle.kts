@@ -54,4 +54,5 @@ dependencies {
     debugImplementation("org.jetbrains.compose.ui:ui-tooling-preview:${libs.versions.compose.multiplatform.get()}")
     debugImplementation("org.jetbrains.compose.ui:ui-tooling:${libs.versions.compose.multiplatform.get()}")
     debugImplementation(libs.serialization.json)
+    "testImplementation"("junit:junit:4.13.2")
 }

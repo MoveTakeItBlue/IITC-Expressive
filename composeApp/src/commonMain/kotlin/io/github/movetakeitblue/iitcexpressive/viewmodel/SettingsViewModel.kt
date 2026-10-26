@@ -29,6 +29,24 @@ class SettingsViewModel(
         mainViewModel.setNativeMapEnabled(enabled)
     }
 
+    val portalNameFontSize: StateFlow<Float> = mainViewModel.portalNameFontSize
+    fun setPortalNameFontSize(size: Float) { mainViewModel.setPortalNameFontSize(size) }
+
+    val agentNameFontSize: StateFlow<Float> = mainViewModel.agentNameFontSize
+    fun setAgentNameFontSize(size: Float) { mainViewModel.setAgentNameFontSize(size) }
+
+    val mapFontFamily: StateFlow<String> = mainViewModel.mapFontFamily
+    fun setMapFontFamily(family: String) { mainViewModel.setMapFontFamily(family) }
+
+    val mapFontBold: StateFlow<Boolean> = mainViewModel.mapFontBold
+    fun setMapFontBold(bold: Boolean) { mainViewModel.setMapFontBold(bold) }
+
+    val mapTextHalo: StateFlow<Boolean> = mainViewModel.mapTextHalo
+    fun setMapTextHalo(enabled: Boolean) { mainViewModel.setMapTextHalo(enabled) }
+
+    val playerIconScale: StateFlow<Float> = mainViewModel.playerIconScale
+    fun setPlayerIconScale(scale: Float) { mainViewModel.setPlayerIconScale(scale) }
+
     val currentChannel: StateFlow<io.github.movetakeitblue.iitcexpressive.model.Channel> = mainViewModel.manager.currentChannel
 
     val enabledPluginsCount: StateFlow<Int> = mainViewModel.manager.plugins

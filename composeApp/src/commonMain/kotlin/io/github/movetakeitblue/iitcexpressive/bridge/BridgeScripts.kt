@@ -467,6 +467,61 @@ input, textarea, select {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--m3-outline);
 }
+
+/* Portal Names styling: Project typography, transparent background, adaptive colors */
+.portal-name,
+.plugin-portal-names,
+.leaflet-pane .portal-name,
+.leaflet-popup-pane .portal-name {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  font-family: var(--m3-font) !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.2px !important;
+  pointer-events: none !important;
+  color: var(--m3-faction-none) !important;
+  text-shadow: none !important;
+}
+
+.portal-name.res,
+.plugin-portal-names.res,
+.portal-name[data-team="1"],
+.leaflet-pane .portal-name.res {
+  color: #004f7a !important;
+}
+
+.portal-name.enl,
+.plugin-portal-names.enl,
+.portal-name[data-team="2"],
+.leaflet-pane .portal-name.enl {
+  color: #005a2e !important;
+}
+
+.portal-name.mac,
+.plugin-portal-names.mac,
+.portal-name[data-team="3"],
+.leaflet-pane .portal-name.mac {
+  color: #7a1000 !important;
+}
+
+.portal-name.none,
+.portal-name.neutral,
+.plugin-portal-names.none,
+.portal-name[data-team="0"],
+.leaflet-pane .portal-name.none {
+  color: #3c4043 !important;
+}
+
+/* Remove text-shadow on light map */
+body.light-map .portal-name,
+body.light-map .plugin-portal-names,
+body.light-map .leaflet-pane .portal-name,
+body.light-map .leaflet-popup-pane .portal-name {
+  text-shadow: none !important;
+}
 """
 
     fun buildBridgeScript(): String {
@@ -726,11 +781,11 @@ input, textarea, select {
                 }
                 window.__portalHookInstalled = true;
 
-                // Configure Orange Unclaimed / Neutral color and enlarged portal markers on Leaflet
+                // Configure Gray Unclaimed / Neutral color and enlarged portal markers on Leaflet
                 try {
                     if (window.COLORS) {
-                        window.COLORS[0] = '#ff7a00';
-                        if (window.TEAM_NONE !== undefined) window.COLORS[window.TEAM_NONE] = '#ff7a00';
+                        window.COLORS[0] = '#c0c7c7';
+                        if (window.TEAM_NONE !== undefined) window.COLORS[window.TEAM_NONE] = '#c0c7c7';
                     }
                     if (window.portalMarkerScale && !window.__origPortalMarkerScale) {
                         window.__origPortalMarkerScale = window.portalMarkerScale;
@@ -1077,6 +1132,41 @@ input, textarea, select {
                 if (window.portals && Object.keys(window.portals).length > 0) {
                     scheduleEntitySync();
                 }
+
+                // Track basemap theme changes to adapt portal names and UI
+                function syncBaseMapTheme() {
+                    try {
+                        var isDark = true;
+                        var baseName = '';
+                        if (window.map && typeof window.map.eachLayer === 'function') {
+                            window.map.eachLayer(function(l) {
+                                if (l && l._url && !(l.options && l.options.overlay)) {
+                                    baseName = (l.options && (l.options.attribution || l.options.name || l._url) || '').toLowerCase();
+                                }
+                            });
+                        }
+                        var currentBase = ((typeof localStorage !== 'undefined' && localStorage['iitc-base-map']) || '').toLowerCase();
+                        var combined = baseName + ' ' + currentBase;
+                        if (combined.indexOf('light') !== -1 || combined.indexOf('osm') !== -1 || combined.indexOf('street') !== -1 || combined.indexOf('toner-lite') !== -1 || combined.indexOf('watercolor') !== -1) {
+                            isDark = false;
+                        }
+                        document.body.classList.toggle('dark-map', isDark);
+                        document.body.classList.toggle('light-map', !isDark);
+                        if (window.android && window.android.setMapDarkMode) {
+                            window.android.setMapDarkMode(isDark);
+                        }
+                    } catch(e) {}
+                }
+                if (window.map && typeof window.map.on === 'function') {
+                    window.map.on('baselayerchange', syncBaseMapTheme);
+                }
+                window.addHook('iitcLoaded', function() {
+                    if (window.map && typeof window.map.on === 'function') {
+                        window.map.on('baselayerchange', syncBaseMapTheme);
+                    }
+                    syncBaseMapTheme();
+                });
+                syncBaseMapTheme();
             }
             setupPortalHook();
 

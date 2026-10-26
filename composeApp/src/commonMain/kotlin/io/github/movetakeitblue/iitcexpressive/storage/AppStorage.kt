@@ -65,6 +65,14 @@ class AppStorage(val settings: Settings = Settings()) {
         settings.putBoolean(key, value)
     }
 
+    fun getFloat(key: String, defaultValue: Float = 0f): Float {
+        return settings.getFloat(key, defaultValue)
+    }
+
+    fun setFloat(key: String, value: Float) {
+        settings.putFloat(key, value)
+    }
+
     fun getLong(key: String, defaultValue: Long = 0L): Long {
         return settings.getLong(key, defaultValue)
     }

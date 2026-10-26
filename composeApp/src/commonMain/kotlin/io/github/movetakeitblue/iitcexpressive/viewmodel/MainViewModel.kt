@@ -118,6 +118,55 @@ class MainViewModel(
         storage.setBoolean("native_map_enabled", enabled)
     }
 
+    // Map Typography states (configurable in Settings)
+    private val _portalNameFontSize = MutableStateFlow(storage.getFloat("map_portal_font_size", 12f))
+    val portalNameFontSize: StateFlow<Float> = _portalNameFontSize.asStateFlow()
+
+    fun setPortalNameFontSize(size: Float) {
+        _portalNameFontSize.value = size
+        storage.setFloat("map_portal_font_size", size)
+    }
+
+    private val _agentNameFontSize = MutableStateFlow(storage.getFloat("map_agent_font_size", 11f))
+    val agentNameFontSize: StateFlow<Float> = _agentNameFontSize.asStateFlow()
+
+    fun setAgentNameFontSize(size: Float) {
+        _agentNameFontSize.value = size
+        storage.setFloat("map_agent_font_size", size)
+    }
+
+    private val _mapFontFamily = MutableStateFlow(storage.getString("map_font_family", "sans-serif"))
+    val mapFontFamily: StateFlow<String> = _mapFontFamily.asStateFlow()
+
+    fun setMapFontFamily(family: String) {
+        _mapFontFamily.value = family
+        storage.setString("map_font_family", family)
+    }
+
+    private val _mapFontBold = MutableStateFlow(storage.getBoolean("map_font_bold", false))
+    val mapFontBold: StateFlow<Boolean> = _mapFontBold.asStateFlow()
+
+    fun setMapFontBold(bold: Boolean) {
+        _mapFontBold.value = bold
+        storage.setBoolean("map_font_bold", bold)
+    }
+
+    private val _mapTextHalo = MutableStateFlow(storage.getBoolean("map_text_halo", false))
+    val mapTextHalo: StateFlow<Boolean> = _mapTextHalo.asStateFlow()
+
+    fun setMapTextHalo(enabled: Boolean) {
+        _mapTextHalo.value = enabled
+        storage.setBoolean("map_text_halo", enabled)
+    }
+
+    private val _playerIconScale = MutableStateFlow(storage.getFloat("map_player_icon_scale", 1.5f))
+    val playerIconScale: StateFlow<Float> = _playerIconScale.asStateFlow()
+
+    fun setPlayerIconScale(scale: Float) {
+        _playerIconScale.value = scale
+        storage.setFloat("map_player_icon_scale", scale)
+    }
+
     private val _nativeMapEntities = MutableStateFlow(NativeMapEntities())
     val nativeMapEntities: StateFlow<NativeMapEntities> = _nativeMapEntities.asStateFlow()
 
@@ -402,9 +451,9 @@ class MainViewModel(
     }
 
     private fun updatePlayerTrails(messagesMap: Map<String, List<ChatMessage>>) {
-        val threeHoursAgo = PlatformUtils.currentTimeMillis() - (3 * 3600 * 1000)
+        val timeWindow = PlatformUtils.currentTimeMillis() - (24 * 3600 * 1000L)
         val allMsgs = messagesMap.values.flatten()
-            .filter { it.portal != null && it.sender.isNotBlank() && it.time >= threeHoursAgo }
+            .filter { it.portal != null && it.sender.isNotBlank() && it.time >= timeWindow }
 
         val grouped = allMsgs.groupBy { it.sender }
         val trails = mutableListOf<PlayerTrail>()
@@ -806,11 +855,14 @@ class MainViewModel(
             }
             "setPortalStatus" -> {
                 try {
-                    val obj = data.jsonObject
-                    val guid = obj["guid"]?.jsonPrimitive?.contentOrNull
-                    if (guid.isNullOrBlank()) {
+                    val obj = data as? JsonObject
+                    if (obj == null) {
                         _portalStatus.value = PortalStatus()
                     } else {
+                        val guid = obj["guid"]?.jsonPrimitive?.contentOrNull
+                        if (guid.isNullOrBlank()) {
+                            _portalStatus.value = PortalStatus()
+                        } else {
                         val team = obj["team"]?.jsonPrimitive?.contentOrNull ?: "N"
                         val level = obj["level"]?.jsonPrimitive?.intOrNull ?: 0
                         val title = obj["title"]?.jsonPrimitive?.contentOrNull ?: "No portal selected"
@@ -852,6 +904,7 @@ class MainViewModel(
                             address = if (isSamePortal) prev.address else null,
                             mods = if (isSamePortal) prev.mods else null
                         )
+                        }
                     }
                 } catch (e: Exception) {
                     println("setPortalStatus error: ${e.message}")

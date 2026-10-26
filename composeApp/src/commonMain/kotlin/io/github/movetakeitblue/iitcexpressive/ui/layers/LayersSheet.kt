@@ -71,7 +71,7 @@ fun LayersSheet(
         val baseMapOptions = NativeBaseMap.entries
         val selectedIdx = baseMapOptions.indexOf(nativeBaseMap).coerceAtLeast(0)
         SelectFieldDialog(
-            title = "Select MapLibre Base Map",
+            title = L("layers.select_base_layer"),
             items = baseMapOptions.map { "${it.title} (${it.subtitle})" },
             selectedIndex = selectedIdx,
             onSelect = { idx ->
@@ -154,7 +154,7 @@ fun LayersSheet(
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         LayersDropdownCard(
-                            title = "Base Map",
+                            title = L("layers.base_layer"),
                             value = nativeBaseMap.title,
                             icon = Icons.Default.Map,
                             onClick = { showBaseLayerDialog = true },

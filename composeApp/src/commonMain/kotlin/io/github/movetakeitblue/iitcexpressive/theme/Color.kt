@@ -63,10 +63,10 @@ val TeamMachina = Color(0xFFFF7171)
 val TeamMachinaContainer = Color(0xFF680009)
 val OnTeamMachinaContainer = Color(0xFFFFDAD6)
 
-// Neutral / Unclaimed (Ingress Warm Vivid Orange)
-val TeamNeutral = Color(0xFFFF9E40)
-val TeamNeutralContainer = Color(0xFF4E2600)
-val OnTeamNeutralContainer = Color(0xFFFFDCBE)
+// Neutral / Unclaimed (Modern M3 Grey)
+val TeamNeutral = Color(0xFFC0C7C7)
+val TeamNeutralContainer = Color(0xFF282B2D)
+val OnTeamNeutralContainer = Color(0xFFE0E3E3)
 
 // ==============================================================
 // Modern M3 Resonator Level Colors (L0 - L8)
