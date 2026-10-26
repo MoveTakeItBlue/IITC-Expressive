@@ -13,6 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Highlight
 import androidx.compose.material.icons.filled.Map
+import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -24,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.movetakeitblue.iitcexpressive.i18n.L
 import io.github.movetakeitblue.iitcexpressive.model.MapLayer
+import io.github.movetakeitblue.iitcexpressive.model.NativeBaseMap
 import io.github.movetakeitblue.iitcexpressive.theme.*
 import io.github.movetakeitblue.iitcexpressive.ui.common.SelectFieldDialog
 import io.github.movetakeitblue.iitcexpressive.viewmodel.MainViewModel
@@ -31,8 +33,8 @@ import io.github.movetakeitblue.iitcexpressive.viewmodel.MainViewModel
 /**
  * Material 3 Expressive Layers Bottom Sheet
  * Opened from the FAB menu.
- * Contains Base Map selection, Highlighters, Level filter, and Overlay switches.
- * Adheres strictly to M3E tonal containers without harsh glowing borders.
+ * Contains MapLibre Native Base Map selection (4 keyless styles: Dark, Light, Satellite, Color),
+ * M3E dynamic Highlighters, Portal level filter, Player Activity Tracker, and Overlay switches.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -40,11 +42,12 @@ fun LayersSheet(
     viewModel: MainViewModel,
     onDismiss: () -> Unit
 ) {
-    val baseLayers by viewModel.baseLayers.collectAsState()
-    val selectedBaseLayer by viewModel.selectedBaseLayer.collectAsState()
+    val nativeBaseMap by viewModel.nativeBaseMap.collectAsState()
     val overlayLayers by viewModel.overlayLayers.collectAsState()
     val highlighters by viewModel.highlighters.collectAsState()
     val selectedHighlighter by viewModel.selectedHighlighter.collectAsState()
+    val isPlayerTrackerEnabled by viewModel.isPlayerTrackerEnabled.collectAsState()
+    val playerTrails by viewModel.playerTrails.collectAsState()
 
     var showHighlighterDialog by remember { mutableStateOf(false) }
     var showBaseLayerDialog by remember { mutableStateOf(false) }
@@ -65,14 +68,15 @@ fun LayersSheet(
     }
 
     if (showBaseLayerDialog) {
-        val selectedIdx = baseLayers.indexOfFirst { it.layerId == selectedBaseLayer }.coerceAtLeast(0)
+        val baseMapOptions = NativeBaseMap.entries
+        val selectedIdx = baseMapOptions.indexOf(nativeBaseMap).coerceAtLeast(0)
         SelectFieldDialog(
-            title = L("layers.select_base_layer"),
-            items = baseLayers.map { it.name },
+            title = "Select MapLibre Base Map",
+            items = baseMapOptions.map { "${it.title} (${it.subtitle})" },
             selectedIndex = selectedIdx,
             onSelect = { idx ->
-                if (idx in baseLayers.indices) {
-                    viewModel.selectBaseLayer(baseLayers[idx])
+                if (idx in baseMapOptions.indices) {
+                    viewModel.selectNativeBaseMap(baseMapOptions[idx])
                 }
             },
             onDismiss = { showBaseLayerDialog = false }
@@ -149,10 +153,9 @@ fun LayersSheet(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        val activeBaseName = baseLayers.find { it.layerId == selectedBaseLayer }?.name ?: "Default Base"
                         LayersDropdownCard(
                             title = "Base Map",
-                            value = activeBaseName,
+                            value = nativeBaseMap.title,
                             icon = Icons.Default.Map,
                             onClick = { showBaseLayerDialog = true },
                             modifier = Modifier.weight(1f)
@@ -206,7 +209,7 @@ fun LayersSheet(
                                         .clip(CircleShape)
                                         .background(
                                             if (isLayerActive) lvlCol.copy(alpha = 0.25f)
-                                            else MaterialTheme.colorScheme.surfaceContainerHigh
+                                             else MaterialTheme.colorScheme.surfaceContainerHigh
                                         )
                                         .clickable {
                                             viewModel.togglePortalLevelOverlay(lvl)
@@ -225,16 +228,78 @@ fun LayersSheet(
                     }
                 }
 
-                // Section Title: Overlay Layers
+                // Section Title: Tactical Extensions & Overlays
                 item {
                     Text(
-                        text = "MAP OVERLAYS",
+                        text = "TACTICAL OVERLAYS",
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 1.sp,
                         modifier = Modifier.padding(top = 4.dp, start = 4.dp)
                     )
+                }
+
+                // Player Activity Tracker Overlay Card
+                item {
+                    Card(
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Navigation,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Text(
+                                        text = "Player Activity Tracker",
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                    if (isPlayerTrackerEnabled && playerTrails.isNotEmpty()) {
+                                        Surface(
+                                            color = MaterialTheme.colorScheme.primaryContainer,
+                                            shape = CircleShape
+                                        ) {
+                                            Text(
+                                                text = "${playerTrails.size} active",
+                                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                                fontSize = 10.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                                Text(
+                                    text = "Native GPU tactical trails & agent positions from COMM",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    fontSize = 12.sp,
+                                    modifier = Modifier.padding(top = 2.dp)
+                                )
+                            }
+
+                            Switch(
+                                checked = isPlayerTrackerEnabled,
+                                onCheckedChange = { viewModel.setPlayerTrackerEnabled(it) }
+                            )
+                        }
+                    }
                 }
 
                 // Overlay layers list

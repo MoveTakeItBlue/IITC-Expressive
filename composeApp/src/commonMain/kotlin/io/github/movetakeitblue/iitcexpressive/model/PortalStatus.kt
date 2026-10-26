@@ -3,6 +3,7 @@ package io.github.movetakeitblue.iitcexpressive.model
 import kotlinx.serialization.Serializable
 import androidx.compose.ui.graphics.Color
 import io.github.movetakeitblue.iitcexpressive.theme.*
+import kotlin.math.roundToInt
 
 @Serializable
 data class Resonator(
@@ -60,6 +61,59 @@ data class PortalDetailResonator(
 )
 
 @Serializable
+data class LinkedPortal(
+    val guid: String,
+    val title: String,
+    val lat: Double,
+    val lng: Double,
+    val isOutgoing: Boolean,
+    val team: String = "N",
+    val level: Int = 0,
+    val health: Int = 100,
+    val distance: Long = 0L,
+    val image: String? = null
+) {
+    val teamType: PortalTeam
+        get() = when (team.uppercase()) {
+            "E", "ENLIGHTENED", "2" -> PortalTeam.ENLIGHTENED
+            "R", "RESISTANCE", "1" -> PortalTeam.RESISTANCE
+            "M", "MACHINA", "3" -> PortalTeam.MACHINA
+            else -> PortalTeam.NEUTRAL
+        }
+
+    val teamColor: Color
+        get() = when (teamType) {
+            PortalTeam.ENLIGHTENED -> TeamEnlightened
+            PortalTeam.RESISTANCE -> TeamResistance
+            PortalTeam.MACHINA -> TeamMachina
+            PortalTeam.NEUTRAL -> TeamNeutral
+        }
+
+    val teamContainerColor: Color
+        get() = when (teamType) {
+            PortalTeam.ENLIGHTENED -> TeamEnlightenedContainer
+            PortalTeam.RESISTANCE -> TeamResistanceContainer
+            PortalTeam.MACHINA -> TeamMachinaContainer
+            PortalTeam.NEUTRAL -> TeamNeutralContainer
+        }
+
+    val onTeamContainerColor: Color
+        get() = when (teamType) {
+            PortalTeam.ENLIGHTENED -> OnTeamEnlightenedContainer
+            PortalTeam.RESISTANCE -> OnTeamResistanceContainer
+            PortalTeam.MACHINA -> OnTeamMachinaContainer
+            PortalTeam.NEUTRAL -> OnTeamNeutralContainer
+        }
+
+    val formattedDistance: String
+        get() = when {
+            distance <= 0 -> "--"
+            distance >= 1000 -> "${(distance / 100.0).roundToInt() / 10.0} km"
+            else -> "$distance m"
+        }
+}
+
+@Serializable
 data class PortalStatus(
     val guid: String? = null,
     val team: String = "N",
@@ -86,7 +140,8 @@ data class PortalStatus(
     val apGain: Long = 0,
     val historyVisited: Boolean = false,
     val historyCaptured: Boolean = false,
-    val historyScoutControlled: Boolean = false
+    val historyScoutControlled: Boolean = false,
+    val linkedPortals: List<LinkedPortal> = emptyList()
 ) {
     val teamType: PortalTeam
         get() = when (team.uppercase()) {

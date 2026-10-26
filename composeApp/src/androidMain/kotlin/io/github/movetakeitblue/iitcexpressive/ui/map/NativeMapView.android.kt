@@ -1,5 +1,6 @@
 package io.github.movetakeitblue.iitcexpressive.ui.map
 
+import android.widget.Toast
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -7,9 +8,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import io.github.movetakeitblue.iitcexpressive.model.NativeBaseMap
 import io.github.movetakeitblue.iitcexpressive.model.NativeMapEntities
 import io.github.movetakeitblue.iitcexpressive.viewmodel.MainViewModel
 import org.maplibre.android.MapLibre
+import org.maplibre.android.camera.CameraUpdateFactory
 import org.maplibre.android.geometry.LatLng
 import org.maplibre.android.maps.MapLibreMap
 import org.maplibre.android.maps.MapView
@@ -29,55 +32,158 @@ import org.maplibre.geojson.Polygon
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-private const val SOURCE_PORTALS = "iitc-portals-source"
-private const val SOURCE_LINKS = "iitc-links-source"
 private const val SOURCE_FIELDS = "iitc-fields-source"
+private const val SOURCE_LINKS = "iitc-links-source"
+private const val SOURCE_PORTALS = "iitc-portals-source"
+private const val SOURCE_PLAYER_TRAILS = "iitc-player-trails-source"
+private const val SOURCE_PLAYER_MARKERS = "iitc-player-markers-source"
 
 private const val LAYER_FIELDS_FILL = "iitc-fields-fill"
 private const val LAYER_FIELDS_STROKE = "iitc-fields-stroke"
 private const val LAYER_LINKS = "iitc-links-layer"
+private const val LAYER_PORTALS_HALO = "iitc-portals-halo"
 private const val LAYER_PORTALS = "iitc-portals-layer"
+private const val LAYER_PLAYER_TRAILS_CASING = "iitc-player-trails-casing"
+private const val LAYER_PLAYER_TRAILS = "iitc-player-trails"
+private const val LAYER_PLAYER_MARKERS_HALO = "iitc-player-markers-halo"
+private const val LAYER_PLAYER_MARKERS = "iitc-player-markers"
 
-// Completely free, public dark base map without requiring any API key or watermarks (Esri World Dark Gray Canvas + Reference)
-private const val NO_KEY_DARK_STYLE_JSON = """
-{
-  "version": 8,
-  "name": "DarkGrayCanvas",
-  "sources": {
-    "esri-dark-base": {
-      "type": "raster",
-      "tiles": [
-        "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}"
-      ],
-      "tileSize": 256,
-      "attribution": "&copy; Esri, HERE, Garmin, &copy; OpenStreetMap contributors"
-    },
-    "esri-dark-ref": {
-      "type": "raster",
-      "tiles": [
-        "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}"
-      ],
-      "tileSize": 256
-    }
-  },
-  "layers": [
+/**
+ * Generates MapLibre raster base map style JSON without requiring any API keys.
+ */
+private fun getBaseMapStyleJson(baseMap: NativeBaseMap): String = when (baseMap) {
+    NativeBaseMap.DARK -> """
     {
-      "id": "esri-dark-base-layer",
-      "type": "raster",
-      "source": "esri-dark-base",
-      "minzoom": 0,
-      "maxzoom": 19
-    },
-    {
-      "id": "esri-dark-ref-layer",
-      "type": "raster",
-      "source": "esri-dark-ref",
-      "minzoom": 0,
-      "maxzoom": 19
+      "version": 8,
+      "name": "DarkGrayCanvas",
+      "sources": {
+        "esri-dark-base": {
+          "type": "raster",
+          "tiles": [
+            "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}"
+          ],
+          "tileSize": 256,
+          "attribution": "&copy; Esri, HERE, Garmin, &copy; OpenStreetMap contributors"
+        },
+        "esri-dark-ref": {
+          "type": "raster",
+          "tiles": [
+            "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}"
+          ],
+          "tileSize": 256
+        }
+      },
+      "layers": [
+        {
+          "id": "esri-dark-base-layer",
+          "type": "raster",
+          "source": "esri-dark-base",
+          "minzoom": 0,
+          "maxzoom": 19
+        },
+        {
+          "id": "esri-dark-ref-layer",
+          "type": "raster",
+          "source": "esri-dark-ref",
+          "minzoom": 0,
+          "maxzoom": 19
+        }
+      ]
     }
-  ]
+    """.trimIndent()
+
+    NativeBaseMap.LIGHT -> """
+    {
+      "version": 8,
+      "name": "LightGrayCanvas",
+      "sources": {
+        "esri-light-base": {
+          "type": "raster",
+          "tiles": [
+            "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}"
+          ],
+          "tileSize": 256,
+          "attribution": "&copy; Esri, HERE, Garmin, &copy; OpenStreetMap contributors"
+        },
+        "esri-light-ref": {
+          "type": "raster",
+          "tiles": [
+            "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}"
+          ],
+          "tileSize": 256
+        }
+      },
+      "layers": [
+        {
+          "id": "esri-light-base-layer",
+          "type": "raster",
+          "source": "esri-light-base",
+          "minzoom": 0,
+          "maxzoom": 19
+        },
+        {
+          "id": "esri-light-ref-layer",
+          "type": "raster",
+          "source": "esri-light-ref",
+          "minzoom": 0,
+          "maxzoom": 19
+        }
+      ]
+    }
+    """.trimIndent()
+
+    NativeBaseMap.SATELLITE -> """
+    {
+      "version": 8,
+      "name": "WorldImagery",
+      "sources": {
+        "esri-satellite": {
+          "type": "raster",
+          "tiles": [
+            "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+          ],
+          "tileSize": 256,
+          "attribution": "&copy; Esri, Maxar, Earthstar Geographics"
+        }
+      },
+      "layers": [
+        {
+          "id": "esri-satellite-layer",
+          "type": "raster",
+          "source": "esri-satellite",
+          "minzoom": 0,
+          "maxzoom": 19
+        }
+      ]
+    }
+    """.trimIndent()
+
+    NativeBaseMap.COLOR -> """
+    {
+      "version": 8,
+      "name": "OpenStreetMap",
+      "sources": {
+        "osm-color": {
+          "type": "raster",
+          "tiles": [
+            "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+          ],
+          "tileSize": 256,
+          "attribution": "&copy; OpenStreetMap contributors"
+        }
+      },
+      "layers": [
+        {
+          "id": "osm-color-layer",
+          "type": "raster",
+          "source": "osm-color",
+          "minzoom": 0,
+          "maxzoom": 19
+        }
+      ]
+    }
+    """.trimIndent()
 }
-"""
 
 @Composable
 actual fun NativeMapView(
@@ -97,16 +203,166 @@ actual fun NativeMapView(
 
     val entities by viewModel.nativeMapEntities.collectAsState()
     val isNativeMapEnabled by viewModel.isNativeMapEnabled.collectAsState()
+    val nativeBaseMap by viewModel.nativeBaseMap.collectAsState()
+    val selectedHighlighter by viewModel.selectedHighlighter.collectAsState()
+    val isPlayerTrackerEnabled by viewModel.isPlayerTrackerEnabled.collectAsState()
+    val playerTrails by viewModel.playerTrails.collectAsState()
 
     if (!isNativeMapEnabled) {
         return
     }
 
-    // Update GeoJSON layers when entities change
-    LaunchedEffect(entities, mapStyle) {
+    // Helper to configure MapLibre style with Ingress & tactical layers
+    fun loadMapStyle(map: MapLibreMap, baseMap: NativeBaseMap) {
+        val styleJson = getBaseMapStyleJson(baseMap)
+        val styleBuilder = Style.Builder().fromJson(styleJson)
+
+        // GeoJSON Sources
+        styleBuilder.withSource(GeoJsonSource(SOURCE_FIELDS))
+        styleBuilder.withSource(GeoJsonSource(SOURCE_LINKS))
+        styleBuilder.withSource(GeoJsonSource(SOURCE_PORTALS))
+        styleBuilder.withSource(GeoJsonSource(SOURCE_PLAYER_TRAILS))
+        styleBuilder.withSource(GeoJsonSource(SOURCE_PLAYER_MARKERS))
+
+        // 1. Fields fill layer
+        val fieldsFillLayer = FillLayer(LAYER_FIELDS_FILL, SOURCE_FIELDS).apply {
+            setProperties(
+                fillColor(get("color")),
+                fillOpacity(0.22f),
+                fillAntialias(true)
+            )
+        }
+        styleBuilder.withLayer(fieldsFillLayer)
+
+        // 2. Fields stroke layer
+        val fieldsStrokeLayer = LineLayer(LAYER_FIELDS_STROKE, SOURCE_FIELDS).apply {
+            setProperties(
+                lineColor(get("color")),
+                lineWidth(1.2f),
+                lineOpacity(0.6f)
+            )
+        }
+        styleBuilder.withLayer(fieldsStrokeLayer)
+
+        // 3. Links layer
+        val linksLayer = LineLayer(LAYER_LINKS, SOURCE_LINKS).apply {
+            setProperties(
+                lineColor(get("color")),
+                lineWidth(2.2f),
+                lineOpacity(0.85f),
+                lineCap(Property.LINE_CAP_ROUND),
+                lineJoin(Property.LINE_JOIN_ROUND)
+            )
+        }
+        styleBuilder.withLayer(linksLayer)
+
+        // 4. Player Activity Tracker - Trails casing (dark outline for readability on all base maps)
+        val playerTrailsCasing = LineLayer(LAYER_PLAYER_TRAILS_CASING, SOURCE_PLAYER_TRAILS).apply {
+            setProperties(
+                lineColor("#000000"),
+                lineWidth(4.5f),
+                lineOpacity(0.55f),
+                lineCap(Property.LINE_CAP_ROUND),
+                lineJoin(Property.LINE_JOIN_ROUND)
+            )
+        }
+        styleBuilder.withLayer(playerTrailsCasing)
+
+        // 5. Player Activity Tracker - Trails dashed line
+        val playerTrailsLayer = LineLayer(LAYER_PLAYER_TRAILS, SOURCE_PLAYER_TRAILS).apply {
+            setProperties(
+                lineColor(get("color")),
+                lineWidth(2.6f),
+                lineOpacity(0.9f),
+                lineCap(Property.LINE_CAP_ROUND),
+                lineJoin(Property.LINE_JOIN_ROUND),
+                lineDasharray(arrayOf(2f, 2f))
+            )
+        }
+        styleBuilder.withLayer(playerTrailsLayer)
+
+        // 6. Portals glowing halo layer (M3E dynamic light bloom)
+        val portalsHaloLayer = CircleLayer(LAYER_PORTALS_HALO, SOURCE_PORTALS).apply {
+            setProperties(
+                circleRadius(get("haloRadius")),
+                circleColor(get("haloColor")),
+                circleOpacity(get("haloOpacity")),
+                circleBlur(0.6f)
+            )
+        }
+        styleBuilder.withLayer(portalsHaloLayer)
+
+        // 7. Portals core circle layer
+        val portalsLayer = CircleLayer(LAYER_PORTALS, SOURCE_PORTALS).apply {
+            setProperties(
+                circleRadius(get("radius")),
+                circleColor(get("fillColor")),
+                circleStrokeColor(get("strokeColor")),
+                circleStrokeWidth(get("strokeWidth")),
+                circleOpacity(get("opacity")),
+                circleStrokeOpacity(get("strokeOpacity"))
+            )
+        }
+        styleBuilder.withLayer(portalsLayer)
+
+        // 8. Player Activity Tracker - Agent position radiant glow
+        val playerMarkersHaloLayer = CircleLayer(LAYER_PLAYER_MARKERS_HALO, SOURCE_PLAYER_MARKERS).apply {
+            setProperties(
+                circleRadius(16f),
+                circleColor(get("color")),
+                circleOpacity(0.45f),
+                circleBlur(0.7f)
+            )
+        }
+        styleBuilder.withLayer(playerMarkersHaloLayer)
+
+        // 9. Player Activity Tracker - Agent position marker
+        val playerMarkersLayer = CircleLayer(LAYER_PLAYER_MARKERS, SOURCE_PLAYER_MARKERS).apply {
+            setProperties(
+                circleRadius(7f),
+                circleColor(get("color")),
+                circleStrokeColor("#ffffff"),
+                circleStrokeWidth(2f),
+                circleOpacity(1f)
+            )
+        }
+        styleBuilder.withLayer(playerMarkersLayer)
+
+        map.setStyle(styleBuilder) { loadedStyle ->
+            mapStyle = loadedStyle
+        }
+    }
+
+    // Switch BaseMap when nativeBaseMap changes
+    LaunchedEffect(nativeBaseMap, mapLibreMap) {
+        val map = mapLibreMap ?: return@LaunchedEffect
+        loadMapStyle(map, nativeBaseMap)
+    }
+
+    // Listen for smooth Camera Move events (e.g. from Linked Portals jump)
+    LaunchedEffect(mapLibreMap) {
+        val map = mapLibreMap ?: return@LaunchedEffect
+        viewModel.cameraMoveEvent.collect { (lat, lng, zoom) ->
+            map.animateCamera(
+                CameraUpdateFactory.newLatLngZoom(
+                    LatLng(lat, lng),
+                    zoom
+                ),
+                800
+            )
+        }
+    }
+
+    // Update GeoJSON layers when entities, highlighters, or player activity changes
+    LaunchedEffect(entities, selectedHighlighter, isPlayerTrackerEnabled, playerTrails, mapStyle) {
         val style = mapStyle ?: return@LaunchedEffect
         withContext(Dispatchers.Default) {
-            // Build FeatureCollections off the main thread
+            val levelColors = listOf(
+                "#c0c7c7", "#fece5a", "#ffa630", "#ff7315", "#e40000",
+                "#fd2992", "#eb26cd", "#c124e0", "#9627f4"
+            )
+
+            // Build Portal features with dynamic M3E Highlighter styles
             val portalFeatures = ArrayList<Feature>(entities.portals.size)
             for (p in entities.portals) {
                 val point = Point.fromLngLat(p.lng, p.lat)
@@ -116,16 +372,17 @@ actual fun NativeMapView(
                 feat.addNumberProperty("level", p.level)
                 feat.addNumberProperty("health", p.health)
 
-                val (strokeColor, fillColor) = when (p.team) {
+                val (baseStroke, baseFill) = when (p.team) {
                     1 -> Pair("#70d2ff", "#004f7a") // RES
                     2 -> Pair("#66dc96", "#005a2e") // ENL
                     3 -> Pair("#ff7164", "#7a1000") // MACHINA
                     else -> Pair("#c0c7c7", "#3c4043") // Neutral
                 }
-                feat.addStringProperty("strokeColor", strokeColor)
-                feat.addStringProperty("fillColor", fillColor)
 
-                val radius = when (p.level) {
+                var strokeColor = baseStroke
+                var fillColor = baseFill
+                var strokeWidth = 1.8f
+                var radius = when (p.level) {
                     0 -> 4f
                     1, 2 -> 5f
                     3, 4 -> 6f
@@ -133,10 +390,171 @@ actual fun NativeMapView(
                     7, 8 -> 8.5f
                     else -> 5f
                 }
+                var opacity = 0.95f
+                var strokeOpacity = 1f
+                var haloColor = "#000000"
+                var haloRadius = 0f
+                var haloOpacity = 0f
+
+                when (selectedHighlighter) {
+                    "Portal Level Color" -> {
+                        val lvlCol = levelColors.getOrElse(p.level) { "#fece5a" }
+                        fillColor = lvlCol
+                        strokeColor = "#ffffff"
+                        strokeWidth = 1.5f
+                        haloColor = lvlCol
+                        haloRadius = radius + 5f
+                        haloOpacity = 0.65f
+                    }
+                    "High Level Portals" -> {
+                        when {
+                            p.level >= 8 -> {
+                                fillColor = "#9627f4"
+                                strokeColor = "#ffffff"
+                                strokeWidth = 2.2f
+                                radius = 9.5f
+                                haloColor = "#9627f4"
+                                haloRadius = 18f
+                                haloOpacity = 0.9f
+                            }
+                            p.level == 7 -> {
+                                fillColor = "#c124e0"
+                                strokeColor = "#ffffff"
+                                strokeWidth = 2.0f
+                                radius = 8f
+                                haloColor = "#c124e0"
+                                haloRadius = 14f
+                                haloOpacity = 0.75f
+                            }
+                            p.level == 6 -> {
+                                fillColor = "#eb26cd"
+                                radius = 6.5f
+                                haloColor = "#eb26cd"
+                                haloRadius = 10f
+                                haloOpacity = 0.45f
+                            }
+                            else -> {
+                                opacity = 0.25f
+                                strokeOpacity = 0.25f
+                                haloOpacity = 0f
+                            }
+                        }
+                    }
+                    "Needs Recharge" -> {
+                        if (p.health < 100) {
+                            when {
+                                p.health < 25 -> {
+                                    fillColor = "#d32f2f"
+                                    strokeColor = "#ffffff"
+                                    radius = 8.5f
+                                    haloColor = "#ff1744"
+                                    haloRadius = 16f
+                                    haloOpacity = 0.95f
+                                }
+                                p.health < 50 -> {
+                                    fillColor = "#f57c00"
+                                    strokeColor = "#ffffff"
+                                    radius = 7.5f
+                                    haloColor = "#ff9100"
+                                    haloRadius = 13f
+                                    haloOpacity = 0.8f
+                                }
+                                p.health < 80 -> {
+                                    fillColor = "#fbc02d"
+                                    strokeColor = "#ffffff"
+                                    radius = 6.5f
+                                    haloColor = "#ffd600"
+                                    haloRadius = 10f
+                                    haloOpacity = 0.65f
+                                }
+                                else -> {
+                                    fillColor = "#689f38"
+                                    radius = 6f
+                                    haloColor = "#aeea00"
+                                    haloRadius = 8f
+                                    haloOpacity = 0.5f
+                                }
+                            }
+                        } else {
+                            opacity = 0.25f
+                            strokeOpacity = 0.25f
+                            haloOpacity = 0f
+                        }
+                    }
+                    "Missing Resonators" -> {
+                        if (p.resCount in 1..7) {
+                            val missing = 8 - p.resCount
+                            fillColor = "#c2185b"
+                            strokeColor = "#ff4081"
+                            strokeWidth = 2.2f
+                            radius = 7.5f
+                            haloColor = "#ff4081"
+                            haloRadius = 11f + (missing * 0.8f)
+                            haloOpacity = 0.85f
+                        } else if (p.resCount == 8) {
+                            opacity = 0.35f
+                            strokeOpacity = 0.35f
+                            haloOpacity = 0f
+                        }
+                    }
+                    "Portal Weakness" -> {
+                        if (p.health < 50 || p.resCount <= 4) {
+                            fillColor = "#d50000"
+                            strokeColor = "#ff8a80"
+                            strokeWidth = 2.2f
+                            radius = 8.5f
+                            haloColor = "#ff1744"
+                            haloRadius = 16f
+                            haloOpacity = 0.9f
+                        } else if (p.health < 80 || p.resCount < 8) {
+                            fillColor = "#ff6d00"
+                            strokeColor = "#ffd180"
+                            radius = 7.5f
+                            haloColor = "#ffab00"
+                            haloRadius = 12f
+                            haloOpacity = 0.75f
+                        } else {
+                            opacity = 0.25f
+                            strokeOpacity = 0.25f
+                            haloOpacity = 0f
+                        }
+                    }
+                    "Unclaimed Portals" -> {
+                        if (p.team == 0) {
+                            fillColor = "#ffffff"
+                            strokeColor = "#80deea"
+                            strokeWidth = 2.5f
+                            radius = 8.5f
+                            haloColor = "#00e5ff"
+                            haloRadius = 15f
+                            haloOpacity = 0.9f
+                        } else {
+                            opacity = 0.2f
+                            strokeOpacity = 0.2f
+                            haloOpacity = 0f
+                        }
+                    }
+                    "Hide Team Ownership" -> {
+                        fillColor = "#282b2d"
+                        strokeColor = "#8e9192"
+                        strokeWidth = 1.5f
+                        haloOpacity = 0f
+                    }
+                }
+
+                feat.addStringProperty("strokeColor", strokeColor)
+                feat.addStringProperty("fillColor", fillColor)
+                feat.addNumberProperty("strokeWidth", strokeWidth)
                 feat.addNumberProperty("radius", radius)
+                feat.addNumberProperty("opacity", opacity)
+                feat.addNumberProperty("strokeOpacity", strokeOpacity)
+                feat.addStringProperty("haloColor", haloColor)
+                feat.addNumberProperty("haloRadius", haloRadius)
+                feat.addNumberProperty("haloOpacity", haloOpacity)
                 portalFeatures.add(feat)
             }
 
+            // Build Link features
             val linkFeatures = ArrayList<Feature>(entities.links.size)
             for (l in entities.links) {
                 val line = LineString.fromLngLats(
@@ -158,11 +576,11 @@ actual fun NativeMapView(
                 linkFeatures.add(feat)
             }
 
+            // Build Field features
             val fieldFeatures = ArrayList<Feature>(entities.fields.size)
             for (f in entities.fields) {
                 if (f.points.size >= 3) {
                     val ring = f.points.map { Point.fromLngLat(it[1], it[0]) }.toMutableList()
-                    // GeoJSON polygon ring must be closed
                     if (ring.first() != ring.last()) {
                         ring.add(ring.first())
                     }
@@ -181,14 +599,50 @@ actual fun NativeMapView(
                 }
             }
 
+            // Build Player Activity Tracker features
+            val trailFeatures = ArrayList<Feature>()
+            val markerFeatures = ArrayList<Feature>()
+            if (isPlayerTrackerEnabled && playerTrails.isNotEmpty()) {
+                for (trail in playerTrails) {
+                    val color = when (trail.team.uppercase()) {
+                        "RESISTANCE", "RES", "1" -> "#70d2ff"
+                        "ENLIGHTENED", "ENL", "2" -> "#66dc96"
+                        "MACHINA", "MAC", "3" -> "#ff7164"
+                        else -> "#c0c7c7"
+                    }
+
+                    if (trail.points.size >= 2) {
+                        val coords = trail.points.map { Point.fromLngLat(it.lng, it.lat) }
+                        val line = LineString.fromLngLats(coords)
+                        val lineFeat = Feature.fromGeometry(line)
+                        lineFeat.addStringProperty("sender", trail.sender)
+                        lineFeat.addStringProperty("team", trail.team)
+                        lineFeat.addStringProperty("color", color)
+                        trailFeatures.add(lineFeat)
+                    }
+
+                    val point = Point.fromLngLat(trail.latestLng, trail.latestLat)
+                    val ptFeat = Feature.fromGeometry(point)
+                    ptFeat.addStringProperty("sender", trail.sender)
+                    ptFeat.addStringProperty("team", trail.team)
+                    ptFeat.addStringProperty("color", color)
+                    ptFeat.addStringProperty("portal", trail.latestPortalName)
+                    markerFeatures.add(ptFeat)
+                }
+            }
+
             val portalCollection = FeatureCollection.fromFeatures(portalFeatures)
             val linkCollection = FeatureCollection.fromFeatures(linkFeatures)
             val fieldCollection = FeatureCollection.fromFeatures(fieldFeatures)
+            val trailCollection = FeatureCollection.fromFeatures(trailFeatures)
+            val markerCollection = FeatureCollection.fromFeatures(markerFeatures)
 
             withContext(Dispatchers.Main) {
                 style.getSourceAs<GeoJsonSource>(SOURCE_FIELDS)?.setGeoJson(fieldCollection)
                 style.getSourceAs<GeoJsonSource>(SOURCE_LINKS)?.setGeoJson(linkCollection)
                 style.getSourceAs<GeoJsonSource>(SOURCE_PORTALS)?.setGeoJson(portalCollection)
+                style.getSourceAs<GeoJsonSource>(SOURCE_PLAYER_TRAILS)?.setGeoJson(trailCollection)
+                style.getSourceAs<GeoJsonSource>(SOURCE_PLAYER_MARKERS)?.setGeoJson(markerCollection)
             }
         }
     }
@@ -210,66 +664,23 @@ actual fun NativeMapView(
                         isScrollGesturesEnabled = true
                     }
 
-                    // Load dark theme style with Ingress layers (no API key required)
-                    val styleBuilder = Style.Builder().fromJson(NO_KEY_DARK_STYLE_JSON)
+                    loadMapStyle(map, nativeBaseMap)
 
-                    // Sources
-                    styleBuilder.withSource(GeoJsonSource(SOURCE_FIELDS))
-                    styleBuilder.withSource(GeoJsonSource(SOURCE_LINKS))
-                    styleBuilder.withSource(GeoJsonSource(SOURCE_PORTALS))
-
-                    // Fields fill layer
-                    val fieldsFillLayer = FillLayer(LAYER_FIELDS_FILL, SOURCE_FIELDS).apply {
-                        setProperties(
-                            fillColor(get("color")),
-                            fillOpacity(0.22f),
-                            fillAntialias(true)
-                        )
-                    }
-                    styleBuilder.withLayer(fieldsFillLayer)
-
-                    // Fields stroke layer
-                    val fieldsStrokeLayer = LineLayer(LAYER_FIELDS_STROKE, SOURCE_FIELDS).apply {
-                        setProperties(
-                            lineColor(get("color")),
-                            lineWidth(1.2f),
-                            lineOpacity(0.6f)
-                        )
-                    }
-                    styleBuilder.withLayer(fieldsStrokeLayer)
-
-                    // Links layer
-                    val linksLayer = LineLayer(LAYER_LINKS, SOURCE_LINKS).apply {
-                        setProperties(
-                            lineColor(get("color")),
-                            lineWidth(2.2f),
-                            lineOpacity(0.85f),
-                            lineCap(Property.LINE_CAP_ROUND),
-                            lineJoin(Property.LINE_JOIN_ROUND)
-                        )
-                    }
-                    styleBuilder.withLayer(linksLayer)
-
-                    // Portals circle layer
-                    val portalsLayer = CircleLayer(LAYER_PORTALS, SOURCE_PORTALS).apply {
-                        setProperties(
-                            circleRadius(get("radius")),
-                            circleColor(get("fillColor")),
-                            circleStrokeColor(get("strokeColor")),
-                            circleStrokeWidth(1.8f),
-                            circleOpacity(0.95f),
-                            circleStrokeOpacity(1f)
-                        )
-                    }
-                    styleBuilder.withLayer(portalsLayer)
-
-                    map.setStyle(styleBuilder) { loadedStyle ->
-                        mapStyle = loadedStyle
-                    }
-
-                    // Handle portal tap
+                    // Handle map clicks (Portals & Player Markers)
                     map.addOnMapClickListener { point ->
                         val screenPoint = map.projection.toScreenLocation(point)
+
+                        // 1. Check Agent marker click
+                        val agentFeatures = map.queryRenderedFeatures(screenPoint, LAYER_PLAYER_MARKERS)
+                        if (agentFeatures.isNotEmpty()) {
+                            val sender = agentFeatures[0].getStringProperty("sender") ?: "Agent"
+                            val team = agentFeatures[0].getStringProperty("team") ?: ""
+                            val portal = agentFeatures[0].getStringProperty("portal") ?: ""
+                            Toast.makeText(context, "Agent: $sender\nFaction: $team\nNear: $portal", Toast.LENGTH_SHORT).show()
+                            return@addOnMapClickListener true
+                        }
+
+                        // 2. Check Portal click
                         val features = map.queryRenderedFeatures(screenPoint, LAYER_PORTALS)
                         if (features.isNotEmpty()) {
                             val guid = features[0].getStringProperty("guid")

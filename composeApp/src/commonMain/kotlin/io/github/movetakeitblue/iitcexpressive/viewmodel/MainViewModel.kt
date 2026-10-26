@@ -4,6 +4,9 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.serialization.json.*
 import io.github.movetakeitblue.iitcexpressive.bridge.EventsToIitc
 import io.github.movetakeitblue.iitcexpressive.bridge.UrlConfig
@@ -35,6 +38,17 @@ sealed class AppDialog {
     data class AddPlugin(val initialUrl: String? = null) : AppDialog()
     data class PluginInfo(val plugin: Plugin) : AppDialog()
 }
+
+val DEFAULT_HIGHLIGHTERS = listOf(
+    "No Highlights",
+    "Portal Level Color",
+    "High Level Portals",
+    "Needs Recharge",
+    "Missing Resonators",
+    "Portal Weakness",
+    "Unclaimed Portals",
+    "Hide Team Ownership"
+)
 
 class MainViewModel(
     val storage: AppStorage,
@@ -113,10 +127,54 @@ class MainViewModel(
     private val _mapStatus = MutableStateFlow(MapStatus())
     val mapStatus: StateFlow<MapStatus> = _mapStatus.asStateFlow()
 
-    private val _highlighters = MutableStateFlow(listOf("No Highlights"))
+    // Native BaseMap state (Free, no API key required)
+    private val _nativeBaseMap = MutableStateFlow(NativeBaseMap.fromId(storage.getString("native_basemap", "dark")))
+    val nativeBaseMap: StateFlow<NativeBaseMap> = _nativeBaseMap.asStateFlow()
+
+    fun selectNativeBaseMap(baseMap: NativeBaseMap) {
+        _nativeBaseMap.value = baseMap
+        storage.setString("native_basemap", baseMap.id)
+        _isMapDark.value = baseMap.isDark
+        PlatformUtils.setStatusBarContrast(!baseMap.isDark)
+    }
+
+    // Camera move event for Linked Portals & search navigation
+    private val _cameraMoveEvent = MutableSharedFlow<Triple<Double, Double, Double>>(extraBufferCapacity = 1)
+    val cameraMoveEvent: SharedFlow<Triple<Double, Double, Double>> = _cameraMoveEvent.asSharedFlow()
+
+    fun zoomToLocation(lat: Double, lng: Double, zoom: Double = 17.0) {
+        _cameraMoveEvent.tryEmit(Triple(lat, lng, zoom))
+        evaluateJs("window.map && window.map.setView && window.map.setView([$lat, $lng], Math.round($zoom), { animate: true });")
+    }
+
+    fun selectLinkedPortal(linked: LinkedPortal) {
+        if (linked.lat != 0.0 && linked.lng != 0.0) {
+            zoomToLocation(linked.lat, linked.lng, 17.0)
+        }
+        if (linked.guid.isNotBlank()) {
+            onPortalTapped(linked.guid)
+        }
+    }
+
+    // Player Activity Tracker state
+    private val _isPlayerTrackerEnabled = MutableStateFlow(storage.getBoolean("player_tracker_enabled", false))
+    val isPlayerTrackerEnabled: StateFlow<Boolean> = _isPlayerTrackerEnabled.asStateFlow()
+
+    fun setPlayerTrackerEnabled(enabled: Boolean) {
+        _isPlayerTrackerEnabled.value = enabled
+        storage.setBoolean("player_tracker_enabled", enabled)
+        if (enabled) {
+            updatePlayerTrails(_chatMessages.value)
+        }
+    }
+
+    private val _playerTrails = MutableStateFlow<List<PlayerTrail>>(emptyList())
+    val playerTrails: StateFlow<List<PlayerTrail>> = _playerTrails.asStateFlow()
+
+    private val _highlighters = MutableStateFlow(DEFAULT_HIGHLIGHTERS)
     val highlighters: StateFlow<List<String>> = _highlighters.asStateFlow()
 
-    private val _selectedHighlighter = MutableStateFlow("No Highlights")
+    private val _selectedHighlighter = MutableStateFlow(storage.getString("selected_highlighter", "No Highlights"))
     val selectedHighlighter: StateFlow<String> = _selectedHighlighter.asStateFlow()
 
     private val _baseLayers = MutableStateFlow<List<MapLayer>>(emptyList())
@@ -284,6 +342,78 @@ class MainViewModel(
         if (showLocation) {
             startLocationTracking()
         }
+
+        val savedBaseMap = NativeBaseMap.fromId(storage.getString("native_basemap", "dark"))
+        _nativeBaseMap.value = savedBaseMap
+        _isMapDark.value = savedBaseMap.isDark
+        PlatformUtils.setStatusBarContrast(!savedBaseMap.isDark)
+
+        scope.launch {
+            manager.plugins.collect { pluginsMap ->
+                val pat = pluginsMap["player-activity-tracker"]
+                if (pat != null && pat.isEnabled) {
+                    _isPlayerTrackerEnabled.value = true
+                }
+
+                val dynamicList = DEFAULT_HIGHLIGHTERS.toMutableList()
+                val pluginHighlighters = mapOf(
+                    "highlight-portal-history" to "Portal History",
+                    "highlight-forgotten" to "Inactive Portals",
+                    "highlight-ornaments" to "Portals with Ornaments",
+                    "highlight-portals-my-level" to "Portals Near My Level"
+                )
+                for ((uid, name) in pluginHighlighters) {
+                    val p = pluginsMap[uid]
+                    if (p != null && p.isEnabled && !dynamicList.contains(name)) {
+                        dynamicList.add(name)
+                    }
+                }
+                for (h in _highlighters.value) {
+                    if (!dynamicList.contains(h)) {
+                        dynamicList.add(h)
+                    }
+                }
+                _highlighters.value = dynamicList
+            }
+        }
+    }
+
+    private fun updatePlayerTrails(messagesMap: Map<String, List<ChatMessage>>) {
+        val threeHoursAgo = PlatformUtils.currentTimeMillis() - (3 * 3600 * 1000)
+        val allMsgs = messagesMap.values.flatten()
+            .filter { it.portal != null && it.sender.isNotBlank() && it.time >= threeHoursAgo }
+
+        val grouped = allMsgs.groupBy { it.sender }
+        val trails = mutableListOf<PlayerTrail>()
+
+        for ((sender, msgs) in grouped) {
+            val sortedMsgs = msgs.sortedBy { it.time }
+            val points = mutableListOf<PlayerActivityPoint>()
+            for (m in sortedMsgs) {
+                val p = m.portal ?: continue
+                if (p.lat == 0.0 && p.lng == 0.0) continue
+                val last = points.lastOrNull()
+                if (last == null || last.lat != p.lat || last.lng != p.lng) {
+                    points.add(PlayerActivityPoint(lat = p.lat, lng = p.lng, portalName = p.name, time = m.time))
+                }
+            }
+            if (points.isNotEmpty()) {
+                val latest = points.last()
+                val team = sortedMsgs.last().team
+                trails.add(
+                    PlayerTrail(
+                        sender = sender,
+                        team = team,
+                        points = points,
+                        lastSeenTime = latest.time,
+                        latestLat = latest.lat,
+                        latestLng = latest.lng,
+                        latestPortalName = latest.portalName
+                    )
+                )
+            }
+        }
+        _playerTrails.value = trails
     }
 
     fun navigateTo(screen: String) {
@@ -416,6 +546,7 @@ class MainViewModel(
 
     fun selectHighlighter(name: String) {
         _selectedHighlighter.value = name
+        storage.setString("selected_highlighter", name)
         evaluateJs(EventsToIitc.changePortalHighlights(name))
     }
 
@@ -763,6 +894,26 @@ class MainViewModel(
                             val historyCaptured = d["historyCaptured"]?.jsonPrimitive?.booleanOrNull ?: false
                             val historyScoutControlled = d["historyScoutControlled"]?.jsonPrimitive?.booleanOrNull ?: false
 
+                            val lpElem = d["linkedPortals"]
+                            val linkedList = if (lpElem is JsonArray) {
+                                lpElem.mapNotNull { lpItem ->
+                                    if (lpItem is JsonObject) {
+                                        LinkedPortal(
+                                            guid = lpItem["guid"]?.jsonPrimitive?.contentOrNull ?: "",
+                                            title = lpItem["title"]?.jsonPrimitive?.contentOrNull ?: "",
+                                            lat = lpItem["lat"]?.jsonPrimitive?.doubleOrNull ?: 0.0,
+                                            lng = lpItem["lng"]?.jsonPrimitive?.doubleOrNull ?: 0.0,
+                                            isOutgoing = lpItem["isOutgoing"]?.jsonPrimitive?.booleanOrNull ?: true,
+                                            team = lpItem["team"]?.jsonPrimitive?.contentOrNull ?: "N",
+                                            level = lpItem["level"]?.jsonPrimitive?.intOrNull ?: 0,
+                                            health = lpItem["health"]?.jsonPrimitive?.intOrNull ?: 100,
+                                            distance = lpItem["distance"]?.jsonPrimitive?.longOrNull ?: 0L,
+                                            image = lpItem["image"]?.jsonPrimitive?.contentOrNull?.ifBlank { null }
+                                        )
+                                    } else null
+                                }
+                            } else emptyList()
+
                             _portalStatus.value = _portalStatus.value.copy(
                                 guid = guid,
                                 title = title,
@@ -787,6 +938,7 @@ class MainViewModel(
                                 historyScoutControlled = historyScoutControlled,
                                 resonators = resList,
                                 mods = modsList ?: _portalStatus.value.mods,
+                                linkedPortals = linkedList,
                                 isLoading = false
                             )
                         }
@@ -827,6 +979,9 @@ class MainViewModel(
                         val current = _chatMessages.value.toMutableMap()
                         current[channel] = parsedMsgs
                         _chatMessages.value = current
+                        if (_isPlayerTrackerEnabled.value) {
+                            updatePlayerTrails(current)
+                        }
                     }
                 } catch (e: Exception) {
                     println("setChatMessages error: ${e.message}")
@@ -932,13 +1087,15 @@ class MainViewModel(
 
                 val portalsList = portalsJson?.mapNotNull { item ->
                     if (item is JsonArray && item.size >= 6) {
+                        val resCount = if (item.size >= 7) item[6].jsonPrimitive.intOrNull ?: 8 else 8
                         NativePortal(
                             guid = item[0].jsonPrimitive.content,
                             lat = item[1].jsonPrimitive.double,
                             lng = item[2].jsonPrimitive.double,
                             team = item[3].jsonPrimitive.int,
                             level = item[4].jsonPrimitive.int,
-                            health = item[5].jsonPrimitive.int
+                            health = item[5].jsonPrimitive.int,
+                            resCount = resCount
                         )
                     } else null
                 } ?: emptyList()

@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.sp
 import io.github.movetakeitblue.iitcexpressive.manager.BackupManager
 import io.github.movetakeitblue.iitcexpressive.manager.IITCManager
 import io.github.movetakeitblue.iitcexpressive.model.*
+import io.github.movetakeitblue.iitcexpressive.platform.PlatformUtils
 import io.github.movetakeitblue.iitcexpressive.storage.AppStorage
 import io.github.movetakeitblue.iitcexpressive.theme.*
 import io.github.movetakeitblue.iitcexpressive.ui.chat.ChatSheet
@@ -198,6 +199,41 @@ private fun createMockMainViewModel(
                             }
                         }
                     }
+                    putJsonArray("linkedPortals") {
+                        addJsonObject {
+                            put("guid", "portal_shanghai_tower")
+                            put("title", "Shanghai Tower (World #2)")
+                            put("lat", 31.2335)
+                            put("lng", 121.5056)
+                            put("isOutgoing", true)
+                            put("team", "RES")
+                            put("level", 8)
+                            put("health", 100)
+                            put("distance", 1420L)
+                        }
+                        addJsonObject {
+                            put("guid", "portal_jin_mao")
+                            put("title", "Jin Mao Tower Observation Deck")
+                            put("lat", 31.2372)
+                            put("lng", 121.5012)
+                            put("isOutgoing", true)
+                            put("team", "RES")
+                            put("level", 7)
+                            put("health", 85)
+                            put("distance", 980L)
+                        }
+                        addJsonObject {
+                            put("guid", "portal_bund_bull")
+                            put("title", "Bund Financial Bull")
+                            put("lat", 31.2312)
+                            put("lng", 121.4921)
+                            put("isOutgoing", false)
+                            put("team", "ENL")
+                            put("level", 8)
+                            put("health", 90)
+                            put("distance", 2150L)
+                        }
+                    }
                 }
             }
         )
@@ -210,6 +246,52 @@ private fun createMockMainViewModel(
     if (isFabExpanded) {
         vm.toggleFabMenu()
     }
+
+    vm.setPlayerTrackerEnabled(true)
+    vm.handleBridgeMessage(
+        "setChatMessages",
+        buildJsonObject {
+            put("channel", "all")
+            putJsonArray("messages") {
+                addJsonObject {
+                    put("id", "msg_1")
+                    put("time", PlatformUtils.currentTimeMillis() - 15 * 60 * 1000)
+                    put("sender", "AzureKnight")
+                    put("team", "RESISTANCE")
+                    put("text", "Captured Oriental Pearl Tower")
+                    putJsonObject("portal") {
+                        put("name", "Oriental Pearl Tower")
+                        put("lat", 31.2397)
+                        put("lng", 121.4998)
+                    }
+                }
+                addJsonObject {
+                    put("id", "msg_2")
+                    put("time", PlatformUtils.currentTimeMillis() - 5 * 60 * 1000)
+                    put("sender", "AzureKnight")
+                    put("team", "RESISTANCE")
+                    put("text", "Linked to Shanghai Tower")
+                    putJsonObject("portal") {
+                        put("name", "Shanghai Tower")
+                        put("lat", 31.2335)
+                        put("lng", 121.5056)
+                    }
+                }
+                addJsonObject {
+                    put("id", "msg_3")
+                    put("time", PlatformUtils.currentTimeMillis() - 8 * 60 * 1000)
+                    put("sender", "EmeraldFox")
+                    put("team", "ENLIGHTENED")
+                    put("text", "Destroyed resonator")
+                    putJsonObject("portal") {
+                        put("name", "Bund Financial Bull")
+                        put("lat", 31.2312)
+                        put("lng", 121.4921)
+                    }
+                }
+            }
+        }
+    )
 
     // Mock Layers
     vm.handleBridgeMessage(

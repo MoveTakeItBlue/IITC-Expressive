@@ -9,7 +9,8 @@ data class NativePortal(
     val lng: Double,
     val team: Int, // 0: Neutral, 1: Res, 2: Enl, 3: Mac
     val level: Int,
-    val health: Int
+    val health: Int,
+    val resCount: Int = 8
 )
 
 @Serializable

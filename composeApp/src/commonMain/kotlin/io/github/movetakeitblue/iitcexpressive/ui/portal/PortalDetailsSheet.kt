@@ -708,6 +708,165 @@ private fun PortalExpandedDetails(
             HistoryChip(label = "Scout Controlled", active = portalStatus.historyScoutControlled, modifier = Modifier.weight(1.3f))
         }
 
+        // Linked Portals Section (M3E Expressive Linked Portals Card)
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(
+                        text = "LINKED PORTALS",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.sp
+                    )
+                    if (portalStatus.linkedPortals.isNotEmpty()) {
+                        Surface(
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            shape = CircleShape
+                        ) {
+                            Text(
+                                text = "${portalStatus.linkedPortals.size}",
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
+                }
+
+                if (portalStatus.linkedPortals.isNotEmpty()) {
+                    val outCount = portalStatus.linkedPortals.count { it.isOutgoing }
+                    val inCount = portalStatus.linkedPortals.size - outCount
+                    Text(
+                        text = "$outCount Out / $inCount In",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                        fontSize = 11.sp
+                    )
+                }
+            }
+
+            if (portalStatus.linkedPortals.isEmpty()) {
+                Card(
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 16.dp, horizontal = 14.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = if (portalStatus.linksIn == 0 && portalStatus.linksOut == 0) "No active links connected" else "Links detected; zoom or pan to load linked portals",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                            fontSize = 12.sp,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+            } else {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    portalStatus.linkedPortals.forEach { linked ->
+                        Card(
+                            shape = RoundedCornerShape(14.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    viewModel.selectLinkedPortal(linked)
+                                }
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                // Direction Icon & Tag
+                                Surface(
+                                    color = if (linked.isOutgoing) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.secondaryContainer,
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(2.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = if (linked.isOutgoing) Icons.Default.ArrowUpward else Icons.Default.ArrowDownward,
+                                            contentDescription = if (linked.isOutgoing) "Outgoing" else "Incoming",
+                                            tint = if (linked.isOutgoing) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSecondaryContainer,
+                                            modifier = Modifier.size(12.dp)
+                                        )
+                                        Text(
+                                            text = if (linked.isOutgoing) "Out" else "In",
+                                            color = if (linked.isOutgoing) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSecondaryContainer,
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
+
+                                // Level Tag
+                                Surface(
+                                    color = linked.teamColor.copy(alpha = 0.2f),
+                                    shape = RoundedCornerShape(6.dp)
+                                ) {
+                                    Text(
+                                        text = "L${linked.level}",
+                                        color = linked.teamColor,
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    )
+                                }
+
+                                // Title and distance
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = linked.title,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                    Text(
+                                        text = linked.formattedDistance,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        fontSize = 11.sp
+                                    )
+                                }
+
+                                Icon(
+                                    imageVector = Icons.Default.ChevronRight,
+                                    contentDescription = "Jump to linked portal",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         // Quick Actions Row
         Row(
             modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),

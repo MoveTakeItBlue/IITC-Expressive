@@ -782,6 +782,66 @@ input, textarea, select {
                         }
                     }
 
+                    var linkedPortals = [];
+                    if (window.links) {
+                        if (linksObj && linksObj.out) {
+                            linksObj.out.forEach(function(lGuid) {
+                                var l = window.links[lGuid];
+                                if (!l) return;
+                                var ld = l.options.data || {};
+                                var otherGuid = ld.dGuid;
+                                var lls = l.getLatLngs ? l.getLatLngs() : l._latlngs;
+                                var otherLat = ld.dLat || (lls && lls[1] && lls[1].lat) || 0;
+                                var otherLng = ld.dLng || (lls && lls[1] && lls[1].lng) || 0;
+                                var otherP = window.portals && window.portals[otherGuid];
+                                var opd = (otherP && otherP.options && otherP.options.data) || {};
+                                var pLat = (d.latE6 ? d.latE6/1e6 : (p && p.getLatLng ? p.getLatLng().lat : 0));
+                                var pLng = (d.lngE6 ? d.lngE6/1e6 : (p && p.getLatLng ? p.getLatLng().lng : 0));
+                                var dist = (window.map && window.map.distance && pLat && pLng && otherLat && otherLng) ? Math.round(window.map.distance(L.latLng(pLat, pLng), L.latLng(otherLat, otherLng))) : 0;
+                                linkedPortals.push({
+                                    guid: otherGuid || '',
+                                    title: opd.title || ld.dTitle || ('Portal (' + otherLat.toFixed(4) + ', ' + otherLng.toFixed(4) + ')'),
+                                    lat: otherLat,
+                                    lng: otherLng,
+                                    isOutgoing: true,
+                                    team: opd.team !== undefined ? '' + opd.team : (ld.team !== undefined ? '' + ld.team : 'N'),
+                                    level: opd.level || 0,
+                                    health: opd.health !== undefined ? opd.health : 100,
+                                    distance: dist,
+                                    image: opd.image || ''
+                                });
+                            });
+                        }
+                        if (linksObj && linksObj.in) {
+                            linksObj.in.forEach(function(lGuid) {
+                                var l = window.links[lGuid];
+                                if (!l) return;
+                                var ld = l.options.data || {};
+                                var otherGuid = ld.oGuid;
+                                var lls = l.getLatLngs ? l.getLatLngs() : l._latlngs;
+                                var otherLat = ld.oLat || (lls && lls[0] && lls[0].lat) || 0;
+                                var otherLng = ld.oLng || (lls && lls[0] && lls[0].lng) || 0;
+                                var otherP = window.portals && window.portals[otherGuid];
+                                var opd = (otherP && otherP.options && otherP.options.data) || {};
+                                var pLat = (d.latE6 ? d.latE6/1e6 : (p && p.getLatLng ? p.getLatLng().lat : 0));
+                                var pLng = (d.lngE6 ? d.lngE6/1e6 : (p && p.getLatLng ? p.getLatLng().lng : 0));
+                                var dist = (window.map && window.map.distance && pLat && pLng && otherLat && otherLng) ? Math.round(window.map.distance(L.latLng(pLat, pLng), L.latLng(otherLat, otherLng))) : 0;
+                                linkedPortals.push({
+                                    guid: otherGuid || '',
+                                    title: opd.title || ld.oTitle || ('Portal (' + otherLat.toFixed(4) + ', ' + otherLng.toFixed(4) + ')'),
+                                    lat: otherLat,
+                                    lng: otherLng,
+                                    isOutgoing: false,
+                                    team: opd.team !== undefined ? '' + opd.team : (ld.team !== undefined ? '' + ld.team : 'N'),
+                                    level: opd.level || 0,
+                                    health: opd.health !== undefined ? opd.health : 100,
+                                    distance: dist,
+                                    image: opd.image || ''
+                                });
+                            });
+                        }
+                    }
+
                     var payload = {
                         guid: guid,
                         title: d.title || (p && p.options && p.options.data && p.options.data.title) || '',
@@ -805,7 +865,8 @@ input, textarea, select {
                         historyScoutControlled: !!(d.history && d.history.scoutControlled),
                         resCount: d.resCount !== undefined ? d.resCount : (d.resonators ? d.resonators.length : 0),
                         resonators: mappedResonators,
-                        mods: mappedMods
+                        mods: mappedMods,
+                        linkedPortals: linkedPortals
                     };
                     bridge.setPortalDetails(guid, payload);
                 }
@@ -922,7 +983,8 @@ input, textarea, select {
                             var t = p.options.team !== undefined ? p.options.team : (d.team !== undefined ? d.team : 0);
                             var l = p.options.level !== undefined ? p.options.level : (d.level || 0);
                             var h = d.health !== undefined ? d.health : 100;
-                            portals.push([guid, ll.lat, ll.lng, t, l, h]);
+                            var resCount = d.resCount !== undefined ? d.resCount : (d.resonators ? d.resonators.filter(Boolean).length : 8);
+                            portals.push([guid, ll.lat, ll.lng, t, l, h, resCount]);
                         }
                     }
 
