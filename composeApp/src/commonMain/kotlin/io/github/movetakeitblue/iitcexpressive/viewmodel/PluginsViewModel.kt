@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import io.github.movetakeitblue.iitcexpressive.manager.IITCManager
 import io.github.movetakeitblue.iitcexpressive.model.Plugin
+import io.github.movetakeitblue.iitcexpressive.plugin.core.NativePluginRegistry
 
 class PluginsViewModel(
     val manager: IITCManager
@@ -28,6 +29,7 @@ class PluginsViewModel(
     ) { pluginsMap, query, category ->
         val list = pluginsMap.values.toList()
         list.filter { plugin ->
+            if (NativePluginRegistry.isNativePlugin(plugin.uid)) return@filter false
             val matchCategory = if (category == "All") true else plugin.category.equals(category, ignoreCase = true)
             val matchQuery = if (query.isBlank()) true else {
                 plugin.name.contains(query, ignoreCase = true) ||

@@ -12,6 +12,7 @@ import kotlinx.serialization.json.*
 import io.github.movetakeitblue.iitcexpressive.bridge.BridgeScripts
 import io.github.movetakeitblue.iitcexpressive.model.Channel
 import io.github.movetakeitblue.iitcexpressive.model.Plugin
+import io.github.movetakeitblue.iitcexpressive.plugin.core.NativePluginRegistry
 import io.github.movetakeitblue.iitcexpressive.storage.AppStorage
 
 class IITCManager(
@@ -138,10 +139,14 @@ class IITCManager(
         try {
             val rootObj = json.parseToJsonElement(catalogJson).jsonObject
             for ((key, elem) in rootObj) {
+                // Filter out plugins that are now natively implemented in Compose
+                if (NativePluginRegistry.isNativePlugin(key)) continue
                 if (elem is JsonObject) {
                     try {
                         val p = json.decodeFromJsonElement<Plugin>(elem)
-                        catalogMap[p.uid.ifBlank { key }] = p
+                        if (!NativePluginRegistry.isNativePlugin(p.uid)) {
+                            catalogMap[p.uid.ifBlank { key }] = p
+                        }
                     } catch (pe: Exception) {
                         println("Failed to decode plugin $key: ${pe.message}")
                     }
@@ -198,6 +203,7 @@ class IITCManager(
         val merged = mutableMapOf<String, Plugin>()
 
         for ((uid, plugin) in catalogMap) {
+            if (NativePluginRegistry.isNativePlugin(uid)) continue
             val userOverride = userPluginsMap[uid]
             val status = stateMap[uid] ?: plugin.status
             val code = userOverride?.code ?: localCodes[uid] ?: plugin.code
@@ -209,6 +215,7 @@ class IITCManager(
         }
 
         for ((uid, userPlugin) in userPluginsMap) {
+            if (NativePluginRegistry.isNativePlugin(uid)) continue
             if (!merged.containsKey(uid)) {
                 val status = stateMap[uid] ?: "on"
                 merged[uid] = userPlugin.copy(status = status, user = true)
@@ -410,7 +417,7 @@ class IITCManager(
         // 3. Enabled plugins
         val ch = _currentChannel.value
         val host = getChannelHost(ch)
-        val enabled = _plugins.value.values.filter { it.isEnabled && !it.isCore }
+        val enabled = _plugins.value.values.filter { it.isEnabled && !it.isCore && !NativePluginRegistry.isNativePlugin(it.uid) }
 
         for (plugin in enabled) {
             var code = plugin.code
