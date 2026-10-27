@@ -52,14 +52,12 @@ import io.github.movetakeitblue.iitcexpressive.viewmodel.AppDialog
 import io.github.movetakeitblue.iitcexpressive.viewmodel.MainViewModel
 
 /**
- * Portal 详情 sheet 的几何常量。
- * FAB 等悬浮元素复用这里的值来计算避让距离，避免硬编码偏移导致与 sheet 重叠。
- */
+ * Portal 璇︽儏 sheet 鐨勫嚑浣曞父閲忋€? * FAB 绛夋偓娴厓绱犲鐢ㄨ繖閲岀殑鍊兼潵璁＄畻閬胯璺濈锛岄伩鍏嶇‖缂栫爜鍋忕Щ瀵艰嚧涓?sheet 閲嶅彔銆? */
 object PortalSheetDefaults {
-    /** 收起态（peek）内容高度，不含导航栏 inset */
+    /** 鏀惰捣鎬侊紙peek锛夊唴瀹归珮搴︼紝涓嶅惈瀵艰埅鏍?inset */
     val PeekHeight = 88.dp
 
-    /** 悬浮按钮底边与 sheet 上沿之间保留的间距 */
+    /** 鎮诞鎸夐挳搴曡竟涓?sheet 涓婃部涔嬮棿淇濈暀鐨勯棿璺?*/
     val FabGap = 16.dp
 }
 
@@ -170,10 +168,34 @@ fun PortalDetailsSheet(
                     )
                 }
 
+                val bookmarkFolders by viewModel.bookmarkFolders.collectAsState()
+                val pGuid = portalStatus.guid ?: ""
+                val isBookmarked = pGuid.isNotBlank() && bookmarkFolders.any { folder -> folder.bookmarks.any { it.guid == pGuid } }
+                val onBookmarkToggle = {
+                    val portal = NativePortal(
+                        guid = pGuid,
+                        lat = portalStatus.lat ?: 0.0,
+                        lng = portalStatus.lng ?: 0.0,
+                        team = when (portalStatus.team.uppercase()) {
+                            "RES", "RESISTANCE" -> 1
+                            "ENL", "ENLIGHTENED" -> 2
+                            "MAC", "MACHINA" -> 3
+                            else -> 0
+                        },
+                        level = portalStatus.level,
+                        health = portalStatus.health,
+                        title = portalStatus.title
+                    )
+                    val added = viewModel.togglePortalBookmark(portal)
+                    viewModel.pluginHost.showToast(if (added) "Bookmarked ${portalStatus.title}" else "Removed bookmark")
+                }
+
                 if (!isExpanded) {
                     // Collapsed Peek Bar
                     PortalPeekBar(
                         portalStatus = portalStatus,
+                        isBookmarked = isBookmarked,
+                        onBookmarkToggle = onBookmarkToggle,
                         onExpand = { viewModel.expandPortalDetails() },
                         onClose = { viewModel.deselectPortal() }
                     )
@@ -181,6 +203,8 @@ fun PortalDetailsSheet(
                     // Full Expanded Details View
                     PortalExpandedDetails(
                         portalStatus = portalStatus,
+                        isBookmarked = isBookmarked,
+                        onBookmarkToggle = onBookmarkToggle,
                         viewModel = viewModel,
                         onCollapse = { viewModel.collapsePortalDetails() },
                         onClose = { viewModel.deselectPortal() },
@@ -212,6 +236,8 @@ fun PortalDetailsSheet(
 @Composable
 private fun PortalPeekBar(
     portalStatus: PortalStatus,
+    isBookmarked: Boolean,
+    onBookmarkToggle: () -> Unit,
     onExpand: () -> Unit,
     onClose: () -> Unit
 ) {
@@ -299,7 +325,25 @@ private fun PortalPeekBar(
             }
         }
 
-        Spacer(modifier = Modifier.width(12.dp))
+        Spacer(modifier = Modifier.width(8.dp))
+
+        // Bookmark star button
+        IconButton(
+            onClick = onBookmarkToggle,
+            modifier = Modifier
+                .size(38.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+        ) {
+            Icon(
+                imageVector = if (isBookmarked) Icons.Default.Star else Icons.Default.StarBorder,
+                contentDescription = "Bookmark portal",
+                tint = if (isBookmarked) AmberStar else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+
+        Spacer(modifier = Modifier.width(4.dp))
 
         // Expand chevron button
         IconButton(
@@ -343,6 +387,8 @@ private fun PortalPeekBar(
 @Composable
 private fun PortalExpandedDetails(
     portalStatus: PortalStatus,
+    isBookmarked: Boolean,
+    onBookmarkToggle: () -> Unit,
     viewModel: MainViewModel,
     onCollapse: () -> Unit,
     onClose: () -> Unit,
@@ -391,6 +437,24 @@ private fun PortalExpandedDetails(
                     .weight(1f)
                     .padding(horizontal = 12.dp)
             )
+
+            // Bookmark star action
+            IconButton(
+                onClick = onBookmarkToggle,
+                modifier = Modifier
+                    .size(38.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+            ) {
+                Icon(
+                    imageVector = if (isBookmarked) Icons.Default.Star else Icons.Default.StarBorder,
+                    contentDescription = "Bookmark portal",
+                    tint = if (isBookmarked) AmberStar else MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.width(8.dp))
 
             // Share action
             IconButton(
@@ -946,7 +1010,7 @@ private fun PortalExpandedDetails(
         }
     }
 
-    // Interactive Mod Detail Inspection Dialog（无状态组件，可在 Compose Preview 中单独预览）
+    // Interactive Mod Detail Inspection Dialog锛堟棤鐘舵€佺粍浠讹紝鍙湪 Compose Preview 涓崟鐙瑙堬級
     selectedModForDetail?.let { mod ->
         PortalModDetailDialog(
             mod = mod,
@@ -982,7 +1046,7 @@ private fun PortalExpandedDetails(
             },
             title = {
                 Text(
-                    text = "$dirFullName ($direction) • Level ${res.level}",
+                    text = "$dirFullName ($direction) 鈥?Level ${res.level}",
                     color = MaterialTheme.colorScheme.onSurface,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold
@@ -1361,7 +1425,7 @@ fun PortalFullscreenImageDialog(
                     color = Color.Black.copy(alpha = 0.6f)
                 ) {
                     Text(
-                        text = "Double-tap to zoom • Drag to pan",
+                        text = "Double-tap to zoom 鈥?Drag to pan",
                         color = Color.White.copy(alpha = 0.75f),
                         fontSize = 12.sp,
                         modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)

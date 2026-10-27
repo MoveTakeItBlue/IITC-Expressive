@@ -17,9 +17,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import io.github.movetakeitblue.iitcexpressive.manager.BackupManager
+import io.github.movetakeitblue.iitcexpressive.plugin.core.NativePluginRegistry
+import io.github.movetakeitblue.iitcexpressive.plugin.ui.drawtools.DrawToolbar
 import io.github.movetakeitblue.iitcexpressive.ui.chat.ChatSheet
 import io.github.movetakeitblue.iitcexpressive.ui.common.AlertDialog
 import io.github.movetakeitblue.iitcexpressive.ui.common.ConfirmDialog
@@ -51,12 +54,25 @@ fun MainScreen(
     val portalStatus by viewModel.portalStatus.collectAsState()
     val isPortalDetailsExpanded by viewModel.isPortalDetailsExpanded.collectAsState()
     val mapStatus by viewModel.mapStatus.collectAsState()
+    val isFullscreenMap by viewModel.isFullscreenMap.collectAsState()
+    val isMapDark by viewModel.isMapDark.collectAsState()
 
-    // Adapt status bar icons/text contrast dynamically based on status bar container color
+    // Adapt status bar icons/text contrast dynamically based on current screen & fullscreen map mode:
+    // When in fullscreen map mode on main screen, contrast matches the map brightness:
+    // - Dark map -> White status bar icons (isDarkContent = false)
+    // - Light map -> Dark/black status bar icons (isDarkContent = true)
+    // Otherwise, contrast matches the theme's surfaceContainer.
     val statusBarColor = MaterialTheme.colorScheme.surfaceContainer
     val isStatusBarLight = (statusBarColor.red * 0.299f + statusBarColor.green * 0.587f + statusBarColor.blue * 0.114f) >= 0.5f
-    LaunchedEffect(isStatusBarLight) {
-        PlatformUtils.setStatusBarContrast(isStatusBarLight)
+    val isEffectiveStatusBarDarkContent = remember(currentScreen, isFullscreenMap, isMapDark, isStatusBarLight) {
+        if (currentScreen == "main" && isFullscreenMap) {
+            !isMapDark
+        } else {
+            isStatusBarLight
+        }
+    }
+    LaunchedEffect(isEffectiveStatusBarDarkContent) {
+        PlatformUtils.setStatusBarContrast(isEffectiveStatusBarDarkContent)
     }
 
     // ViewModels for sub-screens
@@ -72,15 +88,21 @@ fun MainScreen(
 
     Box(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         // Map and main overlay container.
-        // 地图安全区：顶部避开状态栏，底部避开导航栏，正好占满「状态栏下沿 → 导航栏上沿」，
-        // 因此地图下边缘与导航栏相邻、上边缘与状态栏分隔，地图内容不会画到系统栏上。
-        // 注意：windowInsetsPadding 会消费 inset，内部子组件再调用 navigationBarsPadding() 会自动变 0，不会二次留白。
-        Box(
-            modifier = Modifier
+        // 全面屏显示地图：开启后顶部不留白，地图直接铺满到手机屏幕顶部状态栏区域；
+        // 未开启时，顶部避开状态栏，保持与状态栏的分隔。
+        // 底部避开导航栏，确保地图下边缘与导航栏相邻。
+        val mapContainerModifier = if (isFullscreenMap) {
+            Modifier
+                .fillMaxSize()
+                .windowInsetsPadding(WindowInsets.navigationBars)
+        } else {
+            Modifier
                 .fillMaxSize()
                 .windowInsetsPadding(WindowInsets.statusBars)
                 .windowInsetsPadding(WindowInsets.navigationBars)
-        ) {
+        }
+
+        Box(modifier = mapContainerModifier) {
             // AppWebView is always mounted so map state is preserved when navigating to settings/plugins
             AppWebView(
                 viewModel = viewModel,
@@ -102,6 +124,12 @@ fun MainScreen(
             if (currentScreen == "main") {
                 val isMapSyncing = progress < 1f || mapStatus.requests.hasActive
 
+                val statusBarTopPadding = if (isFullscreenMap) {
+                    WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+                } else {
+                    0.dp
+                }
+
                 // Top Expressive Floating Pill Indicator
                 AnimatedVisibility(
                     visible = isMapSyncing,
@@ -109,7 +137,7 @@ fun MainScreen(
                     exit = fadeOut() + slideOutVertically { -it },
                     modifier = Modifier
                         .align(Alignment.TopCenter)
-                        .padding(top = 10.dp)
+                        .padding(top = statusBarTopPadding + 10.dp)
                 ) {
                     Surface(
                         shape = CircleShape,
@@ -184,6 +212,9 @@ fun MainScreen(
                             },
                             onOpenLayers = { viewModel.openLayersSheet() },
                             onOpenChat = { viewModel.openChatSheet() },
+                            onOpenBookmarks = { viewModel.openPluginSheet("bookmarks") },
+                            onOpenPortalList = { viewModel.openPluginSheet("portals-list") },
+                            onOpenDrawTools = { viewModel.openPluginSheet("draw-tools") },
                             onLocate = {
                                 viewModel.closeFabMenu()
                                 viewModel.triggerUserLocate()
@@ -205,31 +236,63 @@ fun MainScreen(
                             modifier = Modifier.fillMaxSize()
                         )
                     }
+                    // Floating DrawToolbar overlay when drawing mode is active
+                    val isDrawingModeActive by viewModel.isDrawingModeActive.collectAsState()
+                    if (isDrawingModeActive) {
+                        DrawToolbar(
+                            host = viewModel.pluginHost,
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .padding(bottom = if (portalStatus.hasSelected) sheetPeekHeight + 16.dp else 24.dp)
+                        )
+                    }
                 }
 
                 // Debug Console overlay
                 if (isDebugActive) {
                     DebugConsole(
                         viewModel = viewModel,
-                        modifier = Modifier.fillMaxSize()
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .then(if (isFullscreenMap) Modifier.statusBarsPadding() else Modifier)
                     )
                 }
             }
         }
 
-        // 状态栏：M3E 实色表面覆盖，底部带一条细分割线，让地图与状态栏有明确的视觉分隔
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .windowInsetsTopHeight(WindowInsets.statusBars)
-                .align(Alignment.TopCenter)
-                .background(MaterialTheme.colorScheme.surfaceContainer),
-            verticalArrangement = Arrangement.Bottom
-        ) {
-            HorizontalDivider(
-                thickness = 0.5.dp,
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
+        // 状态栏：全面屏模式下使用优雅的渐变护罩保护文字可读性；普通模式下使用 M3E 实色表面覆盖
+        if (currentScreen == "main" && isFullscreenMap) {
+            val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+            val scrimColor = if (isMapDark) Color.Black else Color.White
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(statusBarHeight + 16.dp)
+                    .align(Alignment.TopCenter)
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                scrimColor.copy(alpha = 0.50f),
+                                scrimColor.copy(alpha = 0.20f),
+                                Color.Transparent
+                            )
+                        )
+                    )
             )
+        } else if (!isFullscreenMap) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .windowInsetsTopHeight(WindowInsets.statusBars)
+                    .align(Alignment.TopCenter)
+                    .background(MaterialTheme.colorScheme.surfaceContainer),
+                verticalArrangement = Arrangement.Bottom
+            ) {
+                HorizontalDivider(
+                    thickness = 0.5.dp,
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
+                )
+            }
         }
 
         // 导航栏：同样用实色表面填充，让地图下边缘正好与导航栏相邻
@@ -297,6 +360,29 @@ fun MainScreen(
                 viewModel = viewModel,
                 onDismiss = { viewModel.closeChatSheet() }
             )
+        }
+
+        // Native M3E Core Plugin BottomSheets
+        val activePluginSheet by viewModel.activePluginSheet.collectAsState()
+        when (activePluginSheet) {
+            "bookmarks" -> {
+                NativePluginRegistry.bookmarksPlugin.SheetContent(
+                    host = viewModel.pluginHost,
+                    onDismiss = { viewModel.closePluginSheet() }
+                )
+            }
+            "portals-list" -> {
+                NativePluginRegistry.portalListPlugin.SheetContent(
+                    host = viewModel.pluginHost,
+                    onDismiss = { viewModel.closePluginSheet() }
+                )
+            }
+            "draw-tools" -> {
+                NativePluginRegistry.drawToolsPlugin.SheetContent(
+                    host = viewModel.pluginHost,
+                    onDismiss = { viewModel.closePluginSheet() }
+                )
+            }
         }
 
         // Global Dialogs Layer

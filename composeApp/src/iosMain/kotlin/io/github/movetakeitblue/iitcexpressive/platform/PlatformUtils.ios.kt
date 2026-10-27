@@ -43,6 +43,10 @@ actual object PlatformUtils {
         UIPasteboard.generalPasteboard.string = text
     }
 
+    actual fun showToast(message: String) {
+        // iOS toast or notification
+    }
+
     actual fun readClipboardText(): String? {
         return UIPasteboard.generalPasteboard.string
     }

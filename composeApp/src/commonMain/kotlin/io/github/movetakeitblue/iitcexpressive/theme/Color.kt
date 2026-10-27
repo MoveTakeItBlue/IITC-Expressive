@@ -82,6 +82,12 @@ val Level6Color = Color(0xFFCC66FF) // Violet
 val Level7Color = Color(0xFF9E77ED) // Deep Purple
 val Level8Color = Color(0xFF7087FF) // Periwinkle / Indigo
 
+val AmberStar = Color(0xFFFFB300)
+val ResBlue = TeamResistance
+val EnlGreen = TeamEnlightened
+val MacRed = TeamMachina
+val NeutralOrange = Color(0xFFFF9E40)
+
 // Component Aliases
 val Accent = AccentTeal
 val AccentContainer = AccentContainerTeal

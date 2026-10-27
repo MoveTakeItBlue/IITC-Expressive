@@ -15,6 +15,8 @@ import io.github.movetakeitblue.iitcexpressive.manager.IITCManager
 import io.github.movetakeitblue.iitcexpressive.model.*
 import io.github.movetakeitblue.iitcexpressive.platform.PlatformLocationListener
 import io.github.movetakeitblue.iitcexpressive.platform.PlatformUtils
+import io.github.movetakeitblue.iitcexpressive.plugin.api.*
+import io.github.movetakeitblue.iitcexpressive.plugin.core.NativePluginRegistry
 import io.github.movetakeitblue.iitcexpressive.storage.AppStorage
 
 enum class PanelPosition {
@@ -118,7 +120,24 @@ class MainViewModel(
         storage.setBoolean("native_map_enabled", enabled)
     }
 
+    // Fullscreen Map (Edge-to-edge extending behind status bar)
+    private val _isFullscreenMap = MutableStateFlow(storage.getBoolean("fullscreen_map", false))
+    val isFullscreenMap: StateFlow<Boolean> = _isFullscreenMap.asStateFlow()
+
+    fun setFullscreenMap(enabled: Boolean) {
+        _isFullscreenMap.value = enabled
+        storage.setBoolean("fullscreen_map", enabled)
+    }
+
     // Map Typography states (configurable in Settings)
+    private val _mapTextColor = MutableStateFlow(storage.getString("map_text_color", "auto"))
+    val mapTextColor: StateFlow<String> = _mapTextColor.asStateFlow()
+
+    fun setMapTextColor(color: String) {
+        _mapTextColor.value = color
+        storage.setString("map_text_color", color)
+    }
+
     private val _portalNameFontSize = MutableStateFlow(storage.getFloat("map_portal_font_size", 12f))
     val portalNameFontSize: StateFlow<Float> = _portalNameFontSize.asStateFlow()
 
@@ -170,6 +189,9 @@ class MainViewModel(
     private val _nativeMapEntities = MutableStateFlow(NativeMapEntities())
     val nativeMapEntities: StateFlow<NativeMapEntities> = _nativeMapEntities.asStateFlow()
 
+    private val _nativeMapPortals = MutableStateFlow<List<NativePortal>>(emptyList())
+    val nativeMapPortals: StateFlow<List<NativePortal>> = _nativeMapPortals.asStateFlow()
+
     // Map & Portal state
     private val _portalStatus = MutableStateFlow(PortalStatus())
     val portalStatus: StateFlow<PortalStatus> = _portalStatus.asStateFlow()
@@ -185,8 +207,6 @@ class MainViewModel(
         _nativeBaseMap.value = baseMap
         storage.setString("native_basemap", baseMap.id)
         _isMapDark.value = baseMap.isDark
-        // Dark status bar background requires white text (isDarkContent = false)
-        PlatformUtils.setStatusBarContrast(false)
     }
 
     // Camera move event for Linked Portals & search navigation
@@ -302,6 +322,232 @@ class MainViewModel(
         _isFabMenuExpanded.value = false
     }
 
+    // Active native plugin sheet (e.g. "bookmarks", "portals-list", "draw-tools", or null)
+    private val _activePluginSheet = MutableStateFlow<String?>(null)
+    val activePluginSheet: StateFlow<String?> = _activePluginSheet.asStateFlow()
+
+    // Native Draw Tools state
+    private val _drawnShapes = MutableStateFlow<List<DrawnShape>>(emptyList())
+    val drawnShapes: StateFlow<List<DrawnShape>> = _drawnShapes.asStateFlow()
+
+    private val _isDrawingModeActive = MutableStateFlow(false)
+    val isDrawingModeActive: StateFlow<Boolean> = _isDrawingModeActive.asStateFlow()
+
+    private val _currentDrawingType = MutableStateFlow("polyline")
+    val currentDrawingType: StateFlow<String> = _currentDrawingType.asStateFlow()
+
+    private val _currentDrawingColor = MutableStateFlow("#a24ac3")
+    val currentDrawingColor: StateFlow<String> = _currentDrawingColor.asStateFlow()
+
+    private val _currentDrawingPoints = MutableStateFlow<List<ShapeLatLng>>(emptyList())
+    val currentDrawingPoints: StateFlow<List<ShapeLatLng>> = _currentDrawingPoints.asStateFlow()
+
+    // Native Bookmarks state
+    private val _bookmarkFolders = MutableStateFlow<List<BookmarkFolder>>(BookmarkSerializer.defaultFolders())
+    val bookmarkFolders: StateFlow<List<BookmarkFolder>> = _bookmarkFolders.asStateFlow()
+
+    val pluginHost: IitcPluginHost = object : IitcPluginHost {
+        override val visiblePortals: StateFlow<List<NativePortal>>
+            get() = _nativeMapPortals.asStateFlow()
+        override val selectedPortalGuid: StateFlow<String?>
+            get() = MutableStateFlow(_portalStatus.value.guid.takeIf { _portalStatus.value.hasSelected }).asStateFlow()
+        override val selectedPortal: StateFlow<PortalStatus>
+            get() = _portalStatus.asStateFlow()
+        override val drawnShapes: StateFlow<List<DrawnShape>>
+            get() = _drawnShapes.asStateFlow()
+        override val bookmarkFolders: StateFlow<List<BookmarkFolder>>
+            get() = _bookmarkFolders.asStateFlow()
+        override val isDrawingModeActive: StateFlow<Boolean>
+            get() = _isDrawingModeActive.asStateFlow()
+        override val currentDrawingType: StateFlow<String>
+            get() = _currentDrawingType.asStateFlow()
+        override val currentDrawingColor: StateFlow<String>
+            get() = _currentDrawingColor.asStateFlow()
+        override val currentDrawingPoints: StateFlow<List<ShapeLatLng>>
+            get() = _currentDrawingPoints.asStateFlow()
+
+        override fun flyTo(lat: Double, lng: Double, zoom: Double?) {
+            this@MainViewModel.flyTo(lat, lng, zoom)
+        }
+
+        override fun selectPortal(guid: String) {
+            this@MainViewModel.selectPortalByGuid(guid)
+        }
+
+        override fun deselectPortal() {
+            this@MainViewModel.deselectPortal()
+        }
+
+        override fun saveDrawnShapes(shapes: List<DrawnShape>) {
+            this@MainViewModel.saveDrawnShapes(shapes)
+        }
+
+        override fun saveBookmarkFolders(folders: List<BookmarkFolder>) {
+            this@MainViewModel.saveBookmarkFolders(folders)
+        }
+
+        override fun togglePortalBookmark(portal: NativePortal): Boolean {
+            return this@MainViewModel.togglePortalBookmark(portal)
+        }
+
+        override fun isPortalBookmarked(guid: String): Boolean {
+            return this@MainViewModel.isPortalBookmarked(guid)
+        }
+
+        override fun startDrawing(type: String, color: String) {
+            this@MainViewModel.startDrawing(type, color)
+        }
+
+        override fun addDrawingPoint(lat: Double, lng: Double) {
+            this@MainViewModel.addDrawingPoint(lat, lng)
+        }
+
+        override fun undoDrawingPoint() {
+            this@MainViewModel.undoDrawingPoint()
+        }
+
+        override fun finishDrawing() {
+            this@MainViewModel.finishDrawing()
+        }
+
+        override fun cancelDrawing() {
+            this@MainViewModel.cancelDrawing()
+        }
+
+        override fun setDrawingColor(color: String) {
+            _currentDrawingColor.value = color
+        }
+
+        override fun setDrawingType(type: String) {
+            _currentDrawingType.value = type
+        }
+
+        override fun showToast(message: String) {
+            PlatformUtils.showToast(message)
+        }
+
+        override fun executeJs(script: String) {
+            evaluateJs(script)
+        }
+    }
+
+    fun openPluginSheet(id: String) {
+        _isFabMenuExpanded.value = false
+        _activePluginSheet.value = id
+    }
+
+    fun closePluginSheet() {
+        _activePluginSheet.value = null
+    }
+
+    fun togglePluginSheet(id: String) {
+        if (_activePluginSheet.value == id) {
+            _activePluginSheet.value = null
+        } else {
+            openPluginSheet(id)
+        }
+    }
+
+    fun flyTo(lat: Double, lng: Double, zoom: Double? = null) {
+        evaluateJs(EventsToIitc.setMapCenterZoom(lat, lng, zoom))
+    }
+
+    fun selectPortalByGuid(guid: String) {
+        evaluateJs(EventsToIitc.selectPortal(guid))
+    }
+
+    fun saveDrawnShapes(shapes: List<DrawnShape>) {
+        _drawnShapes.value = shapes
+        val jsonStr = DrawnShape.toIitcJson(shapes)
+        storage.setString("plugin-draw-tools-layer", jsonStr)
+        evaluateJs(EventsToIitc.syncPluginStorage("plugin-draw-tools-layer", jsonStr))
+    }
+
+    fun saveBookmarkFolders(folders: List<BookmarkFolder>) {
+        _bookmarkFolders.value = folders
+        val jsonStr = BookmarkSerializer.toIitcJson(folders)
+        storage.setString("plugin-bookmarks-portals-data", jsonStr)
+        evaluateJs(EventsToIitc.syncPluginStorage("plugin-bookmarks-portals-data", jsonStr))
+    }
+
+    fun togglePortalBookmark(portal: NativePortal): Boolean {
+        val folders = _bookmarkFolders.value.toMutableList()
+        if (folders.isEmpty()) {
+            folders.add(BookmarkFolder("idOthers", "General", emptyList()))
+        }
+        val def = folders[0]
+        val existing = def.bookmarks.find { it.guid == portal.guid }
+        val updated = if (existing != null) {
+            folders[0] = def.copy(bookmarks = def.bookmarks.filter { it.guid != portal.guid })
+            false
+        } else {
+            folders[0] = def.copy(
+                bookmarks = def.bookmarks + PortalBookmark(
+                    guid = portal.guid,
+                    label = portal.title.ifBlank { "Portal" },
+                    lat = portal.lat,
+                    lng = portal.lng,
+                    team = portal.team,
+                    level = portal.level
+                )
+            )
+            true
+        }
+        saveBookmarkFolders(folders)
+        return updated
+    }
+
+    fun isPortalBookmarked(guid: String): Boolean {
+        if (guid.isBlank()) return false
+        return _bookmarkFolders.value.any { folder -> folder.bookmarks.any { it.guid == guid } }
+    }
+
+    fun startDrawing(type: String = "polyline", color: String = "#a24ac3") {
+        _isDrawingModeActive.value = true
+        _currentDrawingType.value = type
+        _currentDrawingColor.value = color
+        _currentDrawingPoints.value = emptyList()
+    }
+
+    fun addDrawingPoint(lat: Double, lng: Double) {
+        if (!_isDrawingModeActive.value) return
+        if (_currentDrawingType.value == "marker") {
+            _currentDrawingPoints.value = listOf(ShapeLatLng(lat, lng))
+            finishDrawing()
+        } else {
+            _currentDrawingPoints.value = _currentDrawingPoints.value + ShapeLatLng(lat, lng)
+        }
+    }
+
+    fun undoDrawingPoint() {
+        val pts = _currentDrawingPoints.value
+        if (pts.isNotEmpty()) {
+            _currentDrawingPoints.value = pts.dropLast(1)
+        }
+    }
+
+    fun finishDrawing() {
+        val pts = _currentDrawingPoints.value
+        val color = _currentDrawingColor.value
+        val type = _currentDrawingType.value
+        val newShape: DrawnShape? = when (type) {
+            "polyline" -> if (pts.size >= 2) DrawnShape.Polyline("shape_${System.currentTimeMillis()}", color, pts) else null
+            "polygon" -> if (pts.size >= 3) DrawnShape.Polygon("shape_${System.currentTimeMillis()}", color, pts) else null
+            "marker" -> if (pts.isNotEmpty()) DrawnShape.Marker("shape_${System.currentTimeMillis()}", color, pts.last()) else null
+            else -> null
+        }
+        if (newShape != null) {
+            saveDrawnShapes(_drawnShapes.value + newShape)
+            PlatformUtils.showToast("Saved drawn ${newShape::class.simpleName}")
+        }
+        cancelDrawing()
+    }
+
+    fun cancelDrawing() {
+        _isDrawingModeActive.value = false
+        _currentDrawingPoints.value = emptyList()
+    }
+
     fun expandPortalDetails() {
         _isPortalDetailsExpanded.value = true
     }
@@ -415,10 +661,21 @@ class MainViewModel(
             startLocationTracking()
         }
 
+        val savedDraw = storage.getString("plugin-draw-tools-layer", "")
+        if (savedDraw.isNotBlank()) {
+            val parsed = DrawnShape.parseIitcJson(savedDraw)
+            if (parsed.isNotEmpty()) _drawnShapes.value = parsed
+        }
+
+        val savedBookmarks = storage.getString("plugin-bookmarks-portals-data", "")
+        if (savedBookmarks.isNotBlank()) {
+            val parsed = BookmarkSerializer.parseIitcJson(savedBookmarks)
+            if (parsed.isNotEmpty()) _bookmarkFolders.value = parsed
+        }
+
         val savedBaseMap = NativeBaseMap.fromId(storage.getString("native_basemap", "dark"))
         _nativeBaseMap.value = savedBaseMap
         _isMapDark.value = savedBaseMap.isDark
-        PlatformUtils.setStatusBarContrast(false)
 
         scope.launch {
             manager.plugins.collect { pluginsMap ->
@@ -705,6 +962,18 @@ class MainViewModel(
     }
 
     fun handleBackPress(): Boolean {
+        // 0. If plugin sheet is open, close it
+        if (_activePluginSheet.value != null) {
+            _activePluginSheet.value = null
+            return true
+        }
+
+        // 0.1 If drawing mode is active, cancel drawing
+        if (_isDrawingModeActive.value) {
+            cancelDrawing()
+            return true
+        }
+
         // 1. If fab menu is expanded, collapse it
         if (_isFabMenuExpanded.value) {
             _isFabMenuExpanded.value = false
@@ -793,6 +1062,36 @@ class MainViewModel(
                 _isIitcLoaded.value = true
                 addLog("info", "IITC boot finished", "iitc")
                 evaluateJs(EventsToIitc.setSafeAreaInsets(top = 0f, bottom = 108f, left = 0f, right = 0f))
+                if (_drawnShapes.value.isNotEmpty()) {
+                    val dt = DrawnShape.toIitcJson(_drawnShapes.value)
+                    evaluateJs(EventsToIitc.syncPluginStorage("plugin-draw-tools-layer", dt))
+                }
+                if (_bookmarkFolders.value.any { it.bookmarks.isNotEmpty() }) {
+                    val bm = BookmarkSerializer.toIitcJson(_bookmarkFolders.value)
+                    evaluateJs(EventsToIitc.syncPluginStorage("plugin-bookmarks-portals-data", bm))
+                }
+            }
+            "syncPluginData" -> {
+                val key = data.jsonObject["key"]?.jsonPrimitive?.contentOrNull ?: ""
+                val value = data.jsonObject["value"]?.jsonPrimitive?.contentOrNull ?: ""
+                if (key == "plugin-draw-tools-layer" && value.isNotBlank()) {
+                    if (_drawnShapes.value.isEmpty()) {
+                        val parsed = DrawnShape.parseIitcJson(value)
+                        if (parsed.isNotEmpty()) {
+                            _drawnShapes.value = parsed
+                            storage.setString("plugin-draw-tools-layer", value)
+                        }
+                    }
+                } else if (key == "plugin-bookmarks-portals-data" && value.isNotBlank()) {
+                    val isDefault = _bookmarkFolders.value.size <= 1 && _bookmarkFolders.value.all { it.bookmarks.isEmpty() }
+                    if (isDefault) {
+                        val parsed = BookmarkSerializer.parseIitcJson(value)
+                        if (parsed.any { it.bookmarks.isNotEmpty() }) {
+                            _bookmarkFolders.value = parsed
+                            storage.setString("plugin-bookmarks-portals-data", value)
+                        }
+                    }
+                }
             }
             "setLayers" -> {
                 try {
@@ -1213,6 +1512,7 @@ class MainViewModel(
                     } else null
                 } ?: emptyList()
 
+                _nativeMapPortals.value = portalsList
                 _nativeMapEntities.value = NativeMapEntities(
                     portals = portalsList,
                     links = linksList,

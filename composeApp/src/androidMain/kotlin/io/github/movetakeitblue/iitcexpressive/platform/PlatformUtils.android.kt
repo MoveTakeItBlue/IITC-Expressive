@@ -110,6 +110,12 @@ actual object PlatformUtils {
         }
     }
 
+    actual fun showToast(message: String) {
+        if (message.isNotBlank()) {
+            Toast.makeText(PlatformContext.context, message, Toast.LENGTH_SHORT).show()
+        }
+    }
+
     actual fun readClipboardText(): String? {
         val cm = PlatformContext.context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         val clip = cm.primaryClip ?: return null

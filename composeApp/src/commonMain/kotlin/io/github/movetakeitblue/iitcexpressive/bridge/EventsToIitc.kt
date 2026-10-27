@@ -166,4 +166,34 @@ object EventsToIitc {
           } catch(e) {}
         })(); true;
     """.trimIndent()
+
+    fun selectPortal(guid: String): String {
+        val escaped = guid.replace("'", "\\'")
+        return "try { if (window.renderPortalDetails) window.renderPortalDetails('$escaped'); } catch(e) {}; true;"
+    }
+
+    fun setMapCenterZoom(lat: Double, lng: Double, zoom: Double? = null): String {
+        val zStr = if (zoom != null) zoom.toString() else "window.map?.getZoom() || 15"
+        return "try { window.map?.setView([$lat, $lng], $zStr); } catch(e) {}; true;"
+    }
+
+    fun syncPluginStorage(key: String, jsonValue: String): String {
+        val escapedKey = key.replace("'", "\\'")
+        val escapedVal = jsonValue.replace("\\", "\\\\").replace("'", "\\'").replace("\n", "\\n").replace("\r", "")
+        return """
+            (function() {
+                try {
+                    if (window.localStorage) {
+                        window.localStorage.setItem('$escapedKey', '$escapedVal');
+                    }
+                    if ('$escapedKey' === 'plugin-draw-tools-layer' && window.plugin && window.plugin.drawTools && typeof window.plugin.drawTools.load === 'function') {
+                        window.plugin.drawTools.load();
+                    }
+                    if ('$escapedKey' === 'plugin-bookmarks-portals-data' && window.plugin && window.plugin.bookmarks && typeof window.plugin.bookmarks.loadStorage === 'function') {
+                        window.plugin.bookmarks.loadStorage();
+                    }
+                } catch(e) {}
+            })(); true;
+        """.trimIndent()
+    }
 }

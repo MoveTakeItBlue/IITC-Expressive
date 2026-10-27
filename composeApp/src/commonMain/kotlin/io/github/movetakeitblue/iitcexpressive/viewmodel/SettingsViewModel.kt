@@ -23,11 +23,20 @@ class SettingsViewModel(
     private val _showLocation = MutableStateFlow(storage.getBoolean("show_location", false))
     val showLocation: StateFlow<Boolean> = _showLocation.asStateFlow()
 
+    val fullscreenMap: StateFlow<Boolean> = mainViewModel.isFullscreenMap
+
+    fun setFullscreenMap(enabled: Boolean) {
+        mainViewModel.setFullscreenMap(enabled)
+    }
+
     val nativeMapEnabled: StateFlow<Boolean> = mainViewModel.isNativeMapEnabled
 
     fun setNativeMapEnabled(enabled: Boolean) {
         mainViewModel.setNativeMapEnabled(enabled)
     }
+
+    val mapTextColor: StateFlow<String> = mainViewModel.mapTextColor
+    fun setMapTextColor(color: String) { mainViewModel.setMapTextColor(color) }
 
     val portalNameFontSize: StateFlow<Float> = mainViewModel.portalNameFontSize
     fun setPortalNameFontSize(size: Float) { mainViewModel.setPortalNameFontSize(size) }

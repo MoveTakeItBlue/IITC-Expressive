@@ -1,6 +1,10 @@
 package io.github.movetakeitblue.iitcexpressive.ui.settings
 
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import io.github.movetakeitblue.iitcexpressive.i18n.L
 import io.github.movetakeitblue.iitcexpressive.ui.common.ConfirmDialog
 import io.github.movetakeitblue.iitcexpressive.ui.common.SelectFieldDialog
@@ -21,7 +25,9 @@ fun SettingsView(
     val fakeUserAgent by viewModel.fakeUserAgent.collectAsState()
     val persistentZoom by viewModel.persistentZoom.collectAsState()
     val showLocation by viewModel.showLocation.collectAsState()
+    val fullscreenMap by viewModel.fullscreenMap.collectAsState()
     val nativeMapEnabled by viewModel.nativeMapEnabled.collectAsState()
+    val mapTextColor by viewModel.mapTextColor.collectAsState()
     val currentChannel by viewModel.currentChannel.collectAsState()
     val enabledPluginsCount by viewModel.enabledPluginsCount.collectAsState()
     val portalNameFontSize by viewModel.portalNameFontSize.collectAsState()
@@ -35,6 +41,9 @@ fun SettingsView(
     var showAgentFontDialog by remember { mutableStateOf(false) }
     var showFontFamilyDialog by remember { mutableStateOf(false) }
     var showPlayerIconScaleDialog by remember { mutableStateOf(false) }
+    var showMapTextColorDialog by remember { mutableStateOf(false) }
+    var showCustomColorDialog by remember { mutableStateOf(false) }
+    var customColorInput by remember { mutableStateOf("") }
 
     var showClearCookiesConfirm by remember { mutableStateOf(false) }
 
@@ -96,6 +105,84 @@ fun SettingsView(
         )
     }
 
+    val colorKeys = listOf("auto", "white", "black", "amber", "cyan", "green", "custom")
+    val colorLabels = listOf(
+        "自动 (跟随底图反色 - 推荐)",
+        "高光纯白 (#FFFFFF)",
+        "深邃纯黑 (#000000)",
+        "醒目琥珀黄 (#FFD600)",
+        "科技青蓝 (#00E5FF)",
+        "荧光翠绿 (#00FF66)",
+        "自定义十六进制色值 (HEX)..."
+    )
+
+    if (showMapTextColorDialog) {
+        val selectedIdx = when (mapTextColor.lowercase()) {
+            "auto" -> 0
+            "white" -> 1
+            "black" -> 2
+            "amber" -> 3
+            "cyan" -> 4
+            "green" -> 5
+            else -> 6
+        }
+        SelectFieldDialog(
+            title = "选择地图文字颜色",
+            items = colorLabels,
+            selectedIndex = selectedIdx,
+            onSelect = { idx ->
+                if (idx == 6) {
+                    customColorInput = if (mapTextColor !in listOf("auto", "white", "black", "amber", "cyan", "green")) mapTextColor else "#FFFFFF"
+                    showCustomColorDialog = true
+                } else {
+                    viewModel.setMapTextColor(colorKeys[idx])
+                }
+                showMapTextColorDialog = false
+            },
+            onDismiss = { showMapTextColorDialog = false }
+        )
+    }
+
+    if (showCustomColorDialog) {
+        var tempInput by remember { mutableStateOf(customColorInput) }
+        AlertDialog(
+            onDismissRequest = { showCustomColorDialog = false },
+            title = { Text("自定义地图文字颜色") },
+            text = {
+                Column {
+                    Text(
+                        text = "输入 6 位十六进制 HEX 颜色值（例如 #FFFFFF、#FFD600 或 #00FF66）：",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    OutlinedTextField(
+                        value = tempInput,
+                        onValueChange = { tempInput = it.trim() },
+                        singleLine = true,
+                        placeholder = { Text("#FFFFFF") }
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val formatted = if (tempInput.startsWith("#")) tempInput else "#$tempInput"
+                        viewModel.setMapTextColor(formatted)
+                        showCustomColorDialog = false
+                    }
+                ) {
+                    Text("保存")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showCustomColorDialog = false }) {
+                    Text("取消")
+                }
+            }
+        )
+    }
+
     val playerIconScales = listOf(1.0f, 1.25f, 1.5f, 1.75f, 2.0f)
     val playerIconScaleLabels = listOf("100% (标准)", "125%", "150% (默认 / 放大50%)", "175%", "200% (超大)")
 
@@ -134,11 +221,17 @@ fun SettingsView(
         // Map settings section
         SettingsSection(title = L("settings.section.map"))
         SwitchSettingsItem(
+            title = "全面屏显示地图",
+            description = "开启后地图延伸至顶部状态栏，提供更宽广的沉浸式视野",
+            checked = fullscreenMap,
+            onCheckedChange = { viewModel.setFullscreenMap(it) },
+            isFirst = true
+        )
+        SwitchSettingsItem(
             title = "原生硬件加速地图 (120fps)",
             description = "使用 MapLibre 硬件加速渲染地图与所有实体，大幅提升交互与缩放流畅度",
             checked = nativeMapEnabled,
-            onCheckedChange = { viewModel.setNativeMapEnabled(it) },
-            isFirst = true
+            onCheckedChange = { viewModel.setNativeMapEnabled(it) }
         )
         SwitchSettingsItem(
             title = L("settings.location.title"),
@@ -178,6 +271,20 @@ fun SettingsView(
                 else -> "${(playerIconScale * 100).toInt()}%"
             },
             onClick = { showPlayerIconScaleDialog = true }
+        )
+        val mapTextColorDesc = when (mapTextColor.lowercase()) {
+            "auto" -> "自动 (跟随底图反色 - 推荐)"
+            "white" -> "高光纯白 (#FFFFFF)"
+            "black" -> "深邃纯黑 (#000000)"
+            "amber" -> "醒目琥珀黄 (#FFD600)"
+            "cyan" -> "科技青蓝 (#00E5FF)"
+            "green" -> "荧光翠绿 (#00FF66)"
+            else -> "自定义 (${mapTextColor.uppercase()})"
+        }
+        NavSettingsItem(
+            title = "地图文字颜色",
+            description = mapTextColorDesc,
+            onClick = { showMapTextColorDialog = true }
         )
         NavSettingsItem(
             title = "地图文字字族",

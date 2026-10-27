@@ -12,6 +12,7 @@ expect object PlatformUtils {
     fun shareUrl(url: String, title: String = "")
     fun shareFile(filename: String, bytes: ByteArray, mimeType: String)
     fun copyToClipboard(text: String, toastMessage: String? = null)
+    fun showToast(message: String)
     fun readClipboardText(): String?
     fun hasClipboardUrl(): Boolean
     fun openInBrowser(url: String)

@@ -39,6 +39,8 @@ import org.maplibre.geojson.LineString
 import org.maplibre.geojson.Polygon
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import io.github.movetakeitblue.iitcexpressive.plugin.api.DrawnShape
+import io.github.movetakeitblue.iitcexpressive.plugin.api.ShapeLatLng
 
 private const val SOURCE_FIELDS = "iitc-fields-source"
 private const val SOURCE_LINKS = "iitc-links-source"
@@ -46,10 +48,18 @@ private const val SOURCE_PORTALS = "iitc-portals-source"
 private const val SOURCE_PORTAL_SELECTION = "iitc-portal-selection-source"
 private const val SOURCE_PLAYER_TRAILS = "iitc-player-trails-source"
 private const val SOURCE_PLAYER_MARKERS = "iitc-player-markers-source"
+private const val SOURCE_DRAW_POLYGONS = "iitc-draw-polygons-source"
+private const val SOURCE_DRAW_LINES = "iitc-draw-lines-source"
+private const val SOURCE_DRAW_MARKERS = "iitc-draw-markers-source"
 
 private const val LAYER_FIELDS_FILL = "iitc-fields-fill"
 private const val LAYER_FIELDS_STROKE = "iitc-fields-stroke"
 private const val LAYER_LINKS = "iitc-links-layer"
+private const val LAYER_DRAW_POLYGONS_FILL = "iitc-draw-polygons-fill"
+private const val LAYER_DRAW_POLYGONS_STROKE = "iitc-draw-polygons-stroke"
+private const val LAYER_DRAW_LINES = "iitc-draw-lines"
+private const val LAYER_DRAW_MARKERS_HALO = "iitc-draw-markers-halo"
+private const val LAYER_DRAW_MARKERS = "iitc-draw-markers"
 private const val LAYER_PORTAL_SELECTION_HALO = "iitc-portal-selection-halo"
 private const val LAYER_PORTAL_SELECTION_RING = "iitc-portal-selection-ring"
 private const val LAYER_PORTALS_HALO = "iitc-portals-halo"
@@ -60,6 +70,40 @@ private const val LAYER_PLAYER_TRAILS = "iitc-player-trails"
 private const val LAYER_PLAYER_MARKERS_HALO = "iitc-player-markers-halo"
 private const val LAYER_PLAYER_MARKERS = "iitc-player-markers"
 private const val LAYER_PLAYER_LABELS = "iitc-player-labels"
+
+private fun resolveEffectiveMapTextColor(textColorSetting: String, isDarkMap: Boolean): String {
+    return when (textColorSetting.lowercase()) {
+        "auto" -> if (isDarkMap) "#ffffff" else "#000000"
+        "white" -> "#ffffff"
+        "black" -> "#000000"
+        "amber" -> "#ffd600"
+        "cyan" -> "#00e5ff"
+        "green" -> "#00ff66"
+        else -> {
+            val trimmed = textColorSetting.trim()
+            if (trimmed.startsWith("#") && (trimmed.length == 7 || trimmed.length == 9)) {
+                trimmed
+            } else if (trimmed.length == 6 && trimmed.all { it.isDigit() || it in 'a'..'f' || it in 'A'..'F' }) {
+                "#$trimmed"
+            } else {
+                if (isDarkMap) "#ffffff" else "#000000"
+            }
+        }
+    }
+}
+
+private fun isHexColorDark(hexColor: String): Boolean {
+    return try {
+        val clean = hexColor.removePrefix("#")
+        val colorInt = clean.toLong(16).toInt()
+        val r = (colorInt shr 16) and 0xFF
+        val g = (colorInt shr 8) and 0xFF
+        val b = colorInt and 0xFF
+        (r * 0.299 + g * 0.587 + b * 0.114) < 128
+    } catch (e: Exception) {
+        false
+    }
+}
 
 private data class SelectedPortalInfo(
     val lat: Double,
@@ -475,6 +519,12 @@ actual fun NativeMapView(
     val mapFontBold by viewModel.mapFontBold.collectAsState()
     val mapTextHalo by viewModel.mapTextHalo.collectAsState()
     val playerIconScale by viewModel.playerIconScale.collectAsState()
+    val mapTextColor by viewModel.mapTextColor.collectAsState()
+    val drawnShapes by viewModel.drawnShapes.collectAsState()
+    val isDrawingModeActive by viewModel.isDrawingModeActive.collectAsState()
+    val currentDrawingType by viewModel.currentDrawingType.collectAsState()
+    val currentDrawingColor by viewModel.currentDrawingColor.collectAsState()
+    val currentDrawingPoints by viewModel.currentDrawingPoints.collectAsState()
 
     if (!isNativeMapEnabled) {
         return
@@ -492,6 +542,9 @@ actual fun NativeMapView(
         styleBuilder.withSource(GeoJsonSource(SOURCE_PORTAL_SELECTION))
         styleBuilder.withSource(GeoJsonSource(SOURCE_PLAYER_TRAILS))
         styleBuilder.withSource(GeoJsonSource(SOURCE_PLAYER_MARKERS))
+        styleBuilder.withSource(GeoJsonSource(SOURCE_DRAW_POLYGONS))
+        styleBuilder.withSource(GeoJsonSource(SOURCE_DRAW_LINES))
+        styleBuilder.withSource(GeoJsonSource(SOURCE_DRAW_MARKERS))
 
         // 1. Fields fill layer
         val fieldsFillLayer = FillLayer(LAYER_FIELDS_FILL, SOURCE_FIELDS).apply {
@@ -524,6 +577,58 @@ actual fun NativeMapView(
             )
         }
         styleBuilder.withLayer(linksLayer)
+
+        // Draw Tools - Polygon fill
+        val drawPolygonFill = FillLayer(LAYER_DRAW_POLYGONS_FILL, SOURCE_DRAW_POLYGONS).apply {
+            setProperties(
+                fillColor(get("color")),
+                fillOpacity(0.28f),
+                fillAntialias(true)
+            )
+        }
+        styleBuilder.withLayer(drawPolygonFill)
+
+        // Draw Tools - Polygon stroke
+        val drawPolygonStroke = LineLayer(LAYER_DRAW_POLYGONS_STROKE, SOURCE_DRAW_POLYGONS).apply {
+            setProperties(
+                lineColor(get("color")),
+                lineWidth(2.5f),
+                lineOpacity(0.9f)
+            )
+        }
+        styleBuilder.withLayer(drawPolygonStroke)
+
+        // Draw Tools - Polyline layer
+        val drawLinesLayer = LineLayer(LAYER_DRAW_LINES, SOURCE_DRAW_LINES).apply {
+            setProperties(
+                lineColor(get("color")),
+                lineWidth(3.0f),
+                lineOpacity(0.95f),
+                lineCap(Property.LINE_CAP_ROUND),
+                lineJoin(Property.LINE_JOIN_ROUND)
+            )
+        }
+        styleBuilder.withLayer(drawLinesLayer)
+
+        // Draw Tools - Markers halo & circle
+        val drawMarkersHalo = CircleLayer(LAYER_DRAW_MARKERS_HALO, SOURCE_DRAW_MARKERS).apply {
+            setProperties(
+                circleRadius(8.0f),
+                circleColor("#000000"),
+                circleOpacity(0.5f)
+            )
+        }
+        styleBuilder.withLayer(drawMarkersHalo)
+
+        val drawMarkersLayer = CircleLayer(LAYER_DRAW_MARKERS, SOURCE_DRAW_MARKERS).apply {
+            setProperties(
+                circleRadius(6.0f),
+                circleColor(get("color")),
+                circleStrokeWidth(2.0f),
+                circleStrokeColor("#ffffff")
+            )
+        }
+        styleBuilder.withLayer(drawMarkersLayer)
 
         // 4. Player Activity Tracker - Trails casing (dark outline for readability on all base maps)
         val playerTrailsCasing = LineLayer(LAYER_PLAYER_TRAILS_CASING, SOURCE_PLAYER_TRAILS).apply {
@@ -610,8 +715,10 @@ actual fun NativeMapView(
         styleBuilder.withImage("pin_other", pinOther)
 
         val fontStack = if (mapFontBold) arrayOf("Noto Sans Bold") else arrayOf("Noto Sans Regular")
+        val effectiveTextColor = resolveEffectiveMapTextColor(mapTextColor, baseMap.isDark)
+        val isTextDark = isHexColorDark(effectiveTextColor)
         val haloWidth = if (mapTextHalo) 1.2f else 0f
-        val haloColor = if (mapTextHalo) "#111415" else "rgba(0,0,0,0)"
+        val haloColor = if (mapTextHalo) (if (isTextDark) "#ffffff" else "#111415") else "rgba(0,0,0,0)"
         val agentTextOffsetY = -(8f + 15.2f * playerIconScale + 5f) / agentNameFontSize
 
         // 11. Player Activity Tracker - Agent position marker (hovers cleanly above portal)
@@ -628,12 +735,12 @@ actual fun NativeMapView(
         }
         styleBuilder.withLayer(playerMarkersLayer)
 
-        // 11b. Player Activity Tracker - Agent name label (portal icon center dark faction-colored, snug above triangle)
+        // 11b. Player Activity Tracker - Agent name label (theme contrast or custom color, snug above triangle)
         val playerLabelsLayer = SymbolLayer(LAYER_PLAYER_LABELS, SOURCE_PLAYER_MARKERS).apply {
             setProperties(
                 textField(get("sender")),
                 textSize(agentNameFontSize),
-                textColor(get("labelColor")),
+                textColor(effectiveTextColor),
                 textHaloColor(haloColor),
                 textHaloWidth(haloWidth),
                 textHaloBlur(0.2f),
@@ -646,12 +753,12 @@ actual fun NativeMapView(
         }
         styleBuilder.withLayer(playerLabelsLayer)
 
-        // 12. Portals title symbol layer (portal center dark faction-colored, on the right of portal)
+        // 12. Portals title symbol layer (theme contrast or custom color, on the right of portal)
         val portalTitlesLayer = SymbolLayer(LAYER_PORTALS_TITLE, SOURCE_PORTALS).apply {
             setProperties(
                 textField(get("title")),
                 textSize(portalNameFontSize),
-                textColor(get("titleColor")),
+                textColor(effectiveTextColor),
                 textHaloColor(haloColor),
                 textHaloWidth(haloWidth),
                 textHaloBlur(0.2f),
@@ -719,10 +826,11 @@ actual fun NativeMapView(
     }
 
     // Update GeoJSON layers when entities, highlighters, or player activity changes
-    LaunchedEffect(entities, selectedHighlighter, isPlayerTrackerEnabled, playerTrails, portalStatus, mapStyle, nativeBaseMap) {
+    LaunchedEffect(entities, selectedHighlighter, isPlayerTrackerEnabled, playerTrails, portalStatus, mapStyle, nativeBaseMap, mapTextColor, drawnShapes, isDrawingModeActive, currentDrawingPoints, currentDrawingType, currentDrawingColor) {
         val style = mapStyle ?: return@LaunchedEffect
         withContext(Dispatchers.Default) {
             val isGcj02 = nativeBaseMap.isGcj02
+            val effectiveTextColor = resolveEffectiveMapTextColor(mapTextColor, nativeBaseMap.isDark)
             val levelColors = listOf(
                 "#c0c7c7", "#fece5a", "#ffa630", "#ff7315", "#e40000",
                 "#fd2992", "#eb26cd", "#c124e0", "#9627f4"
@@ -746,7 +854,7 @@ actual fun NativeMapView(
                     3 -> Pair("#ff7164", "#7a1000") // MACHINA
                     else -> Pair("#c0c7c7", "#3c4043") // Neutral / Unclaimed: Gray
                 }
-                feat.addStringProperty("titleColor", baseFill)
+                feat.addStringProperty("titleColor", effectiveTextColor)
 
                 var strokeColor = baseStroke
                 var fillColor = baseFill
@@ -1011,13 +1119,7 @@ actual fun NativeMapView(
                     ptFeat.addStringProperty("sender", trail.sender)
                     ptFeat.addStringProperty("team", trail.team)
                     ptFeat.addStringProperty("color", color)
-                    val labelColor = when {
-                        teamUpper.contains("ENL") || teamUpper == "2" || teamUpper == "E" -> "#005a2e"
-                        teamUpper.contains("RES") || teamUpper == "1" || teamUpper == "R" -> "#004f7a"
-                        teamUpper.contains("MAC") || teamUpper == "3" || teamUpper == "M" -> "#7a1000"
-                        else -> "#3c4043"
-                    }
-                    ptFeat.addStringProperty("labelColor", labelColor)
+                    ptFeat.addStringProperty("labelColor", effectiveTextColor)
                     ptFeat.addStringProperty("portal", trail.latestPortalName)
                     ptFeat.addStringProperty("pinIcon", pinIcon)
                     markerFeatures.add(ptFeat)
@@ -1072,12 +1174,93 @@ actual fun NativeMapView(
                 }
             }
 
+            // Build Draw Tools features (Lines, Polygons, Markers)
+            val drawPolygonFeatures = ArrayList<Feature>()
+            val drawLineFeatures = ArrayList<Feature>()
+            val drawMarkerFeatures = ArrayList<Feature>()
+
+            // 1. Saved shapes
+            for (shape in drawnShapes) {
+                when (shape) {
+                    is DrawnShape.Polyline -> {
+                        if (shape.latLngs.size >= 2) {
+                            val pts = shape.latLngs.map { pt ->
+                                val (lat, lng) = if (isGcj02) CoordinateTransform.wgs84ToGcj02(pt.lat, pt.lng) else Pair(pt.lat, pt.lng)
+                                Point.fromLngLat(lng, lat)
+                            }
+                            val line = LineString.fromLngLats(pts)
+                            val feat = Feature.fromGeometry(line)
+                            feat.addStringProperty("color", shape.color)
+                            drawLineFeatures.add(feat)
+                        }
+                    }
+                    is DrawnShape.Polygon -> {
+                        if (shape.latLngs.size >= 3) {
+                            val pts = shape.latLngs.map { pt ->
+                                val (lat, lng) = if (isGcj02) CoordinateTransform.wgs84ToGcj02(pt.lat, pt.lng) else Pair(pt.lat, pt.lng)
+                                Point.fromLngLat(lng, lat)
+                            }
+                            val closedPts = if (pts.first() != pts.last()) pts + pts.first() else pts
+                            val poly = Polygon.fromLngLats(listOf(closedPts))
+                            val feat = Feature.fromGeometry(poly)
+                            feat.addStringProperty("color", shape.color)
+                            drawPolygonFeatures.add(feat)
+                        }
+                    }
+                    is DrawnShape.Circle -> {
+                        val (lat, lng) = if (isGcj02) CoordinateTransform.wgs84ToGcj02(shape.center.lat, shape.center.lng) else Pair(shape.center.lat, shape.center.lng)
+                        val feat = Feature.fromGeometry(Point.fromLngLat(lng, lat))
+                        feat.addStringProperty("color", shape.color)
+                        drawMarkerFeatures.add(feat)
+                    }
+                    is DrawnShape.Marker -> {
+                        val (lat, lng) = if (isGcj02) CoordinateTransform.wgs84ToGcj02(shape.latLng.lat, shape.latLng.lng) else Pair(shape.latLng.lat, shape.latLng.lng)
+                        val feat = Feature.fromGeometry(Point.fromLngLat(lng, lat))
+                        feat.addStringProperty("color", shape.color)
+                        drawMarkerFeatures.add(feat)
+                    }
+                }
+            }
+
+            // 2. In-progress drawing preview
+            if (isDrawingModeActive && currentDrawingPoints.isNotEmpty()) {
+                val previewPts = currentDrawingPoints.map { pt ->
+                    val (lat, lng) = if (isGcj02) CoordinateTransform.wgs84ToGcj02(pt.lat, pt.lng) else Pair(pt.lat, pt.lng)
+                    Point.fromLngLat(lng, lat)
+                }
+
+                // Vertex markers
+                for (pt in previewPts) {
+                    val feat = Feature.fromGeometry(pt)
+                    feat.addStringProperty("color", currentDrawingColor)
+                    drawMarkerFeatures.add(feat)
+                }
+
+                if (previewPts.size >= 2) {
+                    val line = LineString.fromLngLats(previewPts)
+                    val feat = Feature.fromGeometry(line)
+                    feat.addStringProperty("color", currentDrawingColor)
+                    drawLineFeatures.add(feat)
+                }
+
+                if (currentDrawingType == "polygon" && previewPts.size >= 3) {
+                    val closed = previewPts + previewPts.first()
+                    val poly = Polygon.fromLngLats(listOf(closed))
+                    val feat = Feature.fromGeometry(poly)
+                    feat.addStringProperty("color", currentDrawingColor)
+                    drawPolygonFeatures.add(feat)
+                }
+            }
+
             val portalCollection = FeatureCollection.fromFeatures(portalFeatures)
             val linkCollection = FeatureCollection.fromFeatures(linkFeatures)
             val fieldCollection = FeatureCollection.fromFeatures(fieldFeatures)
             val selectionCollection = FeatureCollection.fromFeatures(selectionFeatures)
             val trailCollection = FeatureCollection.fromFeatures(trailFeatures)
             val markerCollection = FeatureCollection.fromFeatures(markerFeatures)
+            val drawPolygonCollection = FeatureCollection.fromFeatures(drawPolygonFeatures)
+            val drawLineCollection = FeatureCollection.fromFeatures(drawLineFeatures)
+            val drawMarkerCollection = FeatureCollection.fromFeatures(drawMarkerFeatures)
 
             withContext(Dispatchers.Main) {
                 if (style.getImage("pin_enl") == null) {
@@ -1092,20 +1275,26 @@ actual fun NativeMapView(
                 style.getSourceAs<GeoJsonSource>(SOURCE_PORTAL_SELECTION)?.setGeoJson(selectionCollection)
                 style.getSourceAs<GeoJsonSource>(SOURCE_PLAYER_TRAILS)?.setGeoJson(trailCollection)
                 style.getSourceAs<GeoJsonSource>(SOURCE_PLAYER_MARKERS)?.setGeoJson(markerCollection)
+                style.getSourceAs<GeoJsonSource>(SOURCE_DRAW_POLYGONS)?.setGeoJson(drawPolygonCollection)
+                style.getSourceAs<GeoJsonSource>(SOURCE_DRAW_LINES)?.setGeoJson(drawLineCollection)
+                style.getSourceAs<GeoJsonSource>(SOURCE_DRAW_MARKERS)?.setGeoJson(drawMarkerCollection)
             }
         }
     }
 
-    // Dynamic reactive updates for typography & icon settings (font size, bold, halo, player icon scale)
-    LaunchedEffect(portalNameFontSize, agentNameFontSize, mapFontBold, mapTextHalo, playerIconScale, mapStyle) {
+    // Dynamic reactive updates for typography & icon settings (font size, bold, halo, player icon scale, text color)
+    LaunchedEffect(portalNameFontSize, agentNameFontSize, mapFontBold, mapTextHalo, playerIconScale, mapStyle, mapTextColor, nativeBaseMap) {
         val style = mapStyle ?: return@LaunchedEffect
         val fontStack = if (mapFontBold) arrayOf("Noto Sans Bold") else arrayOf("Noto Sans Regular")
+        val effectiveTextColor = resolveEffectiveMapTextColor(mapTextColor, nativeBaseMap.isDark)
+        val isTextDark = isHexColorDark(effectiveTextColor)
         val haloW = if (mapTextHalo) 1.2f else 0f
-        val haloC = if (mapTextHalo) "#111415" else "rgba(0,0,0,0)"
+        val haloC = if (mapTextHalo) (if (isTextDark) "#ffffff" else "#111415") else "rgba(0,0,0,0)"
         val agentTextOffsetY = -(8f + 15.2f * playerIconScale + 5f) / agentNameFontSize
 
         style.getLayerAs<SymbolLayer>(LAYER_PORTALS_TITLE)?.setProperties(
             textSize(portalNameFontSize),
+            textColor(effectiveTextColor),
             textFont(fontStack),
             textHaloWidth(haloW),
             textHaloColor(haloC),
@@ -1118,6 +1307,7 @@ actual fun NativeMapView(
         )
         style.getLayerAs<SymbolLayer>(LAYER_PLAYER_LABELS)?.setProperties(
             textSize(agentNameFontSize),
+            textColor(effectiveTextColor),
             textFont(fontStack),
             textHaloWidth(haloW),
             textHaloColor(haloC),
@@ -1177,6 +1367,30 @@ actual fun NativeMapView(
                             screenPoint.x + touchSlop,
                             screenPoint.y + touchSlop
                         )
+
+                        // If drawing mode is active in Draw Tools, intercept tap to add points!
+                        if (viewModel.isDrawingModeActive.value) {
+                            val portalFeatures = map.queryRenderedFeatures(touchBox, LAYER_PORTALS)
+                            if (portalFeatures.isNotEmpty()) {
+                                val pGeom = portalFeatures[0].geometry() as? Point
+                                if (pGeom != null) {
+                                    val (pWgsLat, pWgsLng) = if (nativeBaseMap.isGcj02) {
+                                        CoordinateTransform.gcj02ToWgs84(pGeom.latitude(), pGeom.longitude())
+                                    } else {
+                                        Pair(pGeom.latitude(), pGeom.longitude())
+                                    }
+                                    viewModel.addDrawingPoint(pWgsLat, pWgsLng)
+                                    return@addOnMapClickListener true
+                                }
+                            }
+                            val (wgsLat, wgsLng) = if (nativeBaseMap.isGcj02) {
+                                CoordinateTransform.gcj02ToWgs84(point.latitude, point.longitude)
+                            } else {
+                                Pair(point.latitude, point.longitude)
+                            }
+                            viewModel.addDrawingPoint(wgsLat, wgsLng)
+                            return@addOnMapClickListener true
+                        }
 
                         // 1. Query Portals near the tap point
                         val portalFeatures = map.queryRenderedFeatures(touchBox, LAYER_PORTALS)

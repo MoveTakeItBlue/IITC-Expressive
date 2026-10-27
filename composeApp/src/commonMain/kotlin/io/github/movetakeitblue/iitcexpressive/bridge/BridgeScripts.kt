@@ -660,7 +660,7 @@ body.light-map .leaflet-popup-pane .portal-name {
                 'setFollowMode', 'setMapDarkMode', 'setPortalStatus', 'setPortalDetails', 'setChatMessages', 'setMapStatus',
                 'setProgress', 'setPermalink', 'addInternalHostname', 'saveFile',
                 'reloadIITC', 'openDemo', 'dialogFocused', 'dialogOpened', 'spinnerEnabled',
-                'setEntities'
+                'setEntities', 'syncPluginData'
             ];
 
             var argNames = {
@@ -688,7 +688,8 @@ body.light-map .leaflet-popup-pane .portal-name {
                 dialogFocused: ['id'],
                 dialogOpened: ['id', 'open'],
                 spinnerEnabled: ['enabled'],
-                setEntities: ['data']
+                setEntities: ['data'],
+                syncPluginData: ['key', 'value']
             };
 
             syncEvents.forEach(function(evt) {
@@ -960,19 +961,27 @@ body.light-map .leaflet-popup-pane .portal-name {
                         sendPortalDetails(window.selectedPortal);
                     }
                 });
-                window.addHook('iitcLoaded', function() {
+                function triggerBootSync() {
                     if (bridge && bridge.bootFinished) {
                         bridge.bootFinished();
                     }
-                });
+                    try {
+                        if (window.localStorage && bridge && bridge.syncPluginData) {
+                            var dt = window.localStorage.getItem('plugin-draw-tools-layer');
+                            if (dt) bridge.syncPluginData('plugin-draw-tools-layer', dt);
+                            var bm = window.localStorage.getItem('plugin-bookmarks-portals-data');
+                            if (bm) bridge.syncPluginData('plugin-bookmarks-portals-data', bm);
+                        }
+                    } catch(e) {}
+                }
+
+                window.addHook('iitcLoaded', triggerBootSync);
 
                 if (window.selectedPortal) {
                     sendPortalDetails(window.selectedPortal);
                 }
                 if (window.iitcLoaded || window.bootDone || (window.map && window.portals)) {
-                    if (bridge && bridge.bootFinished) {
-                        bridge.bootFinished();
-                    }
+                    triggerBootSync();
                 }
 
                 if (window.chat && !window.chat.__m3e_hooked) {

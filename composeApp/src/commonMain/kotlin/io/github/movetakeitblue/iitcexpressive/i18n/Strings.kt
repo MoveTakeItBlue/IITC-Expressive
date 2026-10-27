@@ -21,6 +21,8 @@ object Strings {
         "settings.update_channel.title" to "Update channel",
         "settings.update_channel.description" to "Current: %s",
         "settings.section.map" to "Map settings",
+        "settings.fullscreen_map.title" to "Fullscreen map",
+        "settings.fullscreen_map.description" to "Extend map behind the status bar for an immersive view",
         "settings.location.title" to "Display user location on map",
         "settings.location.description" to "Show position marker and track location",
         "settings.persistent_zoom.title" to "Persistent zoom level",
