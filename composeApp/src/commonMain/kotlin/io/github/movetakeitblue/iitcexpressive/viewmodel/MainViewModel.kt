@@ -1215,7 +1215,7 @@ class MainViewModel(
                     if (guid.isNullOrBlank()) {
                         _portalStatus.value = PortalStatus()
                     } else {
-                        val d = data.jsonObject["details"]?.jsonObject
+                        val d = data.jsonObject["details"] as? JsonObject
                         if (d != null) {
                             val title = d["title"]?.jsonPrimitive?.contentOrNull?.ifBlank { null } ?: _portalStatus.value.title
                             val image = d["image"]?.jsonPrimitive?.contentOrNull?.ifBlank { null }
@@ -1333,28 +1333,28 @@ class MainViewModel(
             "setChatMessages" -> {
                 try {
                     val obj = data.jsonObject
-                    val channel = obj["channel"]?.jsonPrimitive?.contentOrNull ?: "all"
+                    val channel = (obj["channel"] as? JsonPrimitive)?.contentOrNull ?: "all"
                     val msgsElem = obj["messages"]
                     if (msgsElem is JsonArray) {
                         val parsedMsgs = msgsElem.mapNotNull { m ->
                             if (m is JsonObject) {
-                                val pObj = m["portal"]?.jsonObject
+                                val pObj = m["portal"] as? JsonObject
                                 val chatPortal = if (pObj != null) {
                                     ChatPortal(
-                                        name = pObj["name"]?.jsonPrimitive?.contentOrNull ?: "",
-                                        lat = pObj["lat"]?.jsonPrimitive?.doubleOrNull ?: 0.0,
-                                        lng = pObj["lng"]?.jsonPrimitive?.doubleOrNull ?: 0.0
+                                        name = (pObj["name"] as? JsonPrimitive)?.contentOrNull ?: "",
+                                        lat = (pObj["lat"] as? JsonPrimitive)?.doubleOrNull ?: 0.0,
+                                        lng = (pObj["lng"] as? JsonPrimitive)?.doubleOrNull ?: 0.0
                                     )
                                 } else null
 
                                 ChatMessage(
-                                    id = m["id"]?.jsonPrimitive?.contentOrNull ?: "",
-                                    time = m["time"]?.jsonPrimitive?.longOrNull ?: 0L,
-                                    formattedTime = m["formattedTime"]?.jsonPrimitive?.contentOrNull ?: "",
-                                    sender = m["sender"]?.jsonPrimitive?.contentOrNull ?: "",
-                                    team = m["team"]?.jsonPrimitive?.contentOrNull ?: "NEUTRAL",
-                                    text = m["text"]?.jsonPrimitive?.contentOrNull ?: "",
-                                    isSecure = m["isSecure"]?.jsonPrimitive?.booleanOrNull ?: false,
+                                    id = (m["id"] as? JsonPrimitive)?.contentOrNull ?: "",
+                                    time = (m["time"] as? JsonPrimitive)?.longOrNull ?: 0L,
+                                    formattedTime = (m["formattedTime"] as? JsonPrimitive)?.contentOrNull ?: "",
+                                    sender = (m["sender"] as? JsonPrimitive)?.contentOrNull ?: "",
+                                    team = (m["team"] as? JsonPrimitive)?.contentOrNull ?: "NEUTRAL",
+                                    text = (m["text"] as? JsonPrimitive)?.contentOrNull ?: "",
+                                    isSecure = (m["isSecure"] as? JsonPrimitive)?.booleanOrNull ?: false,
                                     portal = chatPortal
                                 )
                             } else null
@@ -1373,9 +1373,9 @@ class MainViewModel(
             "setMapStatus" -> {
                 try {
                     val obj = data.jsonObject
-                    val portalLevelsObj = obj["portalLevels"]?.jsonObject
-                    val mapStatusObj = obj["mapStatus"]?.jsonObject
-                    val requestsObj = obj["requests"]?.jsonObject
+                    val portalLevelsObj = obj["portalLevels"] as? JsonObject
+                    val mapStatusObj = obj["mapStatus"] as? JsonObject
+                    val requestsObj = obj["requests"] as? JsonObject
 
                     val pInfo = if (portalLevelsObj != null) {
                         PortalLevelsInfo(

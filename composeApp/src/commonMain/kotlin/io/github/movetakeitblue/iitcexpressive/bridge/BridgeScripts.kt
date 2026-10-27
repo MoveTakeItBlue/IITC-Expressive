@@ -1036,16 +1036,19 @@ body.light-map .leaflet-popup-pane .portal-name {
                         var hours = ('0' + date.getHours()).slice(-2);
                         var mins = ('0' + date.getMinutes()).slice(-2);
 
-                        list.push({
+                        var msgItem = {
                             id: keys[i],
                             time: time,
                             formattedTime: hours + ':' + mins,
                             sender: sender,
                             team: team,
                             text: text.trim(),
-                            isSecure: channel === 'faction',
-                            portal: portal
-                        });
+                            isSecure: channel === 'faction'
+                        };
+                        if (portal) {
+                            msgItem.portal = portal;
+                        }
+                        list.push(msgItem);
                     }
                     list.sort(function(a, b) { return a.time - b.time; });
                     bridge.setChatMessages(channel, list.slice(-100));
