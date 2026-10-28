@@ -69,7 +69,6 @@ private const val LAYER_PLAYER_TRAILS_CASING = "iitc-player-trails-casing"
 private const val LAYER_PLAYER_TRAILS = "iitc-player-trails"
 private const val LAYER_PLAYER_MARKERS_HALO = "iitc-player-markers-halo"
 private const val LAYER_PLAYER_MARKERS = "iitc-player-markers"
-private const val LAYER_PLAYER_LABELS = "iitc-player-labels"
 
 private fun resolveEffectiveMapTextColor(textColorSetting: String, isDarkMap: Boolean): String {
     return when (textColorSetting.lowercase()) {
@@ -113,59 +112,156 @@ private data class SelectedPortalInfo(
 )
 
 /**
- * Creates a bold, conspicuous M3E inverted triangle (倒三角形) player marker bitmap.
+ * Creates an M3E tactical speech bubble bitmap popping out to the right of the portal.
+ * - Arrow/pointer on the left pointing towards the portal icon
+ * - Dark faction container background fill
+ * - Crisp pure white agent codename text inside
+ * - Subtle faction accent outline and drop shadow
  */
-private fun createPlayerPinBitmap(colorHex: String): android.graphics.Bitmap {
-    val width = 56
-    val height = 44
-    val bitmap = android.graphics.Bitmap.createBitmap(width, height, android.graphics.Bitmap.Config.ARGB_8888)
-    val canvas = android.graphics.Canvas(bitmap)
-
-    val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
-        isDither = true
+private fun createAgentSpeechBubbleBitmap(
+    sender: String,
+    team: String,
+    fontSizeSp: Float,
+    density: Float,
+    densityDpi: Int,
+    isBold: Boolean = true
+): android.graphics.Bitmap {
+    val teamUpper = team.uppercase()
+    val (bgColor, strokeColor) = when {
+        teamUpper.contains("ENL") || teamUpper == "2" || teamUpper == "E" -> Pair("#00522B", "#4EDE92") // Dark emerald, mint accent
+        teamUpper.contains("RES") || teamUpper == "1" || teamUpper == "R" -> Pair("#004785", "#6BB5FF") // Dark sapphire, blue accent
+        teamUpper.contains("MAC") || teamUpper == "3" || teamUpper == "M" -> Pair("#680009", "#FF7171") // Dark crimson, red accent
+        else -> Pair("#282B2D", "#C0C7C7") // Dark charcoal, gray accent
     }
-    val pinColor = try {
-        android.graphics.Color.parseColor(colorHex)
-    } catch (e: Exception) {
+
+    val bgParsed = try {
+        android.graphics.Color.parseColor(bgColor)
+    } catch (_: Exception) {
+        android.graphics.Color.parseColor("#004785")
+    }
+    val strokeParsed = try {
+        android.graphics.Color.parseColor(strokeColor)
+    } catch (_: Exception) {
         android.graphics.Color.WHITE
     }
 
-    val cx = width / 2f
-    val topY = 4f
-    val tipY = 40f
-    val halfWidth = 22f
+    val displayName = sender.ifBlank { "Agent" }
 
-    // 1. Soft drop shadow (offset Y + 2.5px)
-    paint.style = android.graphics.Paint.Style.FILL
-    paint.color = android.graphics.Color.argb(110, 0, 0, 0)
-    val shadowPath = android.graphics.Path().apply {
-        moveTo(cx - halfWidth, topY + 2.5f)
-        lineTo(cx + halfWidth, topY + 2.5f)
-        lineTo(cx, tipY + 2.5f)
-        close()
-    }
-    canvas.drawPath(shadowPath, paint)
-
-    // 2. Inverted Triangle Main Path (pointing down towards the portal)
-    val trianglePath = android.graphics.Path().apply {
-        moveTo(cx - halfWidth, topY)
-        lineTo(cx + halfWidth, topY)
-        lineTo(cx, tipY)
-        close()
+    val textPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+        color = android.graphics.Color.WHITE
+        textSize = fontSizeSp * density
+        typeface = if (isBold) android.graphics.Typeface.DEFAULT_BOLD else android.graphics.Typeface.DEFAULT
+        textAlign = android.graphics.Paint.Align.LEFT
+        isDither = true
     }
 
-    // Outer dark high-contrast border (3.5px) for clear visibility on all base maps
-    paint.style = android.graphics.Paint.Style.STROKE
-    paint.strokeWidth = 3.5f
-    paint.strokeJoin = android.graphics.Paint.Join.ROUND
-    paint.strokeCap = android.graphics.Paint.Cap.ROUND
-    paint.color = android.graphics.Color.argb(240, 17, 20, 21)
-    canvas.drawPath(trianglePath, paint)
+    val fillPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+        style = android.graphics.Paint.Style.FILL
+        color = bgParsed
+        isDither = true
+    }
 
-    // Solid faction vibrant color fill (实心倒三角)
-    paint.style = android.graphics.Paint.Style.FILL
-    paint.color = pinColor
-    canvas.drawPath(trianglePath, paint)
+    val strokePaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+        style = android.graphics.Paint.Style.STROKE
+        color = android.graphics.Color.argb(
+            200,
+            android.graphics.Color.red(strokeParsed),
+            android.graphics.Color.green(strokeParsed),
+            android.graphics.Color.blue(strokeParsed)
+        )
+        strokeWidth = 1.2f * density
+        strokeJoin = android.graphics.Paint.Join.ROUND
+        strokeCap = android.graphics.Paint.Cap.ROUND
+        isDither = true
+    }
+
+    val shadowPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+        style = android.graphics.Paint.Style.FILL
+        color = android.graphics.Color.argb(85, 0, 0, 0)
+        isDither = true
+    }
+
+    val textWidth = textPaint.measureText(displayName)
+    val fontMetrics = textPaint.fontMetrics
+    val textHeight = fontMetrics.descent - fontMetrics.ascent
+
+    val paddingHoriz = 7.5f * density
+    val paddingVert = 3.5f * density
+    val cornerRadius = 6f * density
+
+    val pointerW = 6f * density // Horizontal length of triangle pointer pointing left
+    val pointerH = 8f * density // Base height of triangle pointer
+
+    val shadowPadX = 3f * density
+    val shadowPadY = 3f * density
+    val shadowOffsetY = 1.5f * density
+
+    val bodyW = textWidth + paddingHoriz * 2f
+    val bodyH = textHeight + paddingVert * 2f
+
+    val totalW = (shadowPadX + pointerW + bodyW + shadowPadX).toInt().coerceAtLeast(1)
+    val totalH = (shadowPadY + bodyH + shadowPadY + shadowOffsetY).toInt().coerceAtLeast(1)
+
+    val left = shadowPadX + pointerW
+    val top = shadowPadY
+    val right = left + bodyW
+    val bottom = top + bodyH
+    val centerY = (top + bottom) / 2f
+    val tipX = shadowPadX
+    val pointerHalfH = pointerH / 2f
+
+    fun buildBubblePath(offsetY: Float = 0f): android.graphics.Path {
+        val p = android.graphics.Path()
+        val t = top + offsetY
+        val b = bottom + offsetY
+        val cy = centerY + offsetY
+        val r = cornerRadius
+
+        // Arrow top base on body left edge
+        p.moveTo(left, cy - pointerHalfH)
+        // Arrow tip pointing left towards portal
+        p.lineTo(tipX, cy)
+        // Arrow bottom base
+        p.lineTo(left, cy + pointerHalfH)
+        // Down body left side
+        p.lineTo(left, b - r)
+        // Bottom-left rounded arc
+        p.quadTo(left, b, left + r, b)
+        // Bottom edge
+        p.lineTo(right - r, b)
+        // Bottom-right rounded arc
+        p.quadTo(right, b, right, b - r)
+        // Right edge
+        p.lineTo(right, t + r)
+        // Top-right rounded arc
+        p.quadTo(right, t, right - r, t)
+        // Top edge
+        p.lineTo(left + r, t)
+        // Top-left rounded arc
+        p.quadTo(left, t, left, t + r)
+        // Close back to arrow top base
+        p.close()
+        return p
+    }
+
+    val bitmap = android.graphics.Bitmap.createBitmap(totalW, totalH, android.graphics.Bitmap.Config.ARGB_8888)
+    bitmap.density = densityDpi
+    val canvas = android.graphics.Canvas(bitmap)
+
+    // 1. Soft Drop Shadow
+    val shadowPath = buildBubblePath(offsetY = shadowOffsetY)
+    canvas.drawPath(shadowPath, shadowPaint)
+
+    // 2. Dark Faction Fill
+    val bubblePath = buildBubblePath(offsetY = 0f)
+    canvas.drawPath(bubblePath, fillPaint)
+
+    // 3. Subtle Faction Accent Stroke
+    canvas.drawPath(bubblePath, strokePaint)
+
+    // 4. Pure White Agent Codename
+    val textBaselineY = centerY - (fontMetrics.descent + fontMetrics.ascent) / 2f
+    canvas.drawText(displayName, left + paddingHoriz, textBaselineY, textPaint)
 
     return bitmap
 }
@@ -505,6 +601,7 @@ actual fun NativeMapView(
 
     var mapLibreMap by remember { mutableStateOf<MapLibreMap?>(null) }
     var mapStyle by remember { mutableStateOf<Style?>(null) }
+    val bubbleBitmapCache = remember { mutableMapOf<String, android.graphics.Bitmap>() }
 
     val entities by viewModel.nativeMapEntities.collectAsState()
     val isNativeMapEnabled by viewModel.isNativeMapEnabled.collectAsState()
@@ -703,55 +800,43 @@ actual fun NativeMapView(
         }
         styleBuilder.withLayer(portalsLayer)
 
-        // Pre-register Player Pin Marker Bitmaps
-        val pinRes = createPlayerPinBitmap("#70d2ff")
-        val pinEnl = createPlayerPinBitmap("#66dc96")
-        val pinMac = createPlayerPinBitmap("#ff7164")
-        val pinOther = createPlayerPinBitmap("#ffa630")
-
-        styleBuilder.withImage("pin_res", pinRes)
-        styleBuilder.withImage("pin_enl", pinEnl)
-        styleBuilder.withImage("pin_mac", pinMac)
-        styleBuilder.withImage("pin_other", pinOther)
-
         val fontStack = if (mapFontBold) arrayOf("Noto Sans Bold") else arrayOf("Noto Sans Regular")
         val effectiveTextColor = resolveEffectiveMapTextColor(mapTextColor, baseMap.isDark)
         val isTextDark = isHexColorDark(effectiveTextColor)
         val haloWidth = if (mapTextHalo) 1.2f else 0f
         val haloColor = if (mapTextHalo) (if (isTextDark) "#ffffff" else "#111415") else "rgba(0,0,0,0)"
-        val agentTextOffsetY = -(8f + 15.2f * playerIconScale + 5f) / agentNameFontSize
 
-        // 11. Player Activity Tracker - Agent position marker (hovers cleanly above portal)
+        // Pre-register any active Player Speech Bubble Bitmaps
+        val density = context.resources.displayMetrics.density
+        val densityDpi = context.resources.displayMetrics.densityDpi
+        for (trail in viewModel.playerTrails.value) {
+            val bubbleKey = "bubble_${trail.sender}_${trail.team}_${agentNameFontSize.toInt()}_${if (mapFontBold) "1" else "0"}"
+            val bmp = bubbleBitmapCache.getOrPut(bubbleKey) {
+                createAgentSpeechBubbleBitmap(
+                    sender = trail.sender,
+                    team = trail.team,
+                    fontSizeSp = agentNameFontSize,
+                    density = density,
+                    densityDpi = densityDpi,
+                    isBold = mapFontBold
+                )
+            }
+            styleBuilder.withImage(bubbleKey, bmp)
+        }
+
+        // 11. Player Activity Tracker - Agent speech bubble marker (pops out right from portal icon)
         val playerMarkersLayer = SymbolLayer(LAYER_PLAYER_MARKERS, SOURCE_PLAYER_MARKERS).apply {
             setProperties(
-                iconImage(get("pinIcon")),
-                iconSize(playerIconScale),
-                iconAnchor(Property.ICON_ANCHOR_BOTTOM),
-                iconOffset(arrayOf(0f, -8f)),
+                iconImage(get("bubbleIcon")),
+                iconSize(playerIconScale / 1.5f),
+                iconAnchor(Property.ICON_ANCHOR_LEFT),
+                iconOffset(arrayOf(10f, 0f)),
                 iconAllowOverlap(true),
-                iconIgnorePlacement(true),
+                iconIgnorePlacement(false),
                 iconOptional(false)
             )
         }
         styleBuilder.withLayer(playerMarkersLayer)
-
-        // 11b. Player Activity Tracker - Agent name label (theme contrast or custom color, snug above triangle)
-        val playerLabelsLayer = SymbolLayer(LAYER_PLAYER_LABELS, SOURCE_PLAYER_MARKERS).apply {
-            setProperties(
-                textField(get("sender")),
-                textSize(agentNameFontSize),
-                textColor(effectiveTextColor),
-                textHaloColor(haloColor),
-                textHaloWidth(haloWidth),
-                textHaloBlur(0.2f),
-                textAnchor(Property.TEXT_ANCHOR_BOTTOM),
-                textOffset(arrayOf(0f, agentTextOffsetY)),
-                textFont(fontStack),
-                textAllowOverlap(true),
-                textIgnorePlacement(false)
-            )
-        }
-        styleBuilder.withLayer(playerLabelsLayer)
 
         // 12. Portals title symbol layer (theme contrast or custom color, on the right of portal)
         val portalTitlesLayer = SymbolLayer(LAYER_PORTALS_TITLE, SOURCE_PORTALS).apply {
@@ -774,10 +859,6 @@ actual fun NativeMapView(
         styleBuilder.withLayer(portalTitlesLayer)
 
         map.setStyle(styleBuilder) { loadedStyle ->
-            loadedStyle.addImage("pin_res", pinRes)
-            loadedStyle.addImage("pin_enl", pinEnl)
-            loadedStyle.addImage("pin_mac", pinMac)
-            loadedStyle.addImage("pin_other", pinOther)
             mapStyle = loadedStyle
         }
     }
@@ -826,7 +907,7 @@ actual fun NativeMapView(
     }
 
     // Update GeoJSON layers when entities, highlighters, or player activity changes
-    LaunchedEffect(entities, selectedHighlighter, isPlayerTrackerEnabled, playerTrails, portalStatus, mapStyle, nativeBaseMap, mapTextColor, drawnShapes, isDrawingModeActive, currentDrawingPoints, currentDrawingType, currentDrawingColor) {
+    LaunchedEffect(entities, selectedHighlighter, isPlayerTrackerEnabled, playerTrails, portalStatus, mapStyle, nativeBaseMap, mapTextColor, drawnShapes, isDrawingModeActive, currentDrawingPoints, currentDrawingType, currentDrawingColor, agentNameFontSize, mapFontBold) {
         val style = mapStyle ?: return@LaunchedEffect
         withContext(Dispatchers.Default) {
             val isGcj02 = nativeBaseMap.isGcj02
@@ -1084,7 +1165,12 @@ actual fun NativeMapView(
             // Build Player Activity Tracker features
             val trailFeatures = ArrayList<Feature>()
             val markerFeatures = ArrayList<Feature>()
+            val bubbleBitmapsToAdd = ArrayList<Pair<String, android.graphics.Bitmap>>()
+
             if (isPlayerTrackerEnabled && playerTrails.isNotEmpty()) {
+                val density = context.resources.displayMetrics.density
+                val densityDpi = context.resources.displayMetrics.densityDpi
+
                 for (trail in playerTrails) {
                     val teamUpper = trail.team.uppercase()
                     val color = when {
@@ -1092,12 +1178,6 @@ actual fun NativeMapView(
                         teamUpper.contains("RES") || teamUpper == "1" || teamUpper == "R" -> "#70d2ff"
                         teamUpper.contains("MAC") || teamUpper == "3" || teamUpper == "M" -> "#ff7164"
                         else -> "#c0c7c7"
-                    }
-                    val pinIcon = when {
-                        teamUpper.contains("ENL") || teamUpper == "2" || teamUpper == "E" -> "pin_enl"
-                        teamUpper.contains("RES") || teamUpper == "1" || teamUpper == "R" -> "pin_res"
-                        teamUpper.contains("MAC") || teamUpper == "3" || teamUpper == "M" -> "pin_mac"
-                        else -> "pin_other"
                     }
 
                     if (trail.points.size >= 2) {
@@ -1119,10 +1199,23 @@ actual fun NativeMapView(
                     ptFeat.addStringProperty("sender", trail.sender)
                     ptFeat.addStringProperty("team", trail.team)
                     ptFeat.addStringProperty("color", color)
-                    ptFeat.addStringProperty("labelColor", effectiveTextColor)
                     ptFeat.addStringProperty("portal", trail.latestPortalName)
-                    ptFeat.addStringProperty("pinIcon", pinIcon)
+
+                    val bubbleKey = "bubble_${trail.sender}_${trail.team}_${agentNameFontSize.toInt()}_${if (mapFontBold) "1" else "0"}"
+                    ptFeat.addStringProperty("bubbleIcon", bubbleKey)
                     markerFeatures.add(ptFeat)
+
+                    val bmp = bubbleBitmapCache.getOrPut(bubbleKey) {
+                        createAgentSpeechBubbleBitmap(
+                            sender = trail.sender,
+                            team = trail.team,
+                            fontSizeSp = agentNameFontSize,
+                            density = density,
+                            densityDpi = densityDpi,
+                            isBold = mapFontBold
+                        )
+                    }
+                    bubbleBitmapsToAdd.add(Pair(bubbleKey, bmp))
                 }
             }
 
@@ -1263,11 +1356,10 @@ actual fun NativeMapView(
             val drawMarkerCollection = FeatureCollection.fromFeatures(drawMarkerFeatures)
 
             withContext(Dispatchers.Main) {
-                if (style.getImage("pin_enl") == null) {
-                    style.addImage("pin_res", createPlayerPinBitmap("#70d2ff"))
-                    style.addImage("pin_enl", createPlayerPinBitmap("#66dc96"))
-                    style.addImage("pin_mac", createPlayerPinBitmap("#ff7164"))
-                    style.addImage("pin_other", createPlayerPinBitmap("#ffa630"))
+                for ((key, bmp) in bubbleBitmapsToAdd) {
+                    if (style.getImage(key) == null) {
+                        style.addImage(key, bmp)
+                    }
                 }
                 style.getSourceAs<GeoJsonSource>(SOURCE_FIELDS)?.setGeoJson(fieldCollection)
                 style.getSourceAs<GeoJsonSource>(SOURCE_LINKS)?.setGeoJson(linkCollection)
@@ -1290,7 +1382,6 @@ actual fun NativeMapView(
         val isTextDark = isHexColorDark(effectiveTextColor)
         val haloW = if (mapTextHalo) 1.2f else 0f
         val haloC = if (mapTextHalo) (if (isTextDark) "#ffffff" else "#111415") else "rgba(0,0,0,0)"
-        val agentTextOffsetY = -(8f + 15.2f * playerIconScale + 5f) / agentNameFontSize
 
         style.getLayerAs<SymbolLayer>(LAYER_PORTALS_TITLE)?.setProperties(
             textSize(portalNameFontSize),
@@ -1302,16 +1393,8 @@ actual fun NativeMapView(
             textOffset(arrayOf(1.1f, 0f))
         )
         style.getLayerAs<SymbolLayer>(LAYER_PLAYER_MARKERS)?.setProperties(
-            iconSize(playerIconScale),
-            iconOffset(arrayOf(0f, -8f))
-        )
-        style.getLayerAs<SymbolLayer>(LAYER_PLAYER_LABELS)?.setProperties(
-            textSize(agentNameFontSize),
-            textColor(effectiveTextColor),
-            textFont(fontStack),
-            textHaloWidth(haloW),
-            textHaloColor(haloC),
-            textOffset(arrayOf(0f, agentTextOffsetY))
+            iconSize(playerIconScale / 1.5f),
+            iconOffset(arrayOf(10f, 0f))
         )
     }
 
@@ -1395,19 +1478,19 @@ actual fun NativeMapView(
                         // 1. Query Portals near the tap point
                         val portalFeatures = map.queryRenderedFeatures(touchBox, LAYER_PORTALS)
 
-                        // 2. Query Player Pin Markers near the tap point
-                        val playerMarkerFeatures = map.queryRenderedFeatures(touchBox, LAYER_PLAYER_MARKERS, LAYER_PLAYER_LABELS)
+                        // 2. Query Player Speech Bubble Markers near the tap point
+                        val playerMarkerFeatures = map.queryRenderedFeatures(touchBox, LAYER_PLAYER_MARKERS)
 
                         // Case A: A portal is within touch range
                         if (portalFeatures.isNotEmpty()) {
-                            // If player marker is also nearby, check if the tap was specifically above the portal
-                            // on the player pin (which is anchored ~14-44dp above the portal)
+                            // If player marker is also nearby, check if the tap was specifically to the right of the portal
+                            // on the speech bubble (which pops out to the right of the portal icon)
                             var clickedPlayerPin = false
                             if (playerMarkerFeatures.isNotEmpty()) {
                                 val pGeom = portalFeatures[0].geometry() as? Point
                                 if (pGeom != null) {
                                     val portalScreen = map.projection.toScreenLocation(LatLng(pGeom.latitude(), pGeom.longitude()))
-                                    if (screenPoint.y < portalScreen.y - 12f) {
+                                    if (screenPoint.x > portalScreen.x + 6f) {
                                         clickedPlayerPin = true
                                     }
                                 }
