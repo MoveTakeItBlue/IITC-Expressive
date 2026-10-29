@@ -10,6 +10,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import io.github.movetakeitblue.iitcexpressive.model.NativeBaseMap
 import io.github.movetakeitblue.iitcexpressive.model.NativeMapEntities
+import io.github.movetakeitblue.iitcexpressive.model.NativePortal
 import io.github.movetakeitblue.iitcexpressive.model.PlayerActivityPoint
 import io.github.movetakeitblue.iitcexpressive.model.PlayerTrail
 import io.github.movetakeitblue.iitcexpressive.platform.PlatformUtils
@@ -111,41 +112,86 @@ private data class SelectedPortalInfo(
     val team: Int
 )
 
+private data class AgentBubbleItem(
+    val sender: String,
+    val team: String
+)
+
+private data class PortalTrailGroup(
+    val lat: Double,
+    val lng: Double,
+    val portalName: String,
+    val matchedPortalGuid: String?,
+    val trails: MutableList<PlayerTrail> = mutableListOf()
+)
+
+private fun groupPlayerTrailsByPortal(
+    trails: List<PlayerTrail>,
+    portals: List<NativePortal>
+): List<PortalTrailGroup> {
+    if (trails.isEmpty()) return emptyList()
+    val groups = mutableListOf<PortalTrailGroup>()
+
+    for (trail in trails) {
+        val existingGroup = groups.find { g ->
+            val latDiff = kotlin.math.abs(g.lat - trail.latestLat)
+            val lngDiff = kotlin.math.abs(g.lng - trail.latestLng)
+            (latDiff < 0.0001 && lngDiff < 0.0001) ||
+                (g.portalName.isNotBlank() && trail.latestPortalName.isNotBlank() && g.portalName == trail.latestPortalName && latDiff < 0.0005 && lngDiff < 0.0005)
+        }
+
+        if (existingGroup != null) {
+            existingGroup.trails.add(trail)
+        } else {
+            val matchedPortal = portals.find { p ->
+                val latDiff = kotlin.math.abs(p.lat - trail.latestLat)
+                val lngDiff = kotlin.math.abs(p.lng - trail.latestLng)
+                (latDiff < 0.0001 && lngDiff < 0.0001) ||
+                    (p.title.isNotBlank() && trail.latestPortalName.isNotBlank() && p.title == trail.latestPortalName && latDiff < 0.0005 && lngDiff < 0.0005)
+            }
+            val groupLat = matchedPortal?.lat ?: trail.latestLat
+            val groupLng = matchedPortal?.lng ?: trail.latestLng
+            val groupName = matchedPortal?.title?.ifBlank { trail.latestPortalName } ?: trail.latestPortalName
+            val groupGuid = matchedPortal?.guid
+
+            groups.add(
+                PortalTrailGroup(
+                    lat = groupLat,
+                    lng = groupLng,
+                    portalName = groupName,
+                    matchedPortalGuid = groupGuid,
+                    trails = mutableListOf(trail)
+                )
+            )
+        }
+    }
+
+    for (g in groups) {
+        g.trails.sortByDescending { it.lastSeenTime }
+    }
+    return groups
+}
+
 /**
  * Creates an M3E tactical speech bubble bitmap popping out to the right of the portal.
+ * Supports multiple agents arranged vertically from top to bottom.
  * - Arrow/pointer on the left pointing towards the portal icon
- * - Dark faction container background fill
+ * - Dark faction container background fill for each agent
  * - Crisp pure white agent codename text inside
  * - Subtle faction accent outline and drop shadow
  */
 private fun createAgentSpeechBubbleBitmap(
-    sender: String,
-    team: String,
+    agents: List<AgentBubbleItem>,
     fontSizeSp: Float,
     density: Float,
     densityDpi: Int,
     isBold: Boolean = true
 ): android.graphics.Bitmap {
-    val teamUpper = team.uppercase()
-    val (bgColor, strokeColor) = when {
-        teamUpper.contains("ENL") || teamUpper == "2" || teamUpper == "E" -> Pair("#00522B", "#4EDE92") // Dark emerald, mint accent
-        teamUpper.contains("RES") || teamUpper == "1" || teamUpper == "R" -> Pair("#004785", "#6BB5FF") // Dark sapphire, blue accent
-        teamUpper.contains("MAC") || teamUpper == "3" || teamUpper == "M" -> Pair("#680009", "#FF7171") // Dark crimson, red accent
-        else -> Pair("#282B2D", "#C0C7C7") // Dark charcoal, gray accent
+    if (agents.isEmpty()) {
+        val bmp = android.graphics.Bitmap.createBitmap(1, 1, android.graphics.Bitmap.Config.ARGB_8888)
+        bmp.density = densityDpi
+        return bmp
     }
-
-    val bgParsed = try {
-        android.graphics.Color.parseColor(bgColor)
-    } catch (_: Exception) {
-        android.graphics.Color.parseColor("#004785")
-    }
-    val strokeParsed = try {
-        android.graphics.Color.parseColor(strokeColor)
-    } catch (_: Exception) {
-        android.graphics.Color.WHITE
-    }
-
-    val displayName = sender.ifBlank { "Agent" }
 
     val textPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
         color = android.graphics.Color.WHITE
@@ -155,33 +201,6 @@ private fun createAgentSpeechBubbleBitmap(
         isDither = true
     }
 
-    val fillPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
-        style = android.graphics.Paint.Style.FILL
-        color = bgParsed
-        isDither = true
-    }
-
-    val strokePaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
-        style = android.graphics.Paint.Style.STROKE
-        color = android.graphics.Color.argb(
-            200,
-            android.graphics.Color.red(strokeParsed),
-            android.graphics.Color.green(strokeParsed),
-            android.graphics.Color.blue(strokeParsed)
-        )
-        strokeWidth = 1.2f * density
-        strokeJoin = android.graphics.Paint.Join.ROUND
-        strokeCap = android.graphics.Paint.Cap.ROUND
-        isDither = true
-    }
-
-    val shadowPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
-        style = android.graphics.Paint.Style.FILL
-        color = android.graphics.Color.argb(85, 0, 0, 0)
-        isDither = true
-    }
-
-    val textWidth = textPaint.measureText(displayName)
     val fontMetrics = textPaint.fontMetrics
     val textHeight = fontMetrics.descent - fontMetrics.ascent
 
@@ -195,50 +214,60 @@ private fun createAgentSpeechBubbleBitmap(
     val shadowPadX = 3f * density
     val shadowPadY = 3f * density
     val shadowOffsetY = 1.5f * density
+    val bubbleGap = 3.5f * density // Gap between stacked bubbles
 
-    val bodyW = textWidth + paddingHoriz * 2f
-    val bodyH = textHeight + paddingVert * 2f
+    val singleBodyH = textHeight + paddingVert * 2f
 
-    val totalW = (shadowPadX + pointerW + bodyW + shadowPadX).toInt().coerceAtLeast(1)
-    val totalH = (shadowPadY + bodyH + shadowPadY + shadowOffsetY).toInt().coerceAtLeast(1)
+    // Find maximum body width among all agents so stacked bubbles are aligned
+    var maxBodyW = 0f
+    for (agent in agents) {
+        val displayName = agent.sender.ifBlank { "Agent" }
+        val textWidth = textPaint.measureText(displayName)
+        val bodyW = textWidth + paddingHoriz * 2f
+        if (bodyW > maxBodyW) {
+            maxBodyW = bodyW
+        }
+    }
+
+    val totalBodiesH = agents.size * singleBodyH + (agents.size - 1) * bubbleGap
+    val totalW = (shadowPadX + pointerW + maxBodyW + shadowPadX).toInt().coerceAtLeast(1)
+    val totalH = (shadowPadY + totalBodiesH + shadowPadY + shadowOffsetY).toInt().coerceAtLeast(1)
 
     val left = shadowPadX + pointerW
-    val top = shadowPadY
-    val right = left + bodyW
-    val bottom = top + bodyH
-    val centerY = (top + bottom) / 2f
+    val right = left + maxBodyW
     val tipX = shadowPadX
-    val pointerHalfH = pointerH / 2f
+    val pointerHalfH = (pointerH / 2f).coerceAtMost(singleBodyH / 2f - 1f)
+    val startY = shadowPadY
 
-    fun buildBubblePath(offsetY: Float = 0f): android.graphics.Path {
+    fun buildBubblePath(t: Float, b: Float, cy: Float, offsetY: Float = 0f): android.graphics.Path {
         val p = android.graphics.Path()
-        val t = top + offsetY
-        val b = bottom + offsetY
-        val cy = centerY + offsetY
-        val r = cornerRadius
+        val curT = t + offsetY
+        val curB = b + offsetY
+        val curCy = cy + offsetY
+        val r = cornerRadius.coerceAtMost((curB - curT) / 2f)
 
         // Arrow top base on body left edge
-        p.moveTo(left, cy - pointerHalfH)
+        p.moveTo(left, curCy - pointerHalfH)
         // Arrow tip pointing left towards portal
-        p.lineTo(tipX, cy)
+        p.lineTo(tipX, curCy)
         // Arrow bottom base
-        p.lineTo(left, cy + pointerHalfH)
+        p.lineTo(left, curCy + pointerHalfH)
         // Down body left side
-        p.lineTo(left, b - r)
+        p.lineTo(left, curB - r)
         // Bottom-left rounded arc
-        p.quadTo(left, b, left + r, b)
+        p.quadTo(left, curB, left + r, curB)
         // Bottom edge
-        p.lineTo(right - r, b)
+        p.lineTo(right - r, curB)
         // Bottom-right rounded arc
-        p.quadTo(right, b, right, b - r)
+        p.quadTo(right, curB, right, curB - r)
         // Right edge
-        p.lineTo(right, t + r)
+        p.lineTo(right, curT + r)
         // Top-right rounded arc
-        p.quadTo(right, t, right - r, t)
+        p.quadTo(right, curT, right - r, curT)
         // Top edge
-        p.lineTo(left + r, t)
+        p.lineTo(left + r, curT)
         // Top-left rounded arc
-        p.quadTo(left, t, left, t + r)
+        p.quadTo(left, curT, left, curT + r)
         // Close back to arrow top base
         p.close()
         return p
@@ -248,22 +277,136 @@ private fun createAgentSpeechBubbleBitmap(
     bitmap.density = densityDpi
     val canvas = android.graphics.Canvas(bitmap)
 
-    // 1. Soft Drop Shadow
-    val shadowPath = buildBubblePath(offsetY = shadowOffsetY)
-    canvas.drawPath(shadowPath, shadowPaint)
+    val shadowPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+        style = android.graphics.Paint.Style.FILL
+        color = android.graphics.Color.argb(85, 0, 0, 0)
+        isDither = true
+    }
 
-    // 2. Dark Faction Fill
-    val bubblePath = buildBubblePath(offsetY = 0f)
-    canvas.drawPath(bubblePath, fillPaint)
+    // 1. Soft Drop Shadows for all bubbles
+    for (i in agents.indices) {
+        val top_i = startY + i * (singleBodyH + bubbleGap)
+        val bottom_i = top_i + singleBodyH
+        val cy_i = (top_i + bottom_i) / 2f
+        val shadowPath = buildBubblePath(top_i, bottom_i, cy_i, offsetY = shadowOffsetY)
+        canvas.drawPath(shadowPath, shadowPaint)
+    }
 
-    // 3. Subtle Faction Accent Stroke
-    canvas.drawPath(bubblePath, strokePaint)
+    // 2. Solid Dark Faction Fills, Strokes, and White Agent Codenames
+    for ((i, agent) in agents.withIndex()) {
+        val top_i = startY + i * (singleBodyH + bubbleGap)
+        val bottom_i = top_i + singleBodyH
+        val cy_i = (top_i + bottom_i) / 2f
 
-    // 4. Pure White Agent Codename
-    val textBaselineY = centerY - (fontMetrics.descent + fontMetrics.ascent) / 2f
-    canvas.drawText(displayName, left + paddingHoriz, textBaselineY, textPaint)
+        val teamUpper = agent.team.uppercase()
+        val (bgColor, strokeColor) = when {
+            teamUpper.contains("ENL") || teamUpper == "2" || teamUpper == "E" -> Pair("#00522B", "#4EDE92") // Dark emerald, mint accent
+            teamUpper.contains("RES") || teamUpper == "1" || teamUpper == "R" -> Pair("#004785", "#6BB5FF") // Dark sapphire, blue accent
+            teamUpper.contains("MAC") || teamUpper == "3" || teamUpper == "M" -> Pair("#680009", "#FF7171") // Dark crimson, red accent
+            else -> Pair("#282B2D", "#C0C7C7") // Dark charcoal, gray accent
+        }
+
+        val bgParsed = try {
+            android.graphics.Color.parseColor(bgColor)
+        } catch (_: Exception) {
+            android.graphics.Color.parseColor("#004785")
+        }
+        val strokeParsed = try {
+            android.graphics.Color.parseColor(strokeColor)
+        } catch (_: Exception) {
+            android.graphics.Color.WHITE
+        }
+
+        val fillPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+            style = android.graphics.Paint.Style.FILL
+            color = bgParsed
+            isDither = true
+        }
+
+        val strokePaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+            style = android.graphics.Paint.Style.STROKE
+            color = android.graphics.Color.argb(
+                200,
+                android.graphics.Color.red(strokeParsed),
+                android.graphics.Color.green(strokeParsed),
+                android.graphics.Color.blue(strokeParsed)
+            )
+            strokeWidth = 1.2f * density
+            strokeJoin = android.graphics.Paint.Join.ROUND
+            strokeCap = android.graphics.Paint.Cap.ROUND
+            isDither = true
+        }
+
+        val bubblePath = buildBubblePath(top_i, bottom_i, cy_i, offsetY = 0f)
+        canvas.drawPath(bubblePath, fillPaint)
+        canvas.drawPath(bubblePath, strokePaint)
+
+        // Draw Pure White Agent Codename
+        val displayName = agent.sender.ifBlank { "Agent" }
+        val textBaselineY = cy_i - (fontMetrics.descent + fontMetrics.ascent) / 2f
+        canvas.drawText(displayName, left + paddingHoriz, textBaselineY, textPaint)
+    }
 
     return bitmap
+}
+
+private fun createAgentSpeechBubbleBitmap(
+    sender: String,
+    team: String,
+    fontSizeSp: Float,
+    density: Float,
+    densityDpi: Int,
+    isBold: Boolean = true
+): android.graphics.Bitmap = createAgentSpeechBubbleBitmap(
+    agents = listOf(AgentBubbleItem(sender, team)),
+    fontSizeSp = fontSizeSp,
+    density = density,
+    densityDpi = densityDpi,
+    isBold = isBold
+)
+
+/**
+ * Resolves which agent codename was tapped in a vertically stacked speech bubble marker.
+ */
+private fun resolveTappedSenderAndTeam(
+    markerFeat: Feature,
+    screenY: Float,
+    refY: Float,
+    fontSizeSp: Float,
+    density: Float,
+    iconScale: Float
+): Pair<String, String> {
+    val sendersStr = markerFeat.getStringProperty("senders")
+    val teamsStr = markerFeat.getStringProperty("teams")
+    if (sendersStr.isNullOrBlank()) {
+        return Pair(
+            markerFeat.getStringProperty("sender") ?: "Agent",
+            markerFeat.getStringProperty("team") ?: ""
+        )
+    }
+    val senders = sendersStr.split(",")
+    val teams = teamsStr?.split(",") ?: emptyList()
+    if (senders.size <= 1) {
+        return Pair(
+            senders.firstOrNull() ?: (markerFeat.getStringProperty("sender") ?: "Agent"),
+            teams.firstOrNull() ?: (markerFeat.getStringProperty("team") ?: "")
+        )
+    }
+
+    val textHeight = fontSizeSp * density * 1.25f
+    val paddingVert = 3.5f * density
+    val singleBodyH = (textHeight + paddingVert * 2f) * iconScale
+    val bubbleGap = 3.5f * density * iconScale
+    val stepY = singleBodyH + bubbleGap
+    val totalH = senders.size * singleBodyH + (senders.size - 1) * bubbleGap
+
+    val topY = refY - totalH / 2f
+    val relY = screenY - topY
+    val idx = (relY / stepY).toInt().coerceIn(0, senders.size - 1)
+    return Pair(
+        senders[idx],
+        teams.getOrElse(idx) { "" }
+    )
 }
 
 /**
@@ -809,12 +952,14 @@ actual fun NativeMapView(
         // Pre-register any active Player Speech Bubble Bitmaps
         val density = context.resources.displayMetrics.density
         val densityDpi = context.resources.displayMetrics.densityDpi
-        for (trail in viewModel.playerTrails.value) {
-            val bubbleKey = "bubble_${trail.sender}_${trail.team}_${agentNameFontSize.toInt()}_${if (mapFontBold) "1" else "0"}"
+        val initialTrailGroups = groupPlayerTrailsByPortal(viewModel.playerTrails.value, entities.portals)
+        for (group in initialTrailGroups) {
+            if (group.trails.isEmpty()) continue
+            val keySenders = group.trails.joinToString("_") { "${it.sender}:${it.team}" }
+            val bubbleKey = "bubble_grp_${keySenders}_${agentNameFontSize.toInt()}_${if (mapFontBold) "1" else "0"}"
             val bmp = bubbleBitmapCache.getOrPut(bubbleKey) {
                 createAgentSpeechBubbleBitmap(
-                    sender = trail.sender,
-                    team = trail.team,
+                    agents = group.trails.map { AgentBubbleItem(it.sender, it.team) },
                     fontSizeSp = agentNameFontSize,
                     density = density,
                     densityDpi = densityDpi,
@@ -917,6 +1062,12 @@ actual fun NativeMapView(
                 "#fd2992", "#eb26cd", "#c124e0", "#9627f4"
             )
 
+            // Group active player trails by their latest active portal
+            val trailGroups = if (isPlayerTrackerEnabled && playerTrails.isNotEmpty()) {
+                groupPlayerTrailsByPortal(playerTrails, entities.portals)
+            } else emptyList()
+            val occupiedPortalGuids = trailGroups.mapNotNull { it.matchedPortalGuid }.toSet()
+
             // Build Portal features with dynamic M3E Highlighter styles
             val portalFeatures = ArrayList<Feature>(entities.portals.size)
             for (p in entities.portals) {
@@ -924,7 +1075,18 @@ actual fun NativeMapView(
                 val point = Point.fromLngLat(pLng, pLat)
                 val feat = Feature.fromGeometry(point)
                 feat.addStringProperty("guid", p.guid)
-                feat.addStringProperty("title", p.title)
+
+                // If player speech bubble(s) are to be rendered at this portal, do not display the portal title
+                val hasAgentBubble = isPlayerTrackerEnabled && (
+                    p.guid in occupiedPortalGuids || trailGroups.any { g ->
+                        val latDiff = kotlin.math.abs(p.lat - g.lat)
+                        val lngDiff = kotlin.math.abs(p.lng - g.lng)
+                        (latDiff < 0.0001 && lngDiff < 0.0001) ||
+                            (p.title.isNotBlank() && g.portalName.isNotBlank() && p.title == g.portalName && latDiff < 0.0005 && lngDiff < 0.0005)
+                    }
+                )
+                val displayTitle = if (hasAgentBubble) "" else p.title
+                feat.addStringProperty("title", displayTitle)
                 feat.addNumberProperty("team", p.team)
                 feat.addNumberProperty("level", p.level)
                 feat.addNumberProperty("health", p.health)
@@ -1171,6 +1333,7 @@ actual fun NativeMapView(
                 val density = context.resources.displayMetrics.density
                 val densityDpi = context.resources.displayMetrics.densityDpi
 
+                // 1. Trail lines (each player trail draws its movement line)
                 for (trail in playerTrails) {
                     val teamUpper = trail.team.uppercase()
                     val color = when {
@@ -1192,23 +1355,31 @@ actual fun NativeMapView(
                         lineFeat.addStringProperty("color", color)
                         trailFeatures.add(lineFeat)
                     }
+                }
 
-                    val (mLat, mLng) = if (isGcj02) CoordinateTransform.wgs84ToGcj02(trail.latestLat, trail.latestLng) else Pair(trail.latestLat, trail.latestLng)
+                // 2. Grouped Speech Bubble markers at portals
+                for (group in trailGroups) {
+                    if (group.trails.isEmpty()) continue
+                    val (mLat, mLng) = if (isGcj02) CoordinateTransform.wgs84ToGcj02(group.lat, group.lng) else Pair(group.lat, group.lng)
                     val point = Point.fromLngLat(mLng, mLat)
                     val ptFeat = Feature.fromGeometry(point)
-                    ptFeat.addStringProperty("sender", trail.sender)
-                    ptFeat.addStringProperty("team", trail.team)
-                    ptFeat.addStringProperty("color", color)
-                    ptFeat.addStringProperty("portal", trail.latestPortalName)
 
-                    val bubbleKey = "bubble_${trail.sender}_${trail.team}_${agentNameFontSize.toInt()}_${if (mapFontBold) "1" else "0"}"
+                    val keySenders = group.trails.joinToString("_") { "${it.sender}:${it.team}" }
+                    val bubbleKey = "bubble_grp_${keySenders}_${agentNameFontSize.toInt()}_${if (mapFontBold) "1" else "0"}"
+
                     ptFeat.addStringProperty("bubbleIcon", bubbleKey)
+                    ptFeat.addNumberProperty("agentCount", group.trails.size)
+                    ptFeat.addStringProperty("senders", group.trails.joinToString(",") { it.sender })
+                    ptFeat.addStringProperty("teams", group.trails.joinToString(",") { it.team })
+                    ptFeat.addStringProperty("portal", group.portalName)
+                    ptFeat.addStringProperty("sender", group.trails.first().sender)
+                    ptFeat.addStringProperty("team", group.trails.first().team)
+
                     markerFeatures.add(ptFeat)
 
                     val bmp = bubbleBitmapCache.getOrPut(bubbleKey) {
                         createAgentSpeechBubbleBitmap(
-                            sender = trail.sender,
-                            team = trail.team,
+                            agents = group.trails.map { AgentBubbleItem(it.sender, it.team) },
                             fontSizeSp = agentNameFontSize,
                             density = density,
                             densityDpi = densityDpi,
@@ -1497,8 +1668,22 @@ actual fun NativeMapView(
                             }
 
                             if (clickedPlayerPin) {
-                                val sender = playerMarkerFeatures[0].getStringProperty("sender") ?: "Agent"
-                                val team = playerMarkerFeatures[0].getStringProperty("team") ?: ""
+                                val mGeom = playerMarkerFeatures[0].geometry() as? Point
+                                val markerScreen = if (mGeom != null) {
+                                    map.projection.toScreenLocation(LatLng(mGeom.latitude(), mGeom.longitude()))
+                                } else {
+                                    val pGeom = portalFeatures[0].geometry() as? Point
+                                    if (pGeom != null) map.projection.toScreenLocation(LatLng(pGeom.latitude(), pGeom.longitude())) else screenPoint
+                                }
+                                val density = context.resources.displayMetrics.density
+                                val (sender, team) = resolveTappedSenderAndTeam(
+                                    markerFeat = playerMarkerFeatures[0],
+                                    screenY = screenPoint.y,
+                                    refY = markerScreen.y,
+                                    fontSizeSp = agentNameFontSize,
+                                    density = density,
+                                    iconScale = playerIconScale / 1.5f
+                                )
                                 val portal = playerMarkerFeatures[0].getStringProperty("portal") ?: ""
                                 val (wgsLat, wgsLng) = if (nativeBaseMap.isGcj02) {
                                     CoordinateTransform.gcj02ToWgs84(point.latitude, point.longitude)
@@ -1538,8 +1723,19 @@ actual fun NativeMapView(
 
                         // Case B: No portal was tapped -> check Player Marker pin
                         if (playerMarkerFeatures.isNotEmpty()) {
-                            val sender = playerMarkerFeatures[0].getStringProperty("sender") ?: "Agent"
-                            val team = playerMarkerFeatures[0].getStringProperty("team") ?: ""
+                            val mGeom = playerMarkerFeatures[0].geometry() as? Point
+                            val markerScreen = if (mGeom != null) {
+                                map.projection.toScreenLocation(LatLng(mGeom.latitude(), mGeom.longitude()))
+                            } else screenPoint
+                            val density = context.resources.displayMetrics.density
+                            val (sender, team) = resolveTappedSenderAndTeam(
+                                markerFeat = playerMarkerFeatures[0],
+                                screenY = screenPoint.y,
+                                refY = markerScreen.y,
+                                fontSizeSp = agentNameFontSize,
+                                density = density,
+                                iconScale = playerIconScale / 1.5f
+                            )
                             val portal = playerMarkerFeatures[0].getStringProperty("portal") ?: ""
                             val (wgsLat, wgsLng) = if (nativeBaseMap.isGcj02) {
                                 CoordinateTransform.gcj02ToWgs84(point.latitude, point.longitude)

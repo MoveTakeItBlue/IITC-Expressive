@@ -37,7 +37,7 @@
                 "am",
                 "start",
                 "-n",
-                "org.exarhteam.iitcprime/.MainActivity"
+                "io.github.movetakeitblue.iitcexpressive/.MainActivity"
             ],
             "dependsOn": "Install Debug APK",
             "problemMatcher": []
@@ -50,7 +50,7 @@
                 "shell",
                 "am",
                 "force-stop",
-                "org.exarhteam.iitcprime"
+                "io.github.movetakeitblue.iitcexpressive"
             ],
             "problemMatcher": []
         }
