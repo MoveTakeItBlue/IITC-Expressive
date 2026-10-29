@@ -133,22 +133,31 @@ private fun groupPlayerTrailsByPortal(
     val groups = mutableListOf<PortalTrailGroup>()
 
     for (trail in trails) {
-        val existingGroup = groups.find { g ->
-            val latDiff = kotlin.math.abs(g.lat - trail.latestLat)
-            val lngDiff = kotlin.math.abs(g.lng - trail.latestLng)
-            (latDiff < 0.0001 && lngDiff < 0.0001) ||
-                (g.portalName.isNotBlank() && trail.latestPortalName.isNotBlank() && g.portalName == trail.latestPortalName && latDiff < 0.0005 && lngDiff < 0.0005)
+        val matchedPortal = portals.find { p ->
+            val latDiff = kotlin.math.abs(p.lat - trail.latestLat)
+            val lngDiff = kotlin.math.abs(p.lng - trail.latestLng)
+            (p.title.isNotBlank() && trail.latestPortalName.isNotBlank() &&
+                p.title.trim().equals(trail.latestPortalName.trim(), ignoreCase = true) &&
+                latDiff < 0.005 && lngDiff < 0.005) ||
+                (latDiff < 0.0003 && lngDiff < 0.0003)
+        }
+
+        val existingGroup = if (matchedPortal != null && !matchedPortal.guid.isNullOrBlank()) {
+            groups.find { it.matchedPortalGuid == matchedPortal.guid }
+        } else {
+            groups.find { g ->
+                val latDiff = kotlin.math.abs(g.lat - trail.latestLat)
+                val lngDiff = kotlin.math.abs(g.lng - trail.latestLng)
+                (latDiff < 0.0003 && lngDiff < 0.0003) ||
+                    (g.portalName.isNotBlank() && trail.latestPortalName.isNotBlank() &&
+                        g.portalName.trim().equals(trail.latestPortalName.trim(), ignoreCase = true) &&
+                        latDiff < 0.005 && lngDiff < 0.005)
+            }
         }
 
         if (existingGroup != null) {
             existingGroup.trails.add(trail)
         } else {
-            val matchedPortal = portals.find { p ->
-                val latDiff = kotlin.math.abs(p.lat - trail.latestLat)
-                val lngDiff = kotlin.math.abs(p.lng - trail.latestLng)
-                (latDiff < 0.0001 && lngDiff < 0.0001) ||
-                    (p.title.isNotBlank() && trail.latestPortalName.isNotBlank() && p.title == trail.latestPortalName && latDiff < 0.0005 && lngDiff < 0.0005)
-            }
             val groupLat = matchedPortal?.lat ?: trail.latestLat
             val groupLng = matchedPortal?.lng ?: trail.latestLng
             val groupName = matchedPortal?.title?.ifBlank { trail.latestPortalName } ?: trail.latestPortalName
@@ -1081,8 +1090,10 @@ actual fun NativeMapView(
                     p.guid in occupiedPortalGuids || trailGroups.any { g ->
                         val latDiff = kotlin.math.abs(p.lat - g.lat)
                         val lngDiff = kotlin.math.abs(p.lng - g.lng)
-                        (latDiff < 0.0001 && lngDiff < 0.0001) ||
-                            (p.title.isNotBlank() && g.portalName.isNotBlank() && p.title == g.portalName && latDiff < 0.0005 && lngDiff < 0.0005)
+                        (latDiff < 0.0003 && lngDiff < 0.0003) ||
+                            (p.title.isNotBlank() && g.portalName.isNotBlank() &&
+                                p.title.trim().equals(g.portalName.trim(), ignoreCase = true) &&
+                                latDiff < 0.005 && lngDiff < 0.005)
                     }
                 )
                 val displayTitle = if (hasAgentBubble) "" else p.title
