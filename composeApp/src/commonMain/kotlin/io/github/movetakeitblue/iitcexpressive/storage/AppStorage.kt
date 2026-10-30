@@ -65,6 +65,14 @@ class AppStorage(val settings: Settings = Settings()) {
         settings.putBoolean(key, value)
     }
 
+    fun getInt(key: String, defaultValue: Int = 0): Int {
+        return settings.getInt(key, defaultValue)
+    }
+
+    fun setInt(key: String, value: Int) {
+        settings.putInt(key, value)
+    }
+
     fun getFloat(key: String, defaultValue: Float = 0f): Float {
         return settings.getFloat(key, defaultValue)
     }

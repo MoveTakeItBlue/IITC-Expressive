@@ -364,25 +364,12 @@ fun MainScreen(
 
         // Native M3E Core Plugin BottomSheets
         val activePluginSheet by viewModel.activePluginSheet.collectAsState()
-        when (activePluginSheet) {
-            "bookmarks" -> {
-                NativePluginRegistry.bookmarksPlugin.SheetContent(
-                    host = viewModel.pluginHost,
-                    onDismiss = { viewModel.closePluginSheet() }
-                )
-            }
-            "portals-list" -> {
-                NativePluginRegistry.portalListPlugin.SheetContent(
-                    host = viewModel.pluginHost,
-                    onDismiss = { viewModel.closePluginSheet() }
-                )
-            }
-            "draw-tools" -> {
-                NativePluginRegistry.drawToolsPlugin.SheetContent(
-                    host = viewModel.pluginHost,
-                    onDismiss = { viewModel.closePluginSheet() }
-                )
-            }
+        activePluginSheet?.let { sheetId ->
+            val plugin = NativePluginRegistry.getById(sheetId)
+            plugin?.SheetContent(
+                host = viewModel.pluginHost,
+                onDismiss = { viewModel.closePluginSheet() }
+            )
         }
 
         // Global Dialogs Layer

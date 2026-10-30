@@ -660,7 +660,7 @@ body.light-map .leaflet-popup-pane .portal-name {
                 'setFollowMode', 'setMapDarkMode', 'setPortalStatus', 'setPortalDetails', 'setChatMessages', 'setMapStatus',
                 'setProgress', 'setPermalink', 'addInternalHostname', 'saveFile',
                 'reloadIITC', 'openDemo', 'dialogFocused', 'dialogOpened', 'spinnerEnabled',
-                'setEntities', 'syncPluginData'
+                'setEntities', 'syncPluginData', 'regionScoreResult', 'regionScoreError'
             ];
 
             var argNames = {
@@ -689,7 +689,9 @@ body.light-map .leaflet-popup-pane .portal-name {
                 dialogOpened: ['id', 'open'],
                 spinnerEnabled: ['enabled'],
                 setEntities: ['data'],
-                syncPluginData: ['key', 'value']
+                syncPluginData: ['key', 'value'],
+                regionScoreResult: ['data'],
+                regionScoreError: ['err']
             };
 
             syncEvents.forEach(function(evt) {
@@ -971,6 +973,8 @@ body.light-map .leaflet-popup-pane .portal-name {
                             if (dt) bridge.syncPluginData('plugin-draw-tools-layer', dt);
                             var bm = window.localStorage.getItem('plugin-bookmarks-portals-data');
                             if (bm) bridge.syncPluginData('plugin-bookmarks-portals-data', bm);
+                            var kd = window.localStorage.getItem('plugin-keys-data');
+                            if (kd) bridge.syncPluginData('plugin-keys-data', kd);
                         }
                     } catch(e) {}
                 }
@@ -1502,7 +1506,7 @@ body.light-map .leaflet-popup-pane .portal-name {
                 '\t' -> sb.append("\\t")
                 else -> {
                     if (c.code in 0..0x1f) {
-                        sb.append("\\u%04x".format(c.code))
+                        sb.append("\\u").append(c.code.toString(16).padStart(4, '0'))
                     } else {
                         sb.append(c)
                     }

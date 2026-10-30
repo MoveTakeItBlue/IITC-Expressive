@@ -346,9 +346,123 @@ class MainViewModel(
     private val _bookmarkFolders = MutableStateFlow<List<BookmarkFolder>>(BookmarkSerializer.defaultFolders())
     val bookmarkFolders: StateFlow<List<BookmarkFolder>> = _bookmarkFolders.asStateFlow()
 
+    // Scoreboard & Cycle state
+    private val _regionScoreData = MutableStateFlow<RegionScoreData?>(null)
+    val regionScoreData: StateFlow<RegionScoreData?> = _regionScoreData.asStateFlow()
+
+    private val _isScoreboardLoading = MutableStateFlow(false)
+    val isScoreboardLoading: StateFlow<Boolean> = _isScoreboardLoading.asStateFlow()
+
+    private var lastRegionScoreRequestTime = 0L
+
+    fun requestRegionScore() {
+        val now = PlatformUtils.currentTimeMillis()
+        if (_isScoreboardLoading.value || (now - lastRegionScoreRequestTime < 3000L)) {
+            return
+        }
+        lastRegionScoreRequestTime = now
+        _isScoreboardLoading.value = true
+
+        val script = """
+            (function() {
+                try {
+                    var center = (window.map && window.map.getCenter) ? window.map.getCenter() : null;
+                    var latE6 = center ? Math.round(center.lat * 1e6) : 0;
+                    var lngE6 = center ? Math.round(center.lng * 1e6) : 0;
+                    if (window.postAjax) {
+                        window.postAjax('getRegionScoreDetails', { latE6: latE6, lngE6: lngE6 }, function(data) {
+                            if (window.nsWebViewBridge && window.nsWebViewBridge.emit) {
+                                window.nsWebViewBridge.emit('JSBridge', ['regionScoreResult', data]);
+                            }
+                        }, function(err) {
+                            if (window.nsWebViewBridge && window.nsWebViewBridge.emit) {
+                                window.nsWebViewBridge.emit('JSBridge', ['regionScoreError', err || {}]);
+                            }
+                        });
+                    } else {
+                        if (window.nsWebViewBridge && window.nsWebViewBridge.emit) {
+                            window.nsWebViewBridge.emit('JSBridge', ['regionScoreError', {}]);
+                        }
+                    }
+                } catch(e) {
+                    if (window.nsWebViewBridge && window.nsWebViewBridge.emit) {
+                        window.nsWebViewBridge.emit('JSBridge', ['regionScoreError', {}]);
+                    }
+                }
+            })();
+        """.trimIndent()
+        evaluateJs(script)
+    }
+
+    // Periodic Refresh state
+    private val _periodicRefreshIntervalSeconds = MutableStateFlow(storage.getInt("periodic_refresh_interval", 0))
+    val periodicRefreshIntervalSeconds: StateFlow<Int> = _periodicRefreshIntervalSeconds.asStateFlow()
+
+    private val _timeToNextAutoRefreshSeconds = MutableStateFlow(0)
+    val timeToNextAutoRefreshSeconds: StateFlow<Int> = _timeToNextAutoRefreshSeconds.asStateFlow()
+
+    private var refreshJob: Job? = null
+
+    fun startPeriodicRefreshTimer() {
+        refreshJob?.cancel()
+        val interval = _periodicRefreshIntervalSeconds.value
+        if (interval <= 0) {
+            _timeToNextAutoRefreshSeconds.value = 0
+            return
+        }
+        _timeToNextAutoRefreshSeconds.value = interval
+        refreshJob = scope.launch {
+            while (isActive) {
+                delay(1000L)
+                val current = _timeToNextAutoRefreshSeconds.value
+                if (current > 1) {
+                    _timeToNextAutoRefreshSeconds.value = current - 1
+                } else {
+                    _timeToNextAutoRefreshSeconds.value = _periodicRefreshIntervalSeconds.value
+                    triggerMapRefresh()
+                }
+            }
+        }
+    }
+
+    fun setPeriodicRefreshInterval(seconds: Int) {
+        _periodicRefreshIntervalSeconds.value = seconds
+        storage.setInt("periodic_refresh_interval", seconds)
+        startPeriodicRefreshTimer()
+    }
+
+    fun triggerMapRefresh() {
+        evaluateJs("if(window.mapDataRequest) { window.mapDataRequest.refresh(); }")
+    }
+
+    // Keys state
+    private val _portalKeys = MutableStateFlow<Map<String, Int>>(
+        KeysSerializer.parseJson(storage.getString("plugin-keys-data", "{}"))
+    )
+    val portalKeys: StateFlow<Map<String, Int>> = _portalKeys.asStateFlow()
+
+    fun getPortalKeyCount(guid: String): Int {
+        return _portalKeys.value[guid] ?: 0
+    }
+
+    fun setPortalKeyCount(guid: String, count: Int) {
+        val updated = _portalKeys.value.toMutableMap()
+        if (count > 0) updated[guid] = count else updated.remove(guid)
+        _portalKeys.value = updated
+        val jsonStr = KeysSerializer.toJson(updated)
+        storage.setString("plugin-keys-data", jsonStr)
+        evaluateJs(EventsToIitc.syncPluginStorage("plugin-keys-data", jsonStr))
+    }
+
     val pluginHost: IitcPluginHost = object : IitcPluginHost {
         override val visiblePortals: StateFlow<List<NativePortal>>
             get() = _nativeMapPortals.asStateFlow()
+        override val visibleEntities: StateFlow<NativeMapEntities>
+            get() = _nativeMapEntities.asStateFlow()
+        override val visibleLinks: StateFlow<List<NativeLink>>
+            get() = MutableStateFlow(_nativeMapEntities.value.links).asStateFlow()
+        override val visibleFields: StateFlow<List<NativeField>>
+            get() = MutableStateFlow(_nativeMapEntities.value.fields).asStateFlow()
         override val selectedPortalGuid: StateFlow<String?>
             get() = MutableStateFlow(_portalStatus.value.guid.takeIf { _portalStatus.value.hasSelected }).asStateFlow()
         override val selectedPortal: StateFlow<PortalStatus>
@@ -357,6 +471,36 @@ class MainViewModel(
             get() = _drawnShapes.asStateFlow()
         override val bookmarkFolders: StateFlow<List<BookmarkFolder>>
             get() = _bookmarkFolders.asStateFlow()
+
+        // Scoreboard & Cycle
+        override val regionScoreData: StateFlow<RegionScoreData?>
+            get() = _regionScoreData.asStateFlow()
+        override val isScoreboardLoading: StateFlow<Boolean>
+            get() = _isScoreboardLoading.asStateFlow()
+        override fun requestRegionScore() {
+            this@MainViewModel.requestRegionScore()
+        }
+
+        // Periodic Refresh
+        override val periodicRefreshIntervalSeconds: StateFlow<Int>
+            get() = _periodicRefreshIntervalSeconds.asStateFlow()
+        override val timeToNextAutoRefreshSeconds: StateFlow<Int>
+            get() = _timeToNextAutoRefreshSeconds.asStateFlow()
+        override fun setPeriodicRefreshInterval(seconds: Int) {
+            this@MainViewModel.setPeriodicRefreshInterval(seconds)
+        }
+        override fun triggerMapRefresh() {
+            this@MainViewModel.triggerMapRefresh()
+        }
+
+        // Key Inventory
+        override val portalKeys: StateFlow<Map<String, Int>>
+            get() = _portalKeys.asStateFlow()
+        override fun getPortalKeyCount(guid: String): Int = this@MainViewModel.getPortalKeyCount(guid)
+        override fun setPortalKeyCount(guid: String, count: Int) {
+            this@MainViewModel.setPortalKeyCount(guid, count)
+        }
+
         override val isDrawingModeActive: StateFlow<Boolean>
             get() = _isDrawingModeActive.asStateFlow()
         override val currentDrawingType: StateFlow<String>
@@ -530,10 +674,11 @@ class MainViewModel(
         val pts = _currentDrawingPoints.value
         val color = _currentDrawingColor.value
         val type = _currentDrawingType.value
+        val now = PlatformUtils.currentTimeMillis()
         val newShape: DrawnShape? = when (type) {
-            "polyline" -> if (pts.size >= 2) DrawnShape.Polyline("shape_${System.currentTimeMillis()}", color, pts) else null
-            "polygon" -> if (pts.size >= 3) DrawnShape.Polygon("shape_${System.currentTimeMillis()}", color, pts) else null
-            "marker" -> if (pts.isNotEmpty()) DrawnShape.Marker("shape_${System.currentTimeMillis()}", color, pts.last()) else null
+            "polyline" -> if (pts.size >= 2) DrawnShape.Polyline("shape_$now", color, pts) else null
+            "polygon" -> if (pts.size >= 3) DrawnShape.Polygon("shape_$now", color, pts) else null
+            "marker" -> if (pts.isNotEmpty()) DrawnShape.Marker("shape_$now", color, pts.last()) else null
             else -> null
         }
         if (newShape != null) {
@@ -671,6 +816,16 @@ class MainViewModel(
         if (savedBookmarks.isNotBlank()) {
             val parsed = BookmarkSerializer.parseIitcJson(savedBookmarks)
             if (parsed.isNotEmpty()) _bookmarkFolders.value = parsed
+        }
+
+        val savedKeys = storage.getString("plugin-keys-data", "")
+        if (savedKeys.isNotBlank()) {
+            val parsed = KeysSerializer.parseJson(savedKeys)
+            if (parsed.isNotEmpty()) _portalKeys.value = parsed
+        }
+
+        if (_periodicRefreshIntervalSeconds.value > 0) {
+            startPeriodicRefreshTimer()
         }
 
         val savedBaseMap = NativeBaseMap.fromId(storage.getString("native_basemap", "dark"))
@@ -1070,6 +1225,10 @@ class MainViewModel(
                     val bm = BookmarkSerializer.toIitcJson(_bookmarkFolders.value)
                     evaluateJs(EventsToIitc.syncPluginStorage("plugin-bookmarks-portals-data", bm))
                 }
+                if (_portalKeys.value.isNotEmpty()) {
+                    val kd = KeysSerializer.toJson(_portalKeys.value)
+                    evaluateJs(EventsToIitc.syncPluginStorage("plugin-keys-data", kd))
+                }
             }
             "syncPluginData" -> {
                 val key = data.jsonObject["key"]?.jsonPrimitive?.contentOrNull ?: ""
@@ -1091,7 +1250,35 @@ class MainViewModel(
                             storage.setString("plugin-bookmarks-portals-data", value)
                         }
                     }
+                } else if (key == "plugin-keys-data" && value.isNotBlank()) {
+                    if (_portalKeys.value.isEmpty()) {
+                        val parsed = KeysSerializer.parseJson(value)
+                        if (parsed.isNotEmpty()) {
+                            _portalKeys.value = parsed
+                            storage.setString("plugin-keys-data", value)
+                        }
+                    }
                 }
+            }
+            "regionScoreResult" -> {
+                try {
+                    val raw = when {
+                        data is JsonObject && data.containsKey("data") -> data["data"]?.toString() ?: data.toString()
+                        else -> data.toString()
+                    }
+                    val parsed = RegionScoreData.parseFromJson(raw)
+                    if (parsed != null) {
+                        _regionScoreData.value = parsed
+                    }
+                } catch (e: Exception) {
+                    println("regionScoreResult parse error: ${e.message}")
+                } finally {
+                    _isScoreboardLoading.value = false
+                }
+            }
+            "regionScoreError" -> {
+                _isScoreboardLoading.value = false
+                PlatformUtils.showToast("Failed to load region scores")
             }
             "setLayers" -> {
                 try {

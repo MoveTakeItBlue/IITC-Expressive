@@ -1,7 +1,11 @@
 package io.github.movetakeitblue.iitcexpressive.plugin.api
 
+import io.github.movetakeitblue.iitcexpressive.model.NativeField
+import io.github.movetakeitblue.iitcexpressive.model.NativeLink
+import io.github.movetakeitblue.iitcexpressive.model.NativeMapEntities
 import io.github.movetakeitblue.iitcexpressive.model.NativePortal
 import io.github.movetakeitblue.iitcexpressive.model.PortalStatus
+import io.github.movetakeitblue.iitcexpressive.platform.PlatformUtils
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -13,11 +17,23 @@ import kotlinx.coroutines.flow.asStateFlow
 class MockIitcPluginHost(
     initialPortals: List<NativePortal> = samplePortals(),
     initialBookmarks: List<BookmarkFolder> = sampleBookmarks(),
-    initialShapes: List<DrawnShape> = sampleShapes()
+    initialShapes: List<DrawnShape> = sampleShapes(),
+    initialKeys: Map<String, Int> = mapOf("portal_1" to 5, "portal_2" to 2)
 ) : IitcPluginHost {
 
     private val _visiblePortals = MutableStateFlow(initialPortals)
     override val visiblePortals: StateFlow<List<NativePortal>> = _visiblePortals.asStateFlow()
+
+    private val _visibleLinks = MutableStateFlow(sampleLinks())
+    override val visibleLinks: StateFlow<List<NativeLink>> = _visibleLinks.asStateFlow()
+
+    private val _visibleFields = MutableStateFlow(sampleFields())
+    override val visibleFields: StateFlow<List<NativeField>> = _visibleFields.asStateFlow()
+
+    private val _visibleEntities = MutableStateFlow(
+        NativeMapEntities(portals = initialPortals, links = sampleLinks(), fields = sampleFields())
+    )
+    override val visibleEntities: StateFlow<NativeMapEntities> = _visibleEntities.asStateFlow()
 
     private val _selectedPortalGuid = MutableStateFlow<String?>("portal_1")
     override val selectedPortalGuid: StateFlow<String?> = _selectedPortalGuid.asStateFlow()
@@ -41,6 +57,40 @@ class MockIitcPluginHost(
 
     private val _bookmarkFolders = MutableStateFlow(initialBookmarks)
     override val bookmarkFolders: StateFlow<List<BookmarkFolder>> = _bookmarkFolders.asStateFlow()
+
+    // Scoreboard mock
+    private val _regionScoreData = MutableStateFlow<RegionScoreData?>(sampleScoreboard())
+    override val regionScoreData: StateFlow<RegionScoreData?> = _regionScoreData.asStateFlow()
+
+    private val _isScoreboardLoading = MutableStateFlow(false)
+    override val isScoreboardLoading: StateFlow<Boolean> = _isScoreboardLoading.asStateFlow()
+
+    override fun requestRegionScore() {}
+
+    // Periodic Refresh mock
+    private val _periodicRefreshIntervalSeconds = MutableStateFlow(0)
+    override val periodicRefreshIntervalSeconds: StateFlow<Int> = _periodicRefreshIntervalSeconds.asStateFlow()
+
+    private val _timeToNextAutoRefreshSeconds = MutableStateFlow(0)
+    override val timeToNextAutoRefreshSeconds: StateFlow<Int> = _timeToNextAutoRefreshSeconds.asStateFlow()
+
+    override fun setPeriodicRefreshInterval(seconds: Int) {
+        _periodicRefreshIntervalSeconds.value = seconds
+    }
+
+    override fun triggerMapRefresh() {}
+
+    // Key Inventory mock
+    private val _portalKeys = MutableStateFlow(initialKeys)
+    override val portalKeys: StateFlow<Map<String, Int>> = _portalKeys.asStateFlow()
+
+    override fun getPortalKeyCount(guid: String): Int = _portalKeys.value[guid] ?: 0
+
+    override fun setPortalKeyCount(guid: String, count: Int) {
+        val updated = _portalKeys.value.toMutableMap()
+        if (count > 0) updated[guid] = count else updated.remove(guid)
+        _portalKeys.value = updated
+    }
 
     private val _isDrawingModeActive = MutableStateFlow(false)
     override val isDrawingModeActive: StateFlow<Boolean> = _isDrawingModeActive.asStateFlow()
@@ -119,10 +169,11 @@ class MockIitcPluginHost(
         val pts = _currentDrawingPoints.value
         val color = _currentDrawingColor.value
         val type = _currentDrawingType.value
+        val now = PlatformUtils.currentTimeMillis()
         val newShape: DrawnShape? = when (type) {
-            "polyline" -> if (pts.size >= 2) DrawnShape.Polyline("shape_${System.currentTimeMillis()}", color, pts) else null
-            "polygon" -> if (pts.size >= 3) DrawnShape.Polygon("shape_${System.currentTimeMillis()}", color, pts) else null
-            "marker" -> if (pts.isNotEmpty()) DrawnShape.Marker("shape_${System.currentTimeMillis()}", color, pts.last()) else null
+            "polyline" -> if (pts.size >= 2) DrawnShape.Polyline("shape_$now", color, pts) else null
+            "polygon" -> if (pts.size >= 3) DrawnShape.Polygon("shape_$now", color, pts) else null
+            "marker" -> if (pts.isNotEmpty()) DrawnShape.Marker("shape_$now", color, pts.last()) else null
             else -> null
         }
         if (newShape != null) {
@@ -191,6 +242,22 @@ class MockIitcPluginHost(
             )
         )
 
+        fun sampleLinks(): List<NativeLink> = listOf(
+            NativeLink("link_1", 1, 39.914, 116.397, 39.905, 116.391),
+            NativeLink("link_2", 2, 39.905, 116.391, 39.921, 116.402)
+        )
+
+        fun sampleFields(): List<NativeField> = listOf(
+            NativeField(
+                "field_1", 1,
+                listOf(
+                    listOf(39.914, 116.397),
+                    listOf(39.905, 116.391),
+                    listOf(39.921, 116.402)
+                )
+            )
+        )
+
         fun sampleBookmarks(): List<BookmarkFolder> = listOf(
             BookmarkFolder(
                 id = "idOthers",
@@ -220,6 +287,24 @@ class MockIitcPluginHost(
                 color = "#da3535",
                 latLng = ShapeLatLng(39.921, 116.402),
                 label = "Target Anchor"
+            )
+        )
+
+        fun sampleScoreboard(): RegionScoreData = RegionScoreData(
+            regionName = "AM01-GOLF-04",
+            enlAvgScore = 248190L,
+            resAvgScore = 312450L,
+            checkpoints = listOf(
+                CheckpointScore(1, 1729800000000L, 210000L, 305000L),
+                CheckpointScore(2, 1729818000000L, 225000L, 310000L),
+                CheckpointScore(3, 1729836000000L, 240000L, 315000L),
+                CheckpointScore(4, 1729854000000L, 255000L, 320000L)
+            ),
+            topAgents = listOf(
+                TopAgent(1, "AgentBluePrime", "RESISTANCE"),
+                TopAgent(2, "GreenVanguard", "ENLIGHTENED"),
+                TopAgent(3, "ResOpsSpecialist", "RESISTANCE"),
+                TopAgent(4, "FieldMasterEnl", "ENLIGHTENED")
             )
         )
     }

@@ -1,20 +1,43 @@
 package io.github.movetakeitblue.iitcexpressive.plugin.api
 
+import io.github.movetakeitblue.iitcexpressive.model.NativeField
+import io.github.movetakeitblue.iitcexpressive.model.NativeLink
+import io.github.movetakeitblue.iitcexpressive.model.NativeMapEntities
 import io.github.movetakeitblue.iitcexpressive.model.NativePortal
 import io.github.movetakeitblue.iitcexpressive.model.PortalStatus
 import kotlinx.coroutines.flow.StateFlow
 
 /**
  * Standardized host API provided to IITC native plugins.
- * Encapsulates access to map state, portal entities, persistence, drawing, and bookmarks.
+ * Encapsulates access to map state, portal entities, persistence, drawing, bookmarks,
+ * regional scoreboard, key inventory, and periodic refresh.
  * Designed to be extracted into :iitc-core-api in Step 3.
  */
 interface IitcPluginHost {
     val visiblePortals: StateFlow<List<NativePortal>>
+    val visibleEntities: StateFlow<NativeMapEntities>
+    val visibleLinks: StateFlow<List<NativeLink>>
+    val visibleFields: StateFlow<List<NativeField>>
     val selectedPortalGuid: StateFlow<String?>
     val selectedPortal: StateFlow<PortalStatus>
     val drawnShapes: StateFlow<List<DrawnShape>>
     val bookmarkFolders: StateFlow<List<BookmarkFolder>>
+
+    // Scoreboard & Cycle
+    val regionScoreData: StateFlow<RegionScoreData?>
+    val isScoreboardLoading: StateFlow<Boolean>
+    fun requestRegionScore()
+
+    // Periodic Refresh
+    val periodicRefreshIntervalSeconds: StateFlow<Int>
+    val timeToNextAutoRefreshSeconds: StateFlow<Int>
+    fun setPeriodicRefreshInterval(seconds: Int)
+    fun triggerMapRefresh()
+
+    // Key Inventory
+    val portalKeys: StateFlow<Map<String, Int>>
+    fun getPortalKeyCount(guid: String): Int
+    fun setPortalKeyCount(guid: String, count: Int)
 
     // Drawing state
     val isDrawingModeActive: StateFlow<Boolean>

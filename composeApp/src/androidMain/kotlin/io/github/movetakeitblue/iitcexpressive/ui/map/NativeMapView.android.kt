@@ -49,6 +49,9 @@ private const val SOURCE_PORTALS = "iitc-portals-source"
 private const val SOURCE_PORTAL_SELECTION = "iitc-portal-selection-source"
 private const val SOURCE_PLAYER_TRAILS = "iitc-player-trails-source"
 private const val SOURCE_PLAYER_MARKERS = "iitc-player-markers-source"
+private const val SOURCE_SPIDER_LEGS = "iitc-spider-legs-source"
+private const val SOURCE_SPIDER_CENTER = "iitc-spider-center-source"
+private const val SOURCE_SPIDER_MARKERS = "iitc-spider-markers-source"
 private const val SOURCE_DRAW_POLYGONS = "iitc-draw-polygons-source"
 private const val SOURCE_DRAW_LINES = "iitc-draw-lines-source"
 private const val SOURCE_DRAW_MARKERS = "iitc-draw-markers-source"
@@ -70,6 +73,11 @@ private const val LAYER_PLAYER_TRAILS_CASING = "iitc-player-trails-casing"
 private const val LAYER_PLAYER_TRAILS = "iitc-player-trails"
 private const val LAYER_PLAYER_MARKERS_HALO = "iitc-player-markers-halo"
 private const val LAYER_PLAYER_MARKERS = "iitc-player-markers"
+private const val LAYER_SPIDER_LEGS_CASING = "iitc-spider-legs-casing"
+private const val LAYER_SPIDER_LEGS = "iitc-spider-legs"
+private const val LAYER_SPIDER_CENTER_HALO = "iitc-spider-center-halo"
+private const val LAYER_SPIDER_CENTER = "iitc-spider-center"
+private const val LAYER_SPIDER_MARKERS = "iitc-spider-markers"
 
 private fun resolveEffectiveMapTextColor(textColorSetting: String, isDarkMap: Boolean): String {
     return when (textColorSetting.lowercase()) {
@@ -123,6 +131,18 @@ private data class PortalTrailGroup(
     val portalName: String,
     val matchedPortalGuid: String?,
     val trails: MutableList<PlayerTrail> = mutableListOf()
+)
+
+private data class SpiderfyItem(
+    val trail: PlayerTrail,
+    val coord: Point
+)
+
+private data class SpiderfySession(
+    val centerCoord: Point,
+    val initialZoom: Double,
+    val hiddenGroupKeys: Set<String>,
+    val items: List<SpiderfyItem>
 )
 
 private fun groupPlayerTrailsByPortal(
@@ -373,6 +393,124 @@ private fun createAgentSpeechBubbleBitmap(
     densityDpi = densityDpi,
     isBold = isBold
 )
+
+private fun createSpiderAgentBubbleBitmap(
+    sender: String,
+    team: String,
+    fontSizeSp: Float,
+    density: Float,
+    densityDpi: Int,
+    isBold: Boolean = true
+): android.graphics.Bitmap {
+    val textPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+        color = android.graphics.Color.WHITE
+        textSize = fontSizeSp * density
+        typeface = if (isBold) android.graphics.Typeface.DEFAULT_BOLD else android.graphics.Typeface.DEFAULT
+        textAlign = android.graphics.Paint.Align.LEFT
+        isDither = true
+    }
+
+    val fontMetrics = textPaint.fontMetrics
+    val textHeight = fontMetrics.descent - fontMetrics.ascent
+    val displayName = sender.ifBlank { "Agent" }
+    val textWidth = textPaint.measureText(displayName)
+
+    val paddingHoriz = 9f * density
+    val paddingVert = 4f * density
+    val dotRadius = 3.2f * density
+    val dotGap = 6f * density
+
+    val bodyW = paddingHoriz + dotRadius * 2f + dotGap + textWidth + paddingHoriz
+    val bodyH = textHeight + paddingVert * 2f
+    val cornerRadius = bodyH / 2f
+
+    val shadowPad = 4f * density
+    val shadowOffsetY = 1.5f * density
+
+    val totalW = (bodyW + shadowPad * 2f).toInt().coerceAtLeast(1)
+    val totalH = (bodyH + shadowPad * 2f + shadowOffsetY).toInt().coerceAtLeast(1)
+
+    val bitmap = android.graphics.Bitmap.createBitmap(totalW, totalH, android.graphics.Bitmap.Config.ARGB_8888)
+    bitmap.density = densityDpi
+    val canvas = android.graphics.Canvas(bitmap)
+
+    val left = shadowPad
+    val top = shadowPad
+    val right = left + bodyW
+    val bottom = top + bodyH
+    val rect = android.graphics.RectF(left, top, right, bottom)
+    val shadowRect = android.graphics.RectF(left, top + shadowOffsetY, right, bottom + shadowOffsetY)
+
+    val shadowPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+        style = android.graphics.Paint.Style.FILL
+        color = android.graphics.Color.argb(90, 0, 0, 0)
+        isDither = true
+    }
+    canvas.drawRoundRect(shadowRect, cornerRadius, cornerRadius, shadowPaint)
+
+    val teamUpper = team.uppercase()
+    val (bgColor, strokeColor, dotColor) = when {
+        teamUpper.contains("ENL") || teamUpper == "2" || teamUpper == "E" ->
+            Triple("#00522B", "#4EDE92", "#4EDE92")
+        teamUpper.contains("RES") || teamUpper == "1" || teamUpper == "R" ->
+            Triple("#004785", "#6BB5FF", "#6BB5FF")
+        teamUpper.contains("MAC") || teamUpper == "3" || teamUpper == "M" ->
+            Triple("#680009", "#FF7171", "#FF7171")
+        else ->
+            Triple("#282B2D", "#C0C7C7", "#C0C7C7")
+    }
+
+    val bgParsed = try {
+        android.graphics.Color.parseColor(bgColor)
+    } catch (_: Exception) {
+        android.graphics.Color.parseColor("#004785")
+    }
+    val strokeParsed = try {
+        android.graphics.Color.parseColor(strokeColor)
+    } catch (_: Exception) {
+        android.graphics.Color.WHITE
+    }
+    val dotParsed = try {
+        android.graphics.Color.parseColor(dotColor)
+    } catch (_: Exception) {
+        android.graphics.Color.WHITE
+    }
+
+    val fillPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+        style = android.graphics.Paint.Style.FILL
+        color = bgParsed
+        isDither = true
+    }
+    canvas.drawRoundRect(rect, cornerRadius, cornerRadius, fillPaint)
+
+    val strokePaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+        style = android.graphics.Paint.Style.STROKE
+        color = android.graphics.Color.argb(
+            220,
+            android.graphics.Color.red(strokeParsed),
+            android.graphics.Color.green(strokeParsed),
+            android.graphics.Color.blue(strokeParsed)
+        )
+        strokeWidth = 1.3f * density
+        isDither = true
+    }
+    canvas.drawRoundRect(rect, cornerRadius, cornerRadius, strokePaint)
+
+    val dotPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+        style = android.graphics.Paint.Style.FILL
+        color = dotParsed
+        isDither = true
+    }
+    val cy = (top + bottom) / 2f
+    val dotCenterX = left + paddingHoriz + dotRadius
+    canvas.drawCircle(dotCenterX, cy, dotRadius, dotPaint)
+
+    val textX = dotCenterX + dotRadius + dotGap
+    val textBaselineY = cy - (fontMetrics.descent + fontMetrics.ascent) / 2f
+    canvas.drawText(displayName, textX, textBaselineY, textPaint)
+
+    return bitmap
+}
 
 /**
  * Resolves which agent codename was tapped in a vertically stacked speech bubble marker.
@@ -791,6 +929,9 @@ actual fun NativeMapView(
         styleBuilder.withSource(GeoJsonSource(SOURCE_PORTAL_SELECTION))
         styleBuilder.withSource(GeoJsonSource(SOURCE_PLAYER_TRAILS))
         styleBuilder.withSource(GeoJsonSource(SOURCE_PLAYER_MARKERS))
+        styleBuilder.withSource(GeoJsonSource(SOURCE_SPIDER_LEGS))
+        styleBuilder.withSource(GeoJsonSource(SOURCE_SPIDER_CENTER))
+        styleBuilder.withSource(GeoJsonSource(SOURCE_SPIDER_MARKERS))
         styleBuilder.withSource(GeoJsonSource(SOURCE_DRAW_POLYGONS))
         styleBuilder.withSource(GeoJsonSource(SOURCE_DRAW_LINES))
         styleBuilder.withSource(GeoJsonSource(SOURCE_DRAW_MARKERS))
@@ -1012,6 +1153,65 @@ actual fun NativeMapView(
         }
         styleBuilder.withLayer(portalTitlesLayer)
 
+        // 13. Spiderfy - Legs casing (dark line for visibility on all basemaps)
+        val spiderLegsCasing = LineLayer(LAYER_SPIDER_LEGS_CASING, SOURCE_SPIDER_LEGS).apply {
+            setProperties(
+                lineColor("#000000"),
+                lineWidth(4.5f),
+                lineOpacity(0.7f),
+                lineCap(Property.LINE_CAP_ROUND),
+                lineJoin(Property.LINE_JOIN_ROUND)
+            )
+        }
+        styleBuilder.withLayer(spiderLegsCasing)
+
+        // 14. Spiderfy - Glowing yellow tactical legs
+        val spiderLegsLayer = LineLayer(LAYER_SPIDER_LEGS, SOURCE_SPIDER_LEGS).apply {
+            setProperties(
+                lineColor("#FFD600"),
+                lineWidth(2.6f),
+                lineOpacity(0.95f),
+                lineCap(Property.LINE_CAP_ROUND),
+                lineJoin(Property.LINE_JOIN_ROUND)
+            )
+        }
+        styleBuilder.withLayer(spiderLegsLayer)
+
+        // 15. Spiderfy - Center origin dot halo
+        val spiderCenterHalo = CircleLayer(LAYER_SPIDER_CENTER_HALO, SOURCE_SPIDER_CENTER).apply {
+            setProperties(
+                circleRadius(8f),
+                circleColor("#000000"),
+                circleOpacity(0.5f),
+                circleBlur(0.4f)
+            )
+        }
+        styleBuilder.withLayer(spiderCenterHalo)
+
+        // 16. Spiderfy - Center origin dot
+        val spiderCenterLayer = CircleLayer(LAYER_SPIDER_CENTER, SOURCE_SPIDER_CENTER).apply {
+            setProperties(
+                circleRadius(5f),
+                circleColor("#FFD600"),
+                circleStrokeColor("#FFFFFF"),
+                circleStrokeWidth(1.6f)
+            )
+        }
+        styleBuilder.withLayer(spiderCenterLayer)
+
+        // 17. Spiderfy - Dispersed agent markers (prominently on top of everything)
+        val spiderMarkersLayer = SymbolLayer(LAYER_SPIDER_MARKERS, SOURCE_SPIDER_MARKERS).apply {
+            setProperties(
+                iconImage(get("bubbleIcon")),
+                iconSize(playerIconScale / 1.5f),
+                iconAnchor(Property.ICON_ANCHOR_CENTER),
+                iconAllowOverlap(true),
+                iconIgnorePlacement(true),
+                iconOptional(false)
+            )
+        }
+        styleBuilder.withLayer(spiderMarkersLayer)
+
         map.setStyle(styleBuilder) { loadedStyle ->
             mapStyle = loadedStyle
         }
@@ -1060,8 +1260,10 @@ actual fun NativeMapView(
         }
     }
 
+    var activeSpiderfySession by remember { mutableStateOf<SpiderfySession?>(null) }
+
     // Update GeoJSON layers when entities, highlighters, or player activity changes
-    LaunchedEffect(entities, selectedHighlighter, isPlayerTrackerEnabled, playerTrails, portalStatus, mapStyle, nativeBaseMap, mapTextColor, drawnShapes, isDrawingModeActive, currentDrawingPoints, currentDrawingType, currentDrawingColor, agentNameFontSize, mapFontBold) {
+    LaunchedEffect(entities, selectedHighlighter, isPlayerTrackerEnabled, playerTrails, portalStatus, mapStyle, nativeBaseMap, mapTextColor, drawnShapes, isDrawingModeActive, currentDrawingPoints, currentDrawingType, currentDrawingColor, agentNameFontSize, mapFontBold, activeSpiderfySession) {
         val style = mapStyle ?: return@LaunchedEffect
         withContext(Dispatchers.Default) {
             val isGcj02 = nativeBaseMap.isGcj02
@@ -1369,7 +1571,10 @@ actual fun NativeMapView(
                 }
 
                 // 2. Grouped Speech Bubble markers at portals
+                val hiddenKeys = activeSpiderfySession?.hiddenGroupKeys ?: emptySet()
                 for (group in trailGroups) {
+                    val groupKey = "${group.lat}_${group.lng}_${group.portalName}"
+                    if (groupKey in hiddenKeys) continue
                     if (group.trails.isEmpty()) continue
                     val (mLat, mLng) = if (isGcj02) CoordinateTransform.wgs84ToGcj02(group.lat, group.lng) else Pair(group.lat, group.lng)
                     val point = Point.fromLngLat(mLng, mLat)
@@ -1537,6 +1742,49 @@ actual fun NativeMapView(
             val drawLineCollection = FeatureCollection.fromFeatures(drawLineFeatures)
             val drawMarkerCollection = FeatureCollection.fromFeatures(drawMarkerFeatures)
 
+            // Build Spiderfy features (pure data transformation, completely thread-safe)
+            val spiderLegFeatures = ArrayList<Feature>()
+            val spiderCenterFeatures = ArrayList<Feature>()
+            val spiderMarkerFeatures = ArrayList<Feature>()
+            val currentSession = activeSpiderfySession
+            if (currentSession != null && isPlayerTrackerEnabled) {
+                spiderCenterFeatures.add(Feature.fromGeometry(currentSession.centerCoord))
+                val density = context.resources.displayMetrics.density
+                val densityDpi = context.resources.displayMetrics.densityDpi
+
+                for (item in currentSession.items) {
+                    val trail = item.trail
+                    val fCoord = item.coord
+                    val legLine = LineString.fromLngLats(listOf(currentSession.centerCoord, fCoord))
+                    val legFeat = Feature.fromGeometry(legLine)
+                    legFeat.addStringProperty("sender", trail.sender)
+                    spiderLegFeatures.add(legFeat)
+
+                    val bmpKey = "spider_bubble_${trail.sender}_${trail.team}_${agentNameFontSize.toInt()}_${if (mapFontBold) "1" else "0"}"
+                    val ptFeat = Feature.fromGeometry(fCoord)
+                    ptFeat.addStringProperty("bubbleIcon", bmpKey)
+                    ptFeat.addStringProperty("sender", trail.sender)
+                    ptFeat.addStringProperty("team", trail.team)
+                    ptFeat.addStringProperty("portal", trail.latestPortalName)
+                    spiderMarkerFeatures.add(ptFeat)
+
+                    val bmp = bubbleBitmapCache.getOrPut(bmpKey) {
+                        createSpiderAgentBubbleBitmap(
+                            sender = trail.sender,
+                            team = trail.team,
+                            fontSizeSp = agentNameFontSize,
+                            density = density,
+                            densityDpi = densityDpi,
+                            isBold = mapFontBold
+                        )
+                    }
+                    bubbleBitmapsToAdd.add(Pair(bmpKey, bmp))
+                }
+            }
+            val spiderLegCollection = FeatureCollection.fromFeatures(spiderLegFeatures)
+            val spiderCenterCollection = FeatureCollection.fromFeatures(spiderCenterFeatures)
+            val spiderMarkerCollection = FeatureCollection.fromFeatures(spiderMarkerFeatures)
+
             withContext(Dispatchers.Main) {
                 for ((key, bmp) in bubbleBitmapsToAdd) {
                     if (style.getImage(key) == null) {
@@ -1549,6 +1797,9 @@ actual fun NativeMapView(
                 style.getSourceAs<GeoJsonSource>(SOURCE_PORTAL_SELECTION)?.setGeoJson(selectionCollection)
                 style.getSourceAs<GeoJsonSource>(SOURCE_PLAYER_TRAILS)?.setGeoJson(trailCollection)
                 style.getSourceAs<GeoJsonSource>(SOURCE_PLAYER_MARKERS)?.setGeoJson(markerCollection)
+                style.getSourceAs<GeoJsonSource>(SOURCE_SPIDER_LEGS)?.setGeoJson(spiderLegCollection)
+                style.getSourceAs<GeoJsonSource>(SOURCE_SPIDER_CENTER)?.setGeoJson(spiderCenterCollection)
+                style.getSourceAs<GeoJsonSource>(SOURCE_SPIDER_MARKERS)?.setGeoJson(spiderMarkerCollection)
                 style.getSourceAs<GeoJsonSource>(SOURCE_DRAW_POLYGONS)?.setGeoJson(drawPolygonCollection)
                 style.getSourceAs<GeoJsonSource>(SOURCE_DRAW_LINES)?.setGeoJson(drawLineCollection)
                 style.getSourceAs<GeoJsonSource>(SOURCE_DRAW_MARKERS)?.setGeoJson(drawMarkerCollection)
@@ -1657,97 +1908,12 @@ actual fun NativeMapView(
                             return@addOnMapClickListener true
                         }
 
-                        // 1. Query Portals near the tap point
-                        val portalFeatures = map.queryRenderedFeatures(touchBox, LAYER_PORTALS)
-
-                        // 2. Query Player Speech Bubble Markers near the tap point
-                        val playerMarkerFeatures = map.queryRenderedFeatures(touchBox, LAYER_PLAYER_MARKERS)
-
-                        // Case A: A portal is within touch range
-                        if (portalFeatures.isNotEmpty()) {
-                            // If player marker is also nearby, check if the tap was specifically to the right of the portal
-                            // on the speech bubble (which pops out to the right of the portal icon)
-                            var clickedPlayerPin = false
-                            if (playerMarkerFeatures.isNotEmpty()) {
-                                val pGeom = portalFeatures[0].geometry() as? Point
-                                if (pGeom != null) {
-                                    val portalScreen = map.projection.toScreenLocation(LatLng(pGeom.latitude(), pGeom.longitude()))
-                                    if (screenPoint.x > portalScreen.x + 6f) {
-                                        clickedPlayerPin = true
-                                    }
-                                }
-                            }
-
-                            if (clickedPlayerPin) {
-                                val mGeom = playerMarkerFeatures[0].geometry() as? Point
-                                val markerScreen = if (mGeom != null) {
-                                    map.projection.toScreenLocation(LatLng(mGeom.latitude(), mGeom.longitude()))
-                                } else {
-                                    val pGeom = portalFeatures[0].geometry() as? Point
-                                    if (pGeom != null) map.projection.toScreenLocation(LatLng(pGeom.latitude(), pGeom.longitude())) else screenPoint
-                                }
-                                val density = context.resources.displayMetrics.density
-                                val (sender, team) = resolveTappedSenderAndTeam(
-                                    markerFeat = playerMarkerFeatures[0],
-                                    screenY = screenPoint.y,
-                                    refY = markerScreen.y,
-                                    fontSizeSp = agentNameFontSize,
-                                    density = density,
-                                    iconScale = playerIconScale / 1.5f
-                                )
-                                val portal = playerMarkerFeatures[0].getStringProperty("portal") ?: ""
-                                val (wgsLat, wgsLng) = if (nativeBaseMap.isGcj02) {
-                                    CoordinateTransform.gcj02ToWgs84(point.latitude, point.longitude)
-                                } else {
-                                    Pair(point.latitude, point.longitude)
-                                }
-                                val trail = viewModel.playerTrails.value.find { it.sender == sender }
-                                    ?: playerTrails.find { it.sender == sender }
-                                    ?: PlayerTrail(
-                                        sender = sender,
-                                        team = team,
-                                        points = listOf(
-                                            PlayerActivityPoint(
-                                                lat = wgsLat,
-                                                lng = wgsLng,
-                                                portalName = portal,
-                                                time = PlatformUtils.currentTimeMillis(),
-                                                formattedTime = ""
-                                            )
-                                        ),
-                                        lastSeenTime = PlatformUtils.currentTimeMillis(),
-                                        latestLat = wgsLat,
-                                        latestLng = wgsLng,
-                                        latestPortalName = portal
-                                    )
-                                viewModel.setDialog(AppDialog.PlayerTrailInfo(trail))
-                                return@addOnMapClickListener true
-                            }
-
-                            // Otherwise, the user tapped on/near the portal -> select the portal!
-                            val guid = portalFeatures[0].getStringProperty("guid")
-                            if (!guid.isNullOrBlank()) {
-                                viewModel.onPortalTapped(guid)
-                                return@addOnMapClickListener true
-                            }
-                        }
-
-                        // Case B: No portal was tapped -> check Player Marker pin
-                        if (playerMarkerFeatures.isNotEmpty()) {
-                            val mGeom = playerMarkerFeatures[0].geometry() as? Point
-                            val markerScreen = if (mGeom != null) {
-                                map.projection.toScreenLocation(LatLng(mGeom.latitude(), mGeom.longitude()))
-                            } else screenPoint
-                            val density = context.resources.displayMetrics.density
-                            val (sender, team) = resolveTappedSenderAndTeam(
-                                markerFeat = playerMarkerFeatures[0],
-                                screenY = screenPoint.y,
-                                refY = markerScreen.y,
-                                fontSizeSp = agentNameFontSize,
-                                density = density,
-                                iconScale = playerIconScale / 1.5f
-                            )
-                            val portal = playerMarkerFeatures[0].getStringProperty("portal") ?: ""
+                        // 1. Query Spiderfied Agent Markers (topmost interactive layer)
+                        val spiderFeatures = map.queryRenderedFeatures(touchBox, LAYER_SPIDER_MARKERS)
+                        if (spiderFeatures.isNotEmpty()) {
+                            val sender = spiderFeatures[0].getStringProperty("sender") ?: "Agent"
+                            val team = spiderFeatures[0].getStringProperty("team") ?: ""
+                            val portal = spiderFeatures[0].getStringProperty("portal") ?: ""
                             val (wgsLat, wgsLng) = if (nativeBaseMap.isGcj02) {
                                 CoordinateTransform.gcj02ToWgs84(point.latitude, point.longitude)
                             } else {
@@ -1776,6 +1942,148 @@ actual fun NativeMapView(
                             return@addOnMapClickListener true
                         }
 
+                        // If already spiderfied, tapping outside collapses the spiderfy layout
+                        val hadSpiderfy = activeSpiderfySession != null
+                        if (hadSpiderfy) {
+                            activeSpiderfySession = null
+                        }
+
+                        // 2. Query Player Markers and Portals (AGENT MARKERS PRIORITIZED OVER PORTALS!)
+                        val playerMarkerFeatures = map.queryRenderedFeatures(touchBox, LAYER_PLAYER_MARKERS)
+                        val portalFeatures = map.queryRenderedFeatures(touchBox, LAYER_PORTALS)
+
+                        if (playerMarkerFeatures.isNotEmpty()) {
+                            val mGeom = playerMarkerFeatures[0].geometry() as? Point
+                            val markerAnchorScreen = if (mGeom != null) {
+                                map.projection.toScreenLocation(LatLng(mGeom.latitude(), mGeom.longitude()))
+                            } else screenPoint
+
+                            // Check if tap was strictly on the portal circle to the left of the anchor
+                            val isExplicitPortalTap = portalFeatures.isNotEmpty() && (screenPoint.x < markerAnchorScreen.x - 4f)
+
+                            if (!isExplicitPortalTap) {
+                                // User clicked on or near the agent bubble / pin -> PRIORITIZE AGENT!
+                                val density = context.resources.displayMetrics.density
+                                val clusterRadiusPx = 45f * density
+                                val currentGroups = groupPlayerTrailsByPortal(viewModel.playerTrails.value, entities.portals)
+                                val clusterGroups = mutableListOf<PortalTrailGroup>()
+                                val clusterTrails = mutableListOf<PlayerTrail>()
+
+                                for (g in currentGroups) {
+                                    if (g.trails.isEmpty()) continue
+                                    val (gLat, gLng) = if (nativeBaseMap.isGcj02) CoordinateTransform.wgs84ToGcj02(g.lat, g.lng) else Pair(g.lat, g.lng)
+                                    val gScreen = map.projection.toScreenLocation(LatLng(gLat, gLng))
+                                    val dist = kotlin.math.hypot(gScreen.x - markerAnchorScreen.x, gScreen.y - markerAnchorScreen.y)
+                                    if (dist <= clusterRadiusPx) {
+                                        clusterGroups.add(g)
+                                        clusterTrails.addAll(g.trails)
+                                    }
+                                }
+
+                                val uniqueTrails = clusterTrails.distinctBy { it.sender }
+                                if (uniqueTrails.size > 1) {
+                                    // SPIDERFY! Calculate fanned-out coordinates on the UI thread where map.projection is valid
+                                    val hiddenKeys = clusterGroups.map { "${it.lat}_${it.lng}_${it.portalName}" }.toSet()
+                                    val centerLatLng = map.projection.fromScreenLocation(markerAnchorScreen)
+                                    val centerCoord = Point.fromLngLat(centerLatLng.longitude, centerLatLng.latitude)
+
+                                    val count = uniqueTrails.size
+                                    val displayMetrics = context.resources.displayMetrics
+                                    val screenW = displayMetrics.widthPixels.toFloat()
+                                    val screenH = displayMetrics.heightPixels.toFloat()
+
+                                    val spiderItems = mutableListOf<SpiderfyItem>()
+                                    for (i in 0 until count) {
+                                        val trail = uniqueTrails[i]
+                                        val (fx, fy) = if (count <= 8) {
+                                            val circumference = (65f + count * 16f) * density
+                                            val radius = (circumference / (2f * Math.PI.toFloat())).coerceIn(55f * density, 130f * density)
+                                            val startAngle = (Math.PI / 12f).toFloat()
+                                            val angleStep = (2f * Math.PI.toFloat()) / count
+                                            val angle = startAngle + i * angleStep
+                                            Pair(
+                                                (markerAnchorScreen.x + radius * kotlin.math.cos(angle)).coerceIn(50f * density, screenW - 50f * density),
+                                                (markerAnchorScreen.y + radius * kotlin.math.sin(angle)).coerceIn(60f * density, screenH - 60f * density)
+                                            )
+                                        } else {
+                                            var legRadius = 50f * density
+                                            var angle = 0f
+                                            val footSep = 36f * density
+                                            val lengthFactor = 4.5f * density
+                                            for (step in 0 until i) {
+                                                angle += footSep / legRadius + 0.0005f * step
+                                                legRadius += (2f * Math.PI.toFloat()) * lengthFactor / (angle.coerceAtLeast(0.01f))
+                                            }
+                                            Pair(
+                                                (markerAnchorScreen.x + legRadius * kotlin.math.cos(angle)).coerceIn(50f * density, screenW - 50f * density),
+                                                (markerAnchorScreen.y + legRadius * kotlin.math.sin(angle)).coerceIn(60f * density, screenH - 60f * density)
+                                            )
+                                        }
+                                        val fLatLng = map.projection.fromScreenLocation(android.graphics.PointF(fx, fy))
+                                        val fCoord = Point.fromLngLat(fLatLng.longitude, fLatLng.latitude)
+                                        spiderItems.add(SpiderfyItem(trail, fCoord))
+                                    }
+
+                                    activeSpiderfySession = SpiderfySession(
+                                        centerCoord = centerCoord,
+                                        initialZoom = map.cameraPosition.zoom,
+                                        hiddenGroupKeys = hiddenKeys,
+                                        items = spiderItems
+                                    )
+                                    return@addOnMapClickListener true
+                                }
+
+                                // Single agent in this area -> open directly
+                                val singleSender = playerMarkerFeatures[0].getStringProperty("sender")
+                                    ?: uniqueTrails.firstOrNull()?.sender ?: "Agent"
+                                val singleTeam = playerMarkerFeatures[0].getStringProperty("team")
+                                    ?: uniqueTrails.firstOrNull()?.team ?: ""
+                                val portal = playerMarkerFeatures[0].getStringProperty("portal")
+                                    ?: uniqueTrails.firstOrNull()?.latestPortalName ?: ""
+                                val (wgsLat, wgsLng) = if (nativeBaseMap.isGcj02) {
+                                    CoordinateTransform.gcj02ToWgs84(point.latitude, point.longitude)
+                                } else {
+                                    Pair(point.latitude, point.longitude)
+                                }
+                                val trail = viewModel.playerTrails.value.find { it.sender == singleSender }
+                                    ?: playerTrails.find { it.sender == singleSender }
+                                    ?: uniqueTrails.firstOrNull()
+                                    ?: PlayerTrail(
+                                        sender = singleSender,
+                                        team = singleTeam,
+                                        points = listOf(
+                                            PlayerActivityPoint(
+                                                lat = wgsLat,
+                                                lng = wgsLng,
+                                                portalName = portal,
+                                                time = PlatformUtils.currentTimeMillis(),
+                                                formattedTime = ""
+                                            )
+                                        ),
+                                        lastSeenTime = PlatformUtils.currentTimeMillis(),
+                                        latestLat = wgsLat,
+                                        latestLng = wgsLng,
+                                        latestPortalName = portal
+                                    )
+                                viewModel.setDialog(AppDialog.PlayerTrailInfo(trail))
+                                return@addOnMapClickListener true
+                            }
+                        }
+
+                        // If spiderfy was just collapsed and click didn't hit a portal, consume tap
+                        if (hadSpiderfy && portalFeatures.isEmpty()) {
+                            return@addOnMapClickListener true
+                        }
+
+                        // 3. Portals (when not tapping an agent bubble)
+                        if (portalFeatures.isNotEmpty()) {
+                            val guid = portalFeatures[0].getStringProperty("guid")
+                            if (!guid.isNullOrBlank()) {
+                                viewModel.onPortalTapped(guid)
+                                return@addOnMapClickListener true
+                            }
+                        }
+
                         // Case C: Check Player Trail line (only when not clicking a portal)
                         val trailFeatures = map.queryRenderedFeatures(touchBox, LAYER_PLAYER_TRAILS)
                         if (trailFeatures.isNotEmpty()) {
@@ -1795,6 +2103,12 @@ actual fun NativeMapView(
                     // Handle map camera movement -> Sync to IITC / Leaflet
                     map.addOnCameraIdleListener {
                         val camera = map.cameraPosition
+                        val session = activeSpiderfySession
+                        if (session != null) {
+                            if (kotlin.math.abs(camera.zoom - session.initialZoom) > 0.3) {
+                                activeSpiderfySession = null
+                            }
+                        }
                         val target = camera.target
                         if (target != null) {
                             val (wgsLat, wgsLng) = if (nativeBaseMap.isGcj02) {

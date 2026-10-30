@@ -808,6 +808,99 @@ private fun PortalExpandedDetails(
             HistoryChip(label = "Scout Controlled", active = portalStatus.historyScoutControlled, modifier = Modifier.weight(1.3f))
         }
 
+        // Keys Management Card for this portal (IITC Native Keys Plugin)
+        val portalGuid = portalStatus.guid ?: ""
+        if (portalGuid.isNotBlank()) {
+            val keysMap by viewModel.portalKeys.collectAsState()
+            val keyCount = keysMap[portalGuid] ?: 0
+
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 14.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Surface(
+                            color = if (keyCount > 0) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
+                            shape = CircleShape,
+                            modifier = Modifier.size(36.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Default.VpnKey,
+                                    contentDescription = "Portal Keys",
+                                    tint = if (keyCount > 0) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
+                        Column {
+                            Text(
+                                text = "PORTAL KEYS",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 0.5.sp
+                            )
+                            Text(
+                                text = if (keyCount > 0) "$keyCount in inventory" else "None recorded",
+                                color = MaterialTheme.colorScheme.onSurface,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        FilledTonalIconButton(
+                            onClick = { if (keyCount > 0) viewModel.setPortalKeyCount(portalGuid, keyCount - 1) },
+                            enabled = keyCount > 0,
+                            modifier = Modifier.size(36.dp),
+                            shape = CircleShape
+                        ) {
+                            Icon(Icons.Default.Remove, contentDescription = "Decrease key count", modifier = Modifier.size(16.dp))
+                        }
+
+                        Surface(
+                            color = if (keyCount > 0) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.widthIn(min = 36.dp)
+                        ) {
+                            Text(
+                                text = "$keyCount",
+                                color = if (keyCount > 0) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 15.sp,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
+
+                        FilledTonalIconButton(
+                            onClick = { viewModel.setPortalKeyCount(portalGuid, keyCount + 1) },
+                            modifier = Modifier.size(36.dp),
+                            shape = CircleShape
+                        ) {
+                            Icon(Icons.Default.Add, contentDescription = "Increase key count", modifier = Modifier.size(16.dp))
+                        }
+                    }
+                }
+            }
+        }
+
         // Linked Portals Section (M3E Expressive Linked Portals Card)
         Column(
             modifier = Modifier.fillMaxWidth(),
