@@ -660,7 +660,7 @@ body.light-map .leaflet-popup-pane .portal-name {
                 'setFollowMode', 'setMapDarkMode', 'setPortalStatus', 'setPortalDetails', 'setChatMessages', 'setMapStatus',
                 'setProgress', 'setPermalink', 'addInternalHostname', 'saveFile',
                 'reloadIITC', 'openDemo', 'dialogFocused', 'dialogOpened', 'spinnerEnabled',
-                'setEntities', 'syncPluginData', 'regionScoreResult', 'regionScoreError'
+                'setEntities', 'syncPluginData', 'regionScoreResult', 'regionScoreError', 'onMapDataRefreshEnd'
             ];
 
             var argNames = {
@@ -691,7 +691,8 @@ body.light-map .leaflet-popup-pane .portal-name {
                 setEntities: ['data'],
                 syncPluginData: ['key', 'value'],
                 regionScoreResult: ['data'],
-                regionScoreError: ['err']
+                regionScoreError: ['err'],
+                onMapDataRefreshEnd: []
             };
 
             syncEvents.forEach(function(evt) {
@@ -961,6 +962,9 @@ body.light-map .leaflet-popup-pane .portal-name {
                 window.addHook('mapDataRefreshEnd', function() {
                     if (window.selectedPortal) {
                         sendPortalDetails(window.selectedPortal);
+                    }
+                    if (bridge && bridge.onMapDataRefreshEnd) {
+                        bridge.onMapDataRefreshEnd();
                     }
                 });
                 function triggerBootSync() {

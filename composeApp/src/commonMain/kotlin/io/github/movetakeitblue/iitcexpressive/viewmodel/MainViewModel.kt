@@ -236,6 +236,7 @@ class MainViewModel(
         storage.setBoolean("player_tracker_enabled", enabled)
         if (enabled) {
             updatePlayerTrails(_chatMessages.value)
+            requestAllChatIfEnabled()
         }
     }
 
@@ -433,6 +434,9 @@ class MainViewModel(
 
     fun triggerMapRefresh() {
         evaluateJs("if(window.mapDataRequest) { window.mapDataRequest.refresh(); }")
+        if (_isPlayerTrackerEnabled.value) {
+            requestChatThrottled()
+        }
     }
 
     // Keys state
@@ -746,6 +750,25 @@ class MainViewModel(
                 }
             })();
         """.trimIndent())
+    }
+
+    private var lastChatRequestTime = 0L
+    fun requestChatThrottled(minIntervalMs: Long = 15_000L) {
+        val now = PlatformUtils.currentTimeMillis()
+        if (now - lastChatRequestTime >= minIntervalMs) {
+            lastChatRequestTime = now
+            requestAllChatIfEnabled()
+        }
+    }
+
+    fun requestAllChatIfEnabled() {
+        if (_isPlayerTrackerEnabled.value) {
+            scope.launch {
+                requestChat("all")
+                delay(600L)
+                requestChat("faction")
+            }
+        }
     }
 
     fun getSavedMapPosition(): Triple<Double, Double, Double>? {
@@ -1228,6 +1251,17 @@ class MainViewModel(
                 if (_portalKeys.value.isNotEmpty()) {
                     val kd = KeysSerializer.toJson(_portalKeys.value)
                     evaluateJs(EventsToIitc.syncPluginStorage("plugin-keys-data", kd))
+                }
+                if (_isPlayerTrackerEnabled.value) {
+                    scope.launch {
+                        delay(1200L)
+                        requestAllChatIfEnabled()
+                    }
+                }
+            }
+            "onMapDataRefreshEnd" -> {
+                if (_isPlayerTrackerEnabled.value) {
+                    requestChatThrottled()
                 }
             }
             "syncPluginData" -> {

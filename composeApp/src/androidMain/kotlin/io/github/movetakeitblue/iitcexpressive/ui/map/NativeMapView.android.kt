@@ -211,12 +211,19 @@ private fun groupPlayerTrailsByPortal(
  */
 private fun createAgentSpeechBubbleBitmap(
     agents: List<AgentBubbleItem>,
+    portalTitle: String? = null,
     fontSizeSp: Float,
+    portalFontSizeSp: Float = fontSizeSp,
     density: Float,
     densityDpi: Int,
     isBold: Boolean = true
 ): android.graphics.Bitmap {
-    if (agents.isEmpty()) {
+    val cleanPortalTitle = portalTitle?.trim()?.takeIf { it.isNotBlank() }?.let {
+        if (it.length > 28) it.take(27) + "…" else it
+    }
+    val hasPortal = cleanPortalTitle != null
+    val totalCount = agents.size + (if (hasPortal) 1 else 0)
+    if (totalCount == 0) {
         val bmp = android.graphics.Bitmap.createBitmap(1, 1, android.graphics.Bitmap.Config.ARGB_8888)
         bmp.density = densityDpi
         return bmp
@@ -245,9 +252,20 @@ private fun createAgentSpeechBubbleBitmap(
     val shadowOffsetY = 1.5f * density
     val bubbleGap = 3.5f * density // Gap between stacked bubbles
 
+    val portalPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+        color = android.graphics.Color.WHITE
+        textSize = portalFontSizeSp * density
+        typeface = if (isBold) android.graphics.Typeface.DEFAULT_BOLD else android.graphics.Typeface.DEFAULT
+        textAlign = android.graphics.Paint.Align.LEFT
+        isDither = true
+    }
+    val portalFontMetrics = portalPaint.fontMetrics
+    val portalTextHeight = portalFontMetrics.descent - portalFontMetrics.ascent
+    val portalBodyH = portalTextHeight + paddingVert * 2f
+
     val singleBodyH = textHeight + paddingVert * 2f
 
-    // Find maximum body width among all agents so stacked bubbles are aligned
+    // Find maximum body width among all items so stacked bubbles are aligned
     var maxBodyW = 0f
     for (agent in agents) {
         val displayName = agent.sender.ifBlank { "Agent" }
@@ -257,8 +275,15 @@ private fun createAgentSpeechBubbleBitmap(
             maxBodyW = bodyW
         }
     }
+    if (cleanPortalTitle != null) {
+        val portalTextWidth = portalPaint.measureText(cleanPortalTitle)
+        val bodyW = portalTextWidth + paddingHoriz * 2f
+        if (bodyW > maxBodyW) {
+            maxBodyW = bodyW
+        }
+    }
 
-    val totalBodiesH = agents.size * singleBodyH + (agents.size - 1) * bubbleGap
+    val totalBodiesH = agents.size * singleBodyH + (if (hasPortal) portalBodyH else 0f) + (totalCount - 1) * bubbleGap
     val totalW = (shadowPadX + pointerW + maxBodyW + shadowPadX).toInt().coerceAtLeast(1)
     val totalH = (shadowPadY + totalBodiesH + shadowPadY + shadowOffsetY).toInt().coerceAtLeast(1)
 
@@ -313,17 +338,22 @@ private fun createAgentSpeechBubbleBitmap(
     }
 
     // 1. Soft Drop Shadows for all bubbles
-    for (i in agents.indices) {
-        val top_i = startY + i * (singleBodyH + bubbleGap)
-        val bottom_i = top_i + singleBodyH
+    var curTop = startY
+    for (i in 0 until totalCount) {
+        val curH = if (i < agents.size) singleBodyH else portalBodyH
+        val top_i = curTop
+        val bottom_i = top_i + curH
         val cy_i = (top_i + bottom_i) / 2f
         val shadowPath = buildBubblePath(top_i, bottom_i, cy_i, offsetY = shadowOffsetY)
         canvas.drawPath(shadowPath, shadowPaint)
+        curTop = bottom_i + bubbleGap
     }
 
-    // 2. Solid Dark Faction Fills, Strokes, and White Agent Codenames
+    // 2. Solid Fills, Strokes, and White Texts
+    // 2a. Agent bubbles (top of stack)
+    curTop = startY
     for ((i, agent) in agents.withIndex()) {
-        val top_i = startY + i * (singleBodyH + bubbleGap)
+        val top_i = curTop
         val bottom_i = top_i + singleBodyH
         val cy_i = (top_i + bottom_i) / 2f
 
@@ -374,6 +404,57 @@ private fun createAgentSpeechBubbleBitmap(
         val displayName = agent.sender.ifBlank { "Agent" }
         val textBaselineY = cy_i - (fontMetrics.descent + fontMetrics.ascent) / 2f
         canvas.drawText(displayName, left + paddingHoriz, textBaselineY, textPaint)
+        curTop = bottom_i + bubbleGap
+    }
+
+    // 2b. Portal Name bubble placed at the bottom (below all agent bubbles)
+    if (cleanPortalTitle != null) {
+        val top_i = curTop
+        val bottom_i = top_i + portalBodyH
+        val cy_i = (top_i + bottom_i) / 2f
+
+        // Unclaimed portal dark gray: #3c4043, stroke: #c0c7c7
+        val bgColor = "#3c4043"
+        val strokeColor = "#c0c7c7"
+
+        val bgParsed = try {
+            android.graphics.Color.parseColor(bgColor)
+        } catch (_: Exception) {
+            android.graphics.Color.parseColor("#3c4043")
+        }
+        val strokeParsed = try {
+            android.graphics.Color.parseColor(strokeColor)
+        } catch (_: Exception) {
+            android.graphics.Color.parseColor("#c0c7c7")
+        }
+
+        val fillPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+            style = android.graphics.Paint.Style.FILL
+            color = bgParsed
+            isDither = true
+        }
+
+        val strokePaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+            style = android.graphics.Paint.Style.STROKE
+            color = android.graphics.Color.argb(
+                200,
+                android.graphics.Color.red(strokeParsed),
+                android.graphics.Color.green(strokeParsed),
+                android.graphics.Color.blue(strokeParsed)
+            )
+            strokeWidth = 1.2f * density
+            strokeJoin = android.graphics.Paint.Join.ROUND
+            strokeCap = android.graphics.Paint.Cap.ROUND
+            isDither = true
+        }
+
+        val bubblePath = buildBubblePath(top_i, bottom_i, cy_i, offsetY = 0f)
+        canvas.drawPath(bubblePath, fillPaint)
+        canvas.drawPath(bubblePath, strokePaint)
+
+        // Draw Pure White Portal Name
+        val textBaselineY = cy_i - (portalFontMetrics.descent + portalFontMetrics.ascent) / 2f
+        canvas.drawText(cleanPortalTitle, left + paddingHoriz, textBaselineY, portalPaint)
     }
 
     return bitmap
@@ -388,7 +469,9 @@ private fun createAgentSpeechBubbleBitmap(
     isBold: Boolean = true
 ): android.graphics.Bitmap = createAgentSpeechBubbleBitmap(
     agents = listOf(AgentBubbleItem(sender, team)),
+    portalTitle = null,
     fontSizeSp = fontSizeSp,
+    portalFontSizeSp = fontSizeSp,
     density = density,
     densityDpi = densityDpi,
     isBold = isBold
@@ -1106,11 +1189,13 @@ actual fun NativeMapView(
         for (group in initialTrailGroups) {
             if (group.trails.isEmpty()) continue
             val keySenders = group.trails.joinToString("_") { "${it.sender}:${it.team}" }
-            val bubbleKey = "bubble_grp_${keySenders}_${agentNameFontSize.toInt()}_${if (mapFontBold) "1" else "0"}"
+            val bubbleKey = "bubble_grp_${keySenders}_p_${group.portalName.hashCode()}_${agentNameFontSize.toInt()}_${portalNameFontSize.toInt()}_${if (mapFontBold) "1" else "0"}"
             val bmp = bubbleBitmapCache.getOrPut(bubbleKey) {
                 createAgentSpeechBubbleBitmap(
                     agents = group.trails.map { AgentBubbleItem(it.sender, it.team) },
+                    portalTitle = group.portalName.ifBlank { null },
                     fontSizeSp = agentNameFontSize,
+                    portalFontSizeSp = portalNameFontSize,
                     density = density,
                     densityDpi = densityDpi,
                     isBold = mapFontBold
@@ -1133,22 +1218,18 @@ actual fun NativeMapView(
         }
         styleBuilder.withLayer(playerMarkersLayer)
 
-        // 12. Portals title symbol layer (theme contrast or custom color, on the right of portal)
+        // 12. Portals title symbol layer (M3E speech bubble style, unclaimed dark gray, white text)
         val portalTitlesLayer = SymbolLayer(LAYER_PORTALS_TITLE, SOURCE_PORTALS).apply {
             setProperties(
-                textField(get("title")),
-                textSize(portalNameFontSize),
-                textColor(effectiveTextColor),
-                textHaloColor(haloColor),
-                textHaloWidth(haloWidth),
-                textHaloBlur(0.2f),
-                textAnchor(Property.TEXT_ANCHOR_LEFT),
-                textOffset(arrayOf(1.1f, 0f)),
-                textAllowOverlap(false),
-                textIgnorePlacement(false),
-                textFont(fontStack)
+                iconImage(get("portalBubbleIcon")),
+                iconSize(playerIconScale / 1.5f),
+                iconAnchor(Property.ICON_ANCHOR_LEFT),
+                iconOffset(arrayOf(10f, 0f)),
+                iconAllowOverlap(false),
+                iconIgnorePlacement(false),
+                iconOptional(false)
             )
-            minZoom = 15.5f
+            minZoom = 15.0f
             maxZoom = 22f
         }
         styleBuilder.withLayer(portalTitlesLayer)
@@ -1261,9 +1342,41 @@ actual fun NativeMapView(
     }
 
     var activeSpiderfySession by remember { mutableStateOf<SpiderfySession?>(null) }
+    var currentBubbleAnimator by remember { mutableStateOf<android.animation.ValueAnimator?>(null) }
+    var previousZoom by remember { mutableStateOf<Double?>(null) }
+
+    fun triggerBubblePopAnimation(
+        style: Style?,
+        targetScale: Float,
+        animatePortals: Boolean = true,
+        animateAgents: Boolean = true
+    ) {
+        if (style == null) return
+        val baseScale = targetScale / 1.5f
+        currentBubbleAnimator?.cancel()
+        currentBubbleAnimator = android.animation.ValueAnimator.ofFloat(0.01f, 1.0f).apply {
+            duration = 380L
+            interpolator = android.view.animation.OvershootInterpolator(2.4f)
+            addUpdateListener { animator ->
+                val progress = animator.animatedValue as Float
+                val scale = (baseScale * progress).coerceAtLeast(0.001f)
+                if (animatePortals) {
+                    style.getLayerAs<SymbolLayer>(LAYER_PORTALS_TITLE)?.setProperties(
+                        iconSize(scale)
+                    )
+                }
+                if (animateAgents) {
+                    style.getLayerAs<SymbolLayer>(LAYER_PLAYER_MARKERS)?.setProperties(
+                        iconSize(scale)
+                    )
+                }
+            }
+            start()
+        }
+    }
 
     // Update GeoJSON layers when entities, highlighters, or player activity changes
-    LaunchedEffect(entities, selectedHighlighter, isPlayerTrackerEnabled, playerTrails, portalStatus, mapStyle, nativeBaseMap, mapTextColor, drawnShapes, isDrawingModeActive, currentDrawingPoints, currentDrawingType, currentDrawingColor, agentNameFontSize, mapFontBold, activeSpiderfySession) {
+    LaunchedEffect(entities, selectedHighlighter, isPlayerTrackerEnabled, playerTrails, portalStatus, mapStyle, nativeBaseMap, mapTextColor, drawnShapes, isDrawingModeActive, currentDrawingPoints, currentDrawingType, currentDrawingColor, portalNameFontSize, agentNameFontSize, mapFontBold, activeSpiderfySession) {
         val style = mapStyle ?: return@LaunchedEffect
         withContext(Dispatchers.Default) {
             val isGcj02 = nativeBaseMap.isGcj02
@@ -1279,6 +1392,8 @@ actual fun NativeMapView(
             } else emptyList()
             val occupiedPortalGuids = trailGroups.mapNotNull { it.matchedPortalGuid }.toSet()
 
+            val bubbleBitmapsToAdd = ArrayList<Pair<String, android.graphics.Bitmap>>()
+
             // Build Portal features with dynamic M3E Highlighter styles
             val portalFeatures = ArrayList<Feature>(entities.portals.size)
             for (p in entities.portals) {
@@ -1287,7 +1402,8 @@ actual fun NativeMapView(
                 val feat = Feature.fromGeometry(point)
                 feat.addStringProperty("guid", p.guid)
 
-                // If player speech bubble(s) are to be rendered at this portal, do not display the portal title
+                // If player speech bubble(s) are to be rendered at this portal, the portal title bubble is placed below the agent bubbles on LAYER_PLAYER_MARKERS.
+                // Otherwise, it is displayed as a dark gray speech bubble on LAYER_PORTALS_TITLE.
                 val hasAgentBubble = isPlayerTrackerEnabled && (
                     p.guid in occupiedPortalGuids || trailGroups.any { g ->
                         val latDiff = kotlin.math.abs(p.lat - g.lat)
@@ -1300,6 +1416,26 @@ actual fun NativeMapView(
                 )
                 val displayTitle = if (hasAgentBubble) "" else p.title
                 feat.addStringProperty("title", displayTitle)
+                if (!hasAgentBubble && p.title.isNotBlank()) {
+                    val portalBubbleKey = "portal_bubble_${p.title.hashCode()}_${portalNameFontSize.toInt()}_${if (mapFontBold) "1" else "0"}"
+                    feat.addStringProperty("portalBubbleIcon", portalBubbleKey)
+                    val density = context.resources.displayMetrics.density
+                    val densityDpi = context.resources.displayMetrics.densityDpi
+                    val bmp = bubbleBitmapCache.getOrPut(portalBubbleKey) {
+                        createAgentSpeechBubbleBitmap(
+                            agents = emptyList(),
+                            portalTitle = p.title,
+                            fontSizeSp = agentNameFontSize,
+                            portalFontSizeSp = portalNameFontSize,
+                            density = density,
+                            densityDpi = densityDpi,
+                            isBold = mapFontBold
+                        )
+                    }
+                    bubbleBitmapsToAdd.add(Pair(portalBubbleKey, bmp))
+                } else {
+                    feat.addStringProperty("portalBubbleIcon", "")
+                }
                 feat.addNumberProperty("team", p.team)
                 feat.addNumberProperty("level", p.level)
                 feat.addNumberProperty("health", p.health)
@@ -1540,7 +1676,6 @@ actual fun NativeMapView(
             // Build Player Activity Tracker features
             val trailFeatures = ArrayList<Feature>()
             val markerFeatures = ArrayList<Feature>()
-            val bubbleBitmapsToAdd = ArrayList<Pair<String, android.graphics.Bitmap>>()
 
             if (isPlayerTrackerEnabled && playerTrails.isNotEmpty()) {
                 val density = context.resources.displayMetrics.density
@@ -1580,14 +1715,28 @@ actual fun NativeMapView(
                     val point = Point.fromLngLat(mLng, mLat)
                     val ptFeat = Feature.fromGeometry(point)
 
+                    val matchedPortal = entities.portals.find { it.guid == group.matchedPortalGuid }
+                        ?: entities.portals.find { p ->
+                            val latDiff = kotlin.math.abs(p.lat - group.lat)
+                            val lngDiff = kotlin.math.abs(p.lng - group.lng)
+                            (p.title.isNotBlank() && group.portalName.isNotBlank() &&
+                                p.title.trim().equals(group.portalName.trim(), ignoreCase = true) &&
+                                latDiff < 0.005 && lngDiff < 0.005) ||
+                                (latDiff < 0.0003 && lngDiff < 0.0003)
+                        }
+                    val portalTitle = matchedPortal?.title?.ifBlank { group.portalName } ?: group.portalName
+                    val portalGuid = matchedPortal?.guid ?: ""
+
                     val keySenders = group.trails.joinToString("_") { "${it.sender}:${it.team}" }
-                    val bubbleKey = "bubble_grp_${keySenders}_${agentNameFontSize.toInt()}_${if (mapFontBold) "1" else "0"}"
+                    val bubbleKey = "bubble_grp_${keySenders}_p_${portalTitle.hashCode()}_${agentNameFontSize.toInt()}_${portalNameFontSize.toInt()}_${if (mapFontBold) "1" else "0"}"
 
                     ptFeat.addStringProperty("bubbleIcon", bubbleKey)
                     ptFeat.addNumberProperty("agentCount", group.trails.size)
                     ptFeat.addStringProperty("senders", group.trails.joinToString(",") { it.sender })
                     ptFeat.addStringProperty("teams", group.trails.joinToString(",") { it.team })
-                    ptFeat.addStringProperty("portal", group.portalName)
+                    ptFeat.addStringProperty("portal", portalTitle)
+                    ptFeat.addStringProperty("portalGuid", portalGuid)
+                    ptFeat.addBooleanProperty("hasPortalName", portalTitle.isNotBlank())
                     ptFeat.addStringProperty("sender", group.trails.first().sender)
                     ptFeat.addStringProperty("team", group.trails.first().team)
 
@@ -1596,7 +1745,9 @@ actual fun NativeMapView(
                     val bmp = bubbleBitmapCache.getOrPut(bubbleKey) {
                         createAgentSpeechBubbleBitmap(
                             agents = group.trails.map { AgentBubbleItem(it.sender, it.team) },
+                            portalTitle = portalTitle.ifBlank { null },
                             fontSizeSp = agentNameFontSize,
+                            portalFontSizeSp = portalNameFontSize,
                             density = density,
                             densityDpi = densityDpi,
                             isBold = mapFontBold
@@ -1803,6 +1954,32 @@ actual fun NativeMapView(
                 style.getSourceAs<GeoJsonSource>(SOURCE_DRAW_POLYGONS)?.setGeoJson(drawPolygonCollection)
                 style.getSourceAs<GeoJsonSource>(SOURCE_DRAW_LINES)?.setGeoJson(drawLineCollection)
                 style.getSourceAs<GeoJsonSource>(SOURCE_DRAW_MARKERS)?.setGeoJson(drawMarkerCollection)
+
+                // Trigger pop-up spring bounce animation for newly displayed bubbles
+                val hasPortals = portalCollection.features()?.isNotEmpty() == true
+                val hasAgents = markerCollection.features()?.isNotEmpty() == true
+                if (hasPortals || hasAgents) {
+                    triggerBubblePopAnimation(
+                        style = style,
+                        targetScale = playerIconScale,
+                        animatePortals = hasPortals,
+                        animateAgents = hasAgents
+                    )
+                }
+                if (activeSpiderfySession != null && spiderMarkerCollection.features()?.isNotEmpty() == true) {
+                    android.animation.ValueAnimator.ofFloat(0.01f, 1.0f).apply {
+                        duration = 360L
+                        interpolator = android.view.animation.OvershootInterpolator(2.2f)
+                        addUpdateListener { anim ->
+                            val p = anim.animatedValue as Float
+                            val scale = (playerIconScale / 1.5f) * p
+                            style.getLayerAs<SymbolLayer>(LAYER_SPIDER_MARKERS)?.setProperties(
+                                iconSize(scale)
+                            )
+                        }
+                        start()
+                    }
+                }
             }
         }
     }
@@ -1817,13 +1994,8 @@ actual fun NativeMapView(
         val haloC = if (mapTextHalo) (if (isTextDark) "#ffffff" else "#111415") else "rgba(0,0,0,0)"
 
         style.getLayerAs<SymbolLayer>(LAYER_PORTALS_TITLE)?.setProperties(
-            textSize(portalNameFontSize),
-            textColor(effectiveTextColor),
-            textFont(fontStack),
-            textHaloWidth(haloW),
-            textHaloColor(haloC),
-            textAnchor(Property.TEXT_ANCHOR_LEFT),
-            textOffset(arrayOf(1.1f, 0f))
+            iconSize(playerIconScale / 1.5f),
+            iconOffset(arrayOf(10f, 0f))
         )
         style.getLayerAs<SymbolLayer>(LAYER_PLAYER_MARKERS)?.setProperties(
             iconSize(playerIconScale / 1.5f),
@@ -1948,9 +2120,10 @@ actual fun NativeMapView(
                             activeSpiderfySession = null
                         }
 
-                        // 2. Query Player Markers and Portals (AGENT MARKERS PRIORITIZED OVER PORTALS!)
+                        // 2. Query Player Markers, Portals, and Portal Name Bubbles (AGENT MARKERS PRIORITIZED OVER PORTALS!)
                         val playerMarkerFeatures = map.queryRenderedFeatures(touchBox, LAYER_PLAYER_MARKERS)
                         val portalFeatures = map.queryRenderedFeatures(touchBox, LAYER_PORTALS)
+                        val portalTitleFeatures = map.queryRenderedFeatures(touchBox, LAYER_PORTALS_TITLE)
 
                         if (playerMarkerFeatures.isNotEmpty()) {
                             val mGeom = playerMarkerFeatures[0].geometry() as? Point
@@ -1958,8 +2131,35 @@ actual fun NativeMapView(
                                 map.projection.toScreenLocation(LatLng(mGeom.latitude(), mGeom.longitude()))
                             } else screenPoint
 
+                            val portalGuid = playerMarkerFeatures[0].getStringProperty("portalGuid") ?: ""
+                            val agentCount = playerMarkerFeatures[0].getNumberProperty("agentCount")?.toInt() ?: 1
+                            val hasPortalName = playerMarkerFeatures[0].getBooleanProperty("hasPortalName") ?: false
+
                             // Check if tap was strictly on the portal circle to the left of the anchor
                             val isExplicitPortalTap = portalFeatures.isNotEmpty() && (screenPoint.x < markerAnchorScreen.x - 4f)
+
+                            // Check if tap was in the bottom portion of the bubble stack (the portal name bubble)
+                            val density = context.resources.displayMetrics.density
+                            val textPaint = android.graphics.Paint().apply { textSize = agentNameFontSize * density }
+                            val fontMetrics = textPaint.fontMetrics
+                            val textHeight = fontMetrics.descent - fontMetrics.ascent
+                            val singleBodyH = textHeight + 7f * density
+                            val bubbleGap = 3.5f * density
+                            val totalCount = agentCount + (if (hasPortalName) 1 else 0)
+                            val totalBodiesH = totalCount * singleBodyH + (totalCount - 1) * bubbleGap
+                            val stackTopY = markerAnchorScreen.y - totalBodiesH / 2f
+                            val portalBubbleTopY = stackTopY + agentCount * (singleBodyH + bubbleGap)
+                            val isPortalNameBubbleTap = hasPortalName && (screenPoint.y >= portalBubbleTopY - 2f * density)
+
+                            if (isExplicitPortalTap || (isPortalNameBubbleTap && portalGuid.isNotBlank())) {
+                                val targetGuid = if (isExplicitPortalTap && portalFeatures.isNotEmpty()) {
+                                    portalFeatures[0].getStringProperty("guid") ?: portalGuid
+                                } else portalGuid
+                                if (targetGuid.isNotBlank()) {
+                                    viewModel.onPortalTapped(targetGuid)
+                                    return@addOnMapClickListener true
+                                }
+                            }
 
                             if (!isExplicitPortalTap) {
                                 // User clicked on or near the agent bubble / pin -> PRIORITIZE AGENT!
@@ -2075,9 +2275,10 @@ actual fun NativeMapView(
                             return@addOnMapClickListener true
                         }
 
-                        // 3. Portals (when not tapping an agent bubble)
-                        if (portalFeatures.isNotEmpty()) {
-                            val guid = portalFeatures[0].getStringProperty("guid")
+                        // 3. Portals and Portal Name Bubbles (when not tapping an agent bubble)
+                        val targetPortal = portalFeatures.firstOrNull() ?: portalTitleFeatures.firstOrNull()
+                        if (targetPortal != null) {
+                            val guid = targetPortal.getStringProperty("guid")
                             if (!guid.isNullOrBlank()) {
                                 viewModel.onPortalTapped(guid)
                                 return@addOnMapClickListener true
@@ -2103,6 +2304,17 @@ actual fun NativeMapView(
                     // Handle map camera movement -> Sync to IITC / Leaflet
                     map.addOnCameraIdleListener {
                         val camera = map.cameraPosition
+                        val lastZ = previousZoom
+                        val curZ = camera.zoom
+                        previousZoom = curZ
+                        if (lastZ != null && lastZ < 15.0 && curZ >= 15.0) {
+                            triggerBubblePopAnimation(
+                                style = mapStyle,
+                                targetScale = playerIconScale,
+                                animatePortals = true,
+                                animateAgents = false
+                            )
+                        }
                         val session = activeSpiderfySession
                         if (session != null) {
                             if (kotlin.math.abs(camera.zoom - session.initialZoom) > 0.3) {
