@@ -206,9 +206,17 @@ actual object PlatformUtils {
         }
 
         try {
+            val lastGps = lm.getLastKnownLocation(LocationManager.GPS_PROVIDER)
+            val lastNet = lm.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
+            val best = listOfNotNull(lastGps, lastNet).maxByOrNull { it.time }
+            if (best != null) {
+                listener.onLocation(best.latitude, best.longitude, best.accuracy.toDouble())
+            }
+
             if (lm.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
                 lm.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000L, 1f, locationListener!!)
-            } else if (lm.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
+            }
+            if (lm.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
                 lm.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 1000L, 1f, locationListener!!)
             }
         } catch (e: SecurityException) {
@@ -252,9 +260,11 @@ actual object PlatformUtils {
             val lastGps = lm.getLastKnownLocation(LocationManager.GPS_PROVIDER)
             val lastNet = lm.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
             val best = listOfNotNull(lastGps, lastNet).maxByOrNull { it.time }
-            if (best != null && (System.currentTimeMillis() - best.time) < 30000) {
+            if (best != null) {
                 listener.onLocation(best.latitude, best.longitude, best.accuracy.toDouble())
-                return
+                if ((System.currentTimeMillis() - best.time) < 15000) {
+                    return
+                }
             }
 
             val singleListener = object : LocationListener {
@@ -268,11 +278,16 @@ actual object PlatformUtils {
                 override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {}
             }
 
+            var requested = false
             if (lm.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
                 lm.requestSingleUpdate(LocationManager.GPS_PROVIDER, singleListener, null)
-            } else if (lm.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
+                requested = true
+            }
+            if (lm.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
                 lm.requestSingleUpdate(LocationManager.NETWORK_PROVIDER, singleListener, null)
-            } else {
+                requested = true
+            }
+            if (!requested && best == null) {
                 listener.onError("Location provider disabled")
             }
         } catch (e: SecurityException) {

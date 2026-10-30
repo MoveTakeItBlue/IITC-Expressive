@@ -1,11 +1,19 @@
 package io.github.movetakeitblue.iitcexpressive.ui.map
 
 import android.widget.Toast
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import kotlin.math.roundToInt
+import io.github.movetakeitblue.iitcexpressive.ui.common.M3EUserLocationIndicator
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import io.github.movetakeitblue.iitcexpressive.model.NativeBaseMap
@@ -979,6 +987,25 @@ actual fun NativeMapView(
     val entities by viewModel.nativeMapEntities.collectAsState()
     val isNativeMapEnabled by viewModel.isNativeMapEnabled.collectAsState()
     val nativeBaseMap by viewModel.nativeBaseMap.collectAsState()
+    val userLocation by viewModel.userLocation.collectAsState()
+    val showLocation by viewModel.showLocation.collectAsState()
+    var userScreenOffset by remember { mutableStateOf<Offset?>(null) }
+
+    fun updateUserScreenOffset(map: MapLibreMap?) {
+        val m = map ?: return
+        val loc = viewModel.userLocation.value
+        if (viewModel.showLocation.value && loc != null) {
+            val (mapLat, mapLng) = if (nativeBaseMap.isGcj02) {
+                CoordinateTransform.wgs84ToGcj02(loc.lat, loc.lng)
+            } else {
+                Pair(loc.lat, loc.lng)
+            }
+            val p = m.projection.toScreenLocation(LatLng(mapLat, mapLng))
+            userScreenOffset = Offset(p.x, p.y)
+        } else {
+            userScreenOffset = null
+        }
+    }
     val selectedHighlighter by viewModel.selectedHighlighter.collectAsState()
     val isPlayerTrackerEnabled by viewModel.isPlayerTrackerEnabled.collectAsState()
     val playerTrails by viewModel.playerTrails.collectAsState()
@@ -1338,6 +1365,23 @@ actual fun NativeMapView(
                 ),
                 800
             )
+        }
+    }
+
+    // Recompute user location screen projection when position, visibility, or basemap changes
+    LaunchedEffect(userLocation, showLocation, nativeBaseMap, mapLibreMap) {
+        updateUserScreenOffset(mapLibreMap)
+    }
+
+    // Listen for zoom in/out delta events
+    LaunchedEffect(mapLibreMap) {
+        val map = mapLibreMap ?: return@LaunchedEffect
+        viewModel.zoomDeltaEvent.collect { delta ->
+            if (delta > 0) {
+                map.animateCamera(CameraUpdateFactory.zoomIn(), 300)
+            } else {
+                map.animateCamera(CameraUpdateFactory.zoomOut(), 300)
+            }
         }
     }
 
@@ -2003,8 +2047,9 @@ actual fun NativeMapView(
         )
     }
 
-    // AndroidView hosting MapView
-    AndroidView(
+    // AndroidView hosting MapView with M3E User Location Overlay
+    Box(modifier = modifier.fillMaxSize()) {
+        AndroidView(
         factory = { ctx ->
             val options = MapLibreMapOptions.createFromAttributes(ctx).apply {
                 localIdeographFontFamily(mapFontFamily)
@@ -2301,8 +2346,13 @@ actual fun NativeMapView(
                         false
                     }
 
+                    map.addOnCameraMoveListener {
+                        updateUserScreenOffset(map)
+                    }
+
                     // Handle map camera movement -> Sync to IITC / Leaflet
                     map.addOnCameraIdleListener {
+                        updateUserScreenOffset(map)
                         val camera = map.cameraPosition
                         val lastZ = previousZoom
                         val curZ = camera.zoom
@@ -2338,8 +2388,25 @@ actual fun NativeMapView(
                 }
             }
         },
-        modifier = modifier.fillMaxSize()
-    )
+            modifier = Modifier.fillMaxSize()
+        )
+
+        // M3E User Location Indicator Overlay
+        if (showLocation && userLocation != null && userScreenOffset != null) {
+            val offset = userScreenOffset!!
+            M3EUserLocationIndicator(
+                modifier = Modifier
+                    .offset {
+                        IntOffset(
+                            (offset.x - 26.dp.toPx()).roundToInt(),
+                            (offset.y - 26.dp.toPx()).roundToInt()
+                        )
+                    },
+                size = 26.dp,
+                orientation = userLocation?.orientation
+            )
+        }
+    }
 
     // Forward Android lifecycle events to MapView
     DisposableEffect(lifecycleOwner) {

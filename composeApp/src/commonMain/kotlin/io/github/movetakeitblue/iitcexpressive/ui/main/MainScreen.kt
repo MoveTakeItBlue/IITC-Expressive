@@ -3,6 +3,8 @@ package io.github.movetakeitblue.iitcexpressive.ui.main
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.shape.CircleShape
@@ -29,6 +31,7 @@ import io.github.movetakeitblue.iitcexpressive.ui.common.ConfirmDialog
 import io.github.movetakeitblue.iitcexpressive.ui.common.ExpressiveLinearProgressIndicator
 import io.github.movetakeitblue.iitcexpressive.ui.common.LocationShareDialog
 import io.github.movetakeitblue.iitcexpressive.ui.common.PlayerTrailDialog
+import io.github.movetakeitblue.iitcexpressive.ui.common.ZoomControls
 import io.github.movetakeitblue.iitcexpressive.ui.debug.DebugConsole
 import io.github.movetakeitblue.iitcexpressive.ui.layers.LayersSheet
 import io.github.movetakeitblue.iitcexpressive.ui.map.NativeMapView
@@ -236,6 +239,23 @@ fun MainScreen(
                             modifier = Modifier.fillMaxSize()
                         )
                     }
+
+                    // Floating Zoom Controls (when enabled in settings)
+                    val isZoomControlEnabled by viewModel.isZoomControlEnabled.collectAsState()
+                    AnimatedVisibility(
+                        visible = isZoomControlEnabled && !isPortalDetailsExpanded,
+                        enter = fadeIn() + scaleIn(initialScale = 0.85f),
+                        exit = fadeOut() + scaleOut(targetScale = 0.85f),
+                        modifier = Modifier
+                            .align(Alignment.CenterEnd)
+                            .padding(end = 16.dp)
+                    ) {
+                        ZoomControls(
+                            onZoomIn = { viewModel.zoomIn() },
+                            onZoomOut = { viewModel.zoomOut() }
+                        )
+                    }
+
                     // Floating DrawToolbar overlay when drawing mode is active
                     val isDrawingModeActive by viewModel.isDrawingModeActive.collectAsState()
                     if (isDrawingModeActive) {

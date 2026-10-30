@@ -95,13 +95,11 @@ fun AppWebView(
     }
 
     // Configure WebSettings
-    LaunchedEffect(webViewState, desktopMode) {
+    LaunchedEffect(webViewState) {
         webViewState.webSettings.apply {
             isJavaScriptEnabled = true
             supportZoom = true
-            customUserAgentString = if (desktopMode) {
-                "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-            } else null
+            customUserAgentString = null // Use clean, native mobile WebView user agent
             androidWebSettings.domStorageEnabled = true
         }
     }

@@ -47,3 +47,11 @@ data class PlayerTrail(
             else -> OnTeamNeutralContainer
         }
 }
+
+@Serializable
+data class UserLocation(
+    val lat: Double,
+    val lng: Double,
+    val accuracy: Double = 0.0,
+    val orientation: Double? = null
+)

@@ -71,14 +71,6 @@ class MainViewModel(
     private val _desktopMode = MutableStateFlow(false)
     val desktopMode: StateFlow<Boolean> = _desktopMode.asStateFlow()
 
-    private val _zoomControl = MutableStateFlow(storage.getBoolean("zoom_control", false))
-    val zoomControl: StateFlow<Boolean> = _zoomControl.asStateFlow()
-
-    fun setZoomControl(enabled: Boolean) {
-        _zoomControl.value = enabled
-        storage.setBoolean("zoom_control", enabled)
-    }
-
     private val _isWebviewLoaded = MutableStateFlow(false)
     val isWebviewLoaded: StateFlow<Boolean> = _isWebviewLoaded.asStateFlow()
 
@@ -216,6 +208,19 @@ class MainViewModel(
     fun zoomToLocation(lat: Double, lng: Double, zoom: Double = 17.0) {
         _cameraMoveEvent.tryEmit(Triple(lat, lng, zoom))
         evaluateJs("window.map && window.map.setView && window.map.setView([$lat, $lng], Math.round($zoom), { animate: true });")
+    }
+
+    private val _zoomDeltaEvent = MutableSharedFlow<Double>(extraBufferCapacity = 1)
+    val zoomDeltaEvent: SharedFlow<Double> = _zoomDeltaEvent.asSharedFlow()
+
+    fun zoomIn() {
+        _zoomDeltaEvent.tryEmit(1.0)
+        evaluateJs("window.map && window.map.zoomIn && window.map.zoomIn();")
+    }
+
+    fun zoomOut() {
+        _zoomDeltaEvent.tryEmit(-1.0)
+        evaluateJs("window.map && window.map.zoomOut && window.map.zoomOut();")
     }
 
     fun selectLinkedPortal(linked: LinkedPortal) {
@@ -1100,16 +1105,56 @@ class MainViewModel(
         _locationState.value = if (follow) LocationState.FOLLOWING else LocationState.IDLE
     }
 
+    private val _userLocation = MutableStateFlow<UserLocation?>(null)
+    val userLocation: StateFlow<UserLocation?> = _userLocation.asStateFlow()
+
+    private val _showLocation = MutableStateFlow(storage.getBoolean("show_location", false))
+    val showLocation: StateFlow<Boolean> = _showLocation.asStateFlow()
+
+    private val _isZoomControlEnabled = MutableStateFlow(storage.getBoolean("zoom_control", false))
+    val isZoomControlEnabled: StateFlow<Boolean> = _isZoomControlEnabled.asStateFlow()
+    val zoomControl: StateFlow<Boolean> get() = isZoomControlEnabled
+
+    fun setShowLocation(enabled: Boolean) {
+        _showLocation.value = enabled
+        storage.setBoolean("show_location", enabled)
+        if (enabled) {
+            startLocationTracking()
+        } else {
+            PlatformUtils.stopLocationTracking()
+        }
+    }
+
+    fun setZoomControl(enabled: Boolean) {
+        _isZoomControlEnabled.value = enabled
+        storage.setBoolean("zoom_control", enabled)
+    }
+
+    fun setDesktopMode(enabled: Boolean) {
+        _desktopMode.value = enabled
+        storage.setBoolean("desktop_mode", enabled)
+        loadUrl(_currentUrl.value)
+    }
+
     fun triggerUserLocate() {
         _locationState.value = LocationState.LOCATING
         val persistentZoom = storage.getBoolean("persistent_zoom", false)
+        setShowLocation(true)
         PlatformUtils.requestSingleLocationFix(object : PlatformLocationListener {
             override fun onLocation(lat: Double, lng: Double, accuracy: Double) {
                 _locationState.value = LocationState.FOLLOWING
+                val current = _userLocation.value
+                _userLocation.value = UserLocation(lat, lng, accuracy, current?.orientation)
+                val targetZoom = if (persistentZoom) (getSavedMapPosition()?.third ?: 16.5) else 16.5
+                zoomToLocation(lat, lng, targetZoom)
                 evaluateJs(EventsToIitc.userLocationLocate(lat, lng, accuracy, persistentZoom))
             }
 
             override fun onOrientation(direction: Double?) {
+                val current = _userLocation.value
+                if (current != null) {
+                    _userLocation.value = current.copy(orientation = direction)
+                }
                 evaluateJs(EventsToIitc.userLocationOrientation(direction))
             }
 
@@ -1125,13 +1170,19 @@ class MainViewModel(
         })
     }
 
-    private fun startLocationTracking() {
+    fun startLocationTracking() {
         PlatformUtils.startLocationTracking(object : PlatformLocationListener {
             override fun onLocation(lat: Double, lng: Double, accuracy: Double) {
+                val current = _userLocation.value
+                _userLocation.value = UserLocation(lat, lng, accuracy, current?.orientation)
                 evaluateJs(EventsToIitc.userLocationUpdate(lat, lng))
             }
 
             override fun onOrientation(direction: Double?) {
+                val current = _userLocation.value
+                if (current != null) {
+                    _userLocation.value = current.copy(orientation = direction)
+                }
                 evaluateJs(EventsToIitc.userLocationOrientation(direction))
             }
 

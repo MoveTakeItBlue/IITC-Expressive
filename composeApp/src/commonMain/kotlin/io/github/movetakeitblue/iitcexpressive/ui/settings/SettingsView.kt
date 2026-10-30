@@ -22,7 +22,6 @@ fun SettingsView(
 ) {
     val desktopMode by viewModel.desktopMode.collectAsState()
     val zoomControl by viewModel.zoomControl.collectAsState()
-    val fakeUserAgent by viewModel.fakeUserAgent.collectAsState()
     val persistentZoom by viewModel.persistentZoom.collectAsState()
     val showLocation by viewModel.showLocation.collectAsState()
     val fullscreenMap by viewModel.fullscreenMap.collectAsState()
@@ -322,13 +321,7 @@ fun SettingsView(
             title = L("settings.zoom_controls.title"),
             description = L("settings.zoom_controls.description"),
             checked = zoomControl,
-            onCheckedChange = { viewModel.setZoomControl(it) }
-        )
-        SwitchSettingsItem(
-            title = L("settings.fake_ua.title"),
-            description = L("settings.fake_ua.description"),
-            checked = fakeUserAgent,
-            onCheckedChange = { viewModel.setFakeUserAgent(it) },
+            onCheckedChange = { viewModel.setZoomControl(it) },
             isLast = true
         )
 
