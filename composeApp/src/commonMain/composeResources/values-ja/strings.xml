@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">IITC Expressive</string>
+    <string name="dialog_ok">OK</string>
+    <string name="dialog_cancel">キャンセル</string>
+    <string name="dialog_close">閉じる</string>
+    <string name="dialog_error_title">エラー</string>
+
+    <string name="settings_title">設定</string>
+    <string name="settings_section_appearance">外観とカスタマイズ</string>
+    <string name="settings_appearance_title">外観設定</string>
+    <string name="settings_appearance_description">アプリのテーマ、配色、言語、地図表示の調整</string>
+
+    <string name="settings_section_iitc_management">IITC プラグイン管理</string>
+    <string name="settings_plugins_title">プラグイン一覧</string>
+    <string name="settings_plugins_description">%s 個のプラグインが有効</string>
+    <string name="settings_update_channel_title">アップデートチャンネル</string>
+    <string name="settings_update_channel_description">現在のチャンネル: %s</string>
+
+    <string name="settings_section_map">地図と位置情報</string>
+    <string name="settings_location_title">地図上に現在地を表示</string>
+    <string name="settings_location_description">エージェントの位置マーカーを表示しリアルタイム追跡</string>
+    <string name="settings_persistent_zoom_title">ズーム倍率を維持</string>
+    <string name="settings_persistent_zoom_description">現在地ボタンをタップした際にズーム倍率をリセットしない</string>
+
+    <string name="settings_section_data">データ管理</string>
+    <string name="settings_backup_title">バックアップと復元</string>
+    <string name="settings_backup_description">設定や描画データのインポート・エクスポート</string>
+    <string name="settings_clear_cookies_title">Cookie とセッションを削除</string>
+    <string name="settings_clear_cookies_description">保存されたすべての Cookie とログイン情報を消去</string>
+    <string name="settings_clear_cookies_dialog_message">すべての Cookie とセッションデータが消去されます。再度ログインが必要になります。続行しますか？</string>
+    <string name="settings_clear_cookies_dialog_ok">削除</string>
+    <string name="settings_clear_cookies_error">Cookie の削除に失敗しました。もう一度お試しください。</string>
+
+    <string name="settings_section_information">アプリ情報</string>
+    <string name="settings_about_title">IITC Expressive について</string>
+    <string name="settings_about_description">バージョン情報とプロジェクトリンク</string>
+    <string name="settings_licenses_title">オープンソースライセンス</string>
+    <string name="settings_licenses_description">使用しているライブラリのライセンス条項</string>
+
+    <!-- Appearance Screen -->
+    <string name="appearance_title">外観設定</string>
+    <string name="appearance_section_theme_mode">テーマモード</string>
+    <string name="appearance_theme_system">システム設定に従う</string>
+    <string name="appearance_theme_light">ライトモード</string>
+    <string name="appearance_theme_dark">ダークモード</string>
+
+    <string name="appearance_section_colors">カラーテーマ</string>
+    <string name="appearance_dynamic_color_title">ダイナミックカラー (Material You)</string>
+    <string name="appearance_dynamic_color_desc">壁紙に基づいてアクセントカラーを自動抽出 (Android 12+)</string>
+    <string name="appearance_preset_colors_title">プリセットアクセントカラー</string>
+    <string name="appearance_color_blue">Resistance ブルー</string>
+    <string name="appearance_color_green">Enlightened グリーン</string>
+    <string name="appearance_color_red">Machina レッド</string>
+    <string name="appearance_color_purple">Amethyst パープル</string>
+    <string name="appearance_color_amber">Amber オレンジ</string>
+    <string name="appearance_color_teal">Aurora ティール</string>
+    <string name="appearance_color_slate">Slate スレートグレー</string>
+
+    <string name="appearance_section_language">言語設定</string>
+    <string name="appearance_language_title">アプリの言語</string>
+    <string name="appearance_language_system">システム言語に従う</string>
+    <string name="appearance_language_zh_cn">中文（简体）</string>
+    <string name="appearance_language_zh_hk">中文（香港繁體）</string>
+    <string name="appearance_language_zh_tw">中文（台灣繁體）</string>
+    <string name="appearance_language_en">English</string>
+    <string name="appearance_language_ja">日本語</string>
+
+    <string name="appearance_section_map_display">地図表示と文字設定</string>
+    <string name="appearance_fullscreen_map_title">全画面マップ表示</string>
+    <string name="appearance_fullscreen_map_description">ステータスバーの領域まで地図を拡張し没入感を向上</string>
+    <string name="appearance_dark_map_title">ダークマップモード</string>
+    <string name="appearance_dark_map_description">高コントラストのダークマップタイルを使用</string>
+    <string name="appearance_zoom_controls_title">ズームボタン (+/-)</string>
+    <string name="appearance_zoom_controls_description">地図の右側にフローティング +/- ボタンを表示</string>
+    <string name="appearance_map_text_color_title">地図テキストの色</string>
+    <string name="appearance_portal_font_size_title">ポータル名フォントサイズ</string>
+    <string name="appearance_agent_font_size_title">エージェント名フォントサイズ</string>
+    <string name="appearance_font_family_title">地図フォントファミリー</string>
+    <string name="appearance_font_bold_title">文字を太字にする</string>
+    <string name="appearance_text_halo_title">文字のアウトライン効果</string>
+    <string name="appearance_player_icon_scale_title">プレイヤーマーカーのスケール</string>
+
+    <!-- Navigation & Common -->
+    <string name="nav_settings">設定</string>
+    <string name="nav_plugins">プラグイン</string>
+    <string name="nav_debug">デバッグ</string>
+    <string name="nav_reload">再読み込み</string>
+    <string name="nav_back">戻る</string>
+    <string name="nav_locate">現在地</string>
+    <string name="nav_layers">レイヤー</string>
+    <string name="nav_chat">通信</string>
+    <string name="nav_bookmarks">ブックマーク</string>
+    <string name="nav_portallist">ポータル一覧</string>
+    <string name="nav_drawtools">描画ツール</string>
+</resources>

@@ -240,15 +240,16 @@ fun MainScreen(
                         )
                     }
 
-                    // Floating Zoom Controls (when enabled in settings)
+                    // Floating Zoom Controls (when enabled in settings, hide when FAB menu expands to prevent overlap)
                     val isZoomControlEnabled by viewModel.isZoomControlEnabled.collectAsState()
                     AnimatedVisibility(
-                        visible = isZoomControlEnabled && !isPortalDetailsExpanded,
+                        visible = isZoomControlEnabled && !isPortalDetailsExpanded && !isFabMenuExpanded,
                         enter = fadeIn() + scaleIn(initialScale = 0.85f),
                         exit = fadeOut() + scaleOut(targetScale = 0.85f),
                         modifier = Modifier
                             .align(Alignment.CenterEnd)
                             .padding(end = 16.dp)
+                            .offset(y = (-36).dp)
                     ) {
                         ZoomControls(
                             onZoomIn = { viewModel.zoomIn() },
@@ -330,11 +331,19 @@ fun MainScreen(
                 SettingsView(
                     viewModel = settingsViewModel,
                     onBack = { viewModel.navigateTo("main") },
+                    onNavigateToAppearance = { viewModel.navigateTo("settings_appearance") },
                     onNavigateToPlugins = { viewModel.navigateTo("plugins") },
                     onNavigateToUpdateChannel = { viewModel.navigateTo("update_channel") },
                     onNavigateToBackup = { viewModel.navigateTo("backup") },
                     onNavigateToAbout = { viewModel.navigateTo("about") },
                     onNavigateToLicenses = { viewModel.navigateTo("licenses") }
+                )
+            }
+            "settings_appearance", "appearance" -> {
+                AppearanceView(
+                    viewModel = viewModel,
+                    settingsViewModel = settingsViewModel,
+                    onBack = { viewModel.navigateTo("settings") }
                 )
             }
             "plugins" -> {

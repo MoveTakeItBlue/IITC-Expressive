@@ -12,7 +12,11 @@ import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
 @Composable
-actual fun getAppColorScheme(darkTheme: Boolean): ColorScheme {
+actual fun getAppColorScheme(
+    darkTheme: Boolean,
+    isDynamicColor: Boolean,
+    presetColor: String
+): ColorScheme {
     val context = LocalContext.current
     val view = LocalView.current
 
@@ -31,9 +35,9 @@ actual fun getAppColorScheme(darkTheme: Boolean): ColorScheme {
         }
     }
 
-    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+    return if (isDynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
     } else {
-        if (darkTheme) IITCDarkColorScheme else IITCLightColorScheme
+        buildPresetColorScheme(darkTheme, presetColor)
     }
 }

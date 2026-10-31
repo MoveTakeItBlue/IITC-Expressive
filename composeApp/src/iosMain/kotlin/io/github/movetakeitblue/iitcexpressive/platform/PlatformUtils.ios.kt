@@ -121,6 +121,15 @@ actual object PlatformUtils {
     actual fun getPlatformWebViewParams(): Any? = null
 
     actual fun decodeImageBitmap(bytes: ByteArray): androidx.compose.ui.graphics.ImageBitmap? = null
+
+    actual fun getSystemLanguage(): String {
+        return try {
+            val preferred = NSLocale.preferredLanguages.firstOrNull() as? String
+            preferred ?: "en"
+        } catch (_: Throwable) {
+            "en"
+        }
+    }
 }
 
 private fun ByteArray.toNSData(): NSData {

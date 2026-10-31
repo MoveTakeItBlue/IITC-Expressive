@@ -274,6 +274,29 @@ class MainViewModel(
     private val _locationState = MutableStateFlow(LocationState.IDLE)
     val locationState: StateFlow<LocationState> = _locationState.asStateFlow()
 
+    private val _userLocation = MutableStateFlow<UserLocation?>(null)
+    val userLocation: StateFlow<UserLocation?> = _userLocation.asStateFlow()
+
+    private val _showLocation = MutableStateFlow(storage.getBoolean("show_location", false))
+    val showLocation: StateFlow<Boolean> = _showLocation.asStateFlow()
+
+    private val _isZoomControlEnabled = MutableStateFlow(storage.getBoolean("zoom_control", false))
+    val isZoomControlEnabled: StateFlow<Boolean> = _isZoomControlEnabled.asStateFlow()
+    val zoomControl: StateFlow<Boolean> get() = isZoomControlEnabled
+
+    // Theme and Appearance
+    private val _themeMode = MutableStateFlow(storage.getString("theme_mode", "system"))
+    val themeMode: StateFlow<String> = _themeMode.asStateFlow()
+
+    private val _isDynamicColor = MutableStateFlow(storage.getBoolean("dynamic_color_enabled", true))
+    val isDynamicColor: StateFlow<Boolean> = _isDynamicColor.asStateFlow()
+
+    private val _presetColor = MutableStateFlow(storage.getString("theme_preset_color", "blue"))
+    val presetColor: StateFlow<String> = _presetColor.asStateFlow()
+
+    private val _appLanguage = MutableStateFlow(storage.getString("app_language", "system"))
+    val appLanguage: StateFlow<String> = _appLanguage.asStateFlow()
+
     // Active popup/dialog
     private val _currentDialog = MutableStateFlow<AppDialog?>(null)
     val currentDialog: StateFlow<AppDialog?> = _currentDialog.asStateFlow()
@@ -828,6 +851,9 @@ class MainViewModel(
     val reloadTrigger: StateFlow<Int> = _reloadTrigger.asStateFlow()
 
     init {
+        val savedLang = storage.getString("app_language", "system")
+        io.github.movetakeitblue.iitcexpressive.i18n.Strings.setLanguage(savedLang)
+
         val savedDesktop = storage.getBoolean("desktop_mode", false)
         _desktopMode.value = savedDesktop
 
@@ -944,7 +970,7 @@ class MainViewModel(
 
     fun navigateBack(): Boolean {
         if (_currentScreen.value != "main") {
-            if (_currentScreen.value in listOf("plugins", "update_channel", "backup", "about", "licenses")) {
+            if (_currentScreen.value in listOf("settings_appearance", "appearance", "plugins", "update_channel", "backup", "about", "licenses")) {
                 _currentScreen.value = "settings"
             } else {
                 _currentScreen.value = "main"
@@ -1107,15 +1133,26 @@ class MainViewModel(
         _locationState.value = if (follow) LocationState.FOLLOWING else LocationState.IDLE
     }
 
-    private val _userLocation = MutableStateFlow<UserLocation?>(null)
-    val userLocation: StateFlow<UserLocation?> = _userLocation.asStateFlow()
+    fun setThemeMode(mode: String) {
+        _themeMode.value = mode
+        storage.setString("theme_mode", mode)
+    }
 
-    private val _showLocation = MutableStateFlow(storage.getBoolean("show_location", false))
-    val showLocation: StateFlow<Boolean> = _showLocation.asStateFlow()
+    fun setDynamicColor(enabled: Boolean) {
+        _isDynamicColor.value = enabled
+        storage.setBoolean("dynamic_color_enabled", enabled)
+    }
 
-    private val _isZoomControlEnabled = MutableStateFlow(storage.getBoolean("zoom_control", false))
-    val isZoomControlEnabled: StateFlow<Boolean> = _isZoomControlEnabled.asStateFlow()
-    val zoomControl: StateFlow<Boolean> get() = isZoomControlEnabled
+    fun setPresetColor(color: String) {
+        _presetColor.value = color
+        storage.setString("theme_preset_color", color)
+    }
+
+    fun setAppLanguage(lang: String) {
+        _appLanguage.value = lang
+        storage.setString("app_language", lang)
+        io.github.movetakeitblue.iitcexpressive.i18n.Strings.setLanguage(lang)
+    }
 
     fun setShowLocation(enabled: Boolean) {
         _showLocation.value = enabled
@@ -1154,7 +1191,7 @@ class MainViewModel(
 
             override fun onOrientation(direction: Double?) {
                 val current = _userLocation.value
-                if (current != null) {
+                if (current != null && current.orientation != direction) {
                     _userLocation.value = current.copy(orientation = direction)
                 }
                 evaluateJs(EventsToIitc.userLocationOrientation(direction))
@@ -1182,7 +1219,7 @@ class MainViewModel(
 
             override fun onOrientation(direction: Double?) {
                 val current = _userLocation.value
-                if (current != null) {
+                if (current != null && current.orientation != direction) {
                     _userLocation.value = current.copy(orientation = direction)
                 }
                 evaluateJs(EventsToIitc.userLocationOrientation(direction))

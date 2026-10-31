@@ -6,6 +6,8 @@ import androidx.activity.ComponentActivity
 import androidx.activity.addCallback
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import io.github.movetakeitblue.iitcexpressive.manager.IITCManager
 import io.github.movetakeitblue.iitcexpressive.platform.PlatformContext
 import io.github.movetakeitblue.iitcexpressive.storage.AppStorage
@@ -45,7 +47,14 @@ class MainActivity : ComponentActivity() {
         handleIntent(intent)
 
         setContent {
-            IITCTheme {
+            val themeMode by viewModel.themeMode.collectAsState()
+            val isDynamicColor by viewModel.isDynamicColor.collectAsState()
+            val presetColor by viewModel.presetColor.collectAsState()
+            IITCTheme(
+                themeMode = themeMode,
+                isDynamicColor = isDynamicColor,
+                presetColor = presetColor
+            ) {
                 MainScreen(viewModel = viewModel)
             }
         }

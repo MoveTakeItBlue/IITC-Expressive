@@ -616,6 +616,7 @@ fun Preview_10_SettingsView() {
         SettingsView(
             viewModel = settingsVm,
             onBack = {},
+            onNavigateToAppearance = {},
             onNavigateToPlugins = {},
             onNavigateToUpdateChannel = {},
             onNavigateToBackup = {},

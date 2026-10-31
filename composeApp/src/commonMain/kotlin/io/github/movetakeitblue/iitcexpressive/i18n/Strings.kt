@@ -1,7 +1,9 @@
 package io.github.movetakeitblue.iitcexpressive.i18n
 
 object Strings {
-    private val map = mutableMapOf(
+    private var currentLanguage: String = "system"
+
+    private val enMap = mapOf(
         "app.name.release" to "IITC Expressive",
         "app.name.beta" to "IITC Expressive Beta",
         "app.name.debug" to "IITC Expressive Debug",
@@ -12,28 +14,25 @@ object Strings {
         "dialog.error.title" to "Error",
 
         "demo.welcome.title" to "Demo mode",
-        "demo.welcome.message" to "You're exploring IITC Prime with simulated data. Portals, links and fields aren't real and don't come from Niantic's Ingress Intel. Sign in with an Ingress account to see live data.",
+        "demo.welcome.message" to "You're exploring IITC Expressive with simulated data. Sign in with an Ingress account to see live data.",
 
         "settings.title" to "Settings",
+        "settings.section.appearance" to "Appearance & Theme",
+        "settings.appearance.title" to "Appearance",
+        "settings.appearance.description" to "Theme mode, colors, language, and map display",
+
         "settings.section.iitc_management" to "IITC management",
         "settings.plugins.title" to "Plugins",
         "settings.plugins.description" to "%s plugins enabled",
         "settings.update_channel.title" to "Update channel",
         "settings.update_channel.description" to "Current: %s",
-        "settings.section.map" to "Map settings",
-        "settings.fullscreen_map.title" to "Fullscreen map",
-        "settings.fullscreen_map.description" to "Extend map behind the status bar for an immersive view",
+
+        "settings.section.map" to "Map & Location",
         "settings.location.title" to "Display user location on map",
         "settings.location.description" to "Show position marker and track location",
         "settings.persistent_zoom.title" to "Persistent zoom level",
         "settings.persistent_zoom.description" to "Don't change zoom level when locate button is pressed",
-        "settings.section.interface" to "Interface",
-        "settings.desktop_mode.title" to "Desktop mode",
-        "settings.desktop_mode.description" to "Force desktop view in WebView",
-        "settings.zoom_controls.title" to "Show zoom controls",
-        "settings.zoom_controls.description" to "Show +/- buttons on the map",
-        "settings.fake_ua.title" to "Fake user agent",
-        "settings.fake_ua.description" to "Appear as a desktop browser",
+
         "settings.section.data" to "Data management",
         "settings.backup.title" to "Backup & restore",
         "settings.backup.description" to "Export or import your data",
@@ -42,209 +41,501 @@ object Strings {
         "settings.clear_cookies.dialog.message" to "This will clear all cookies and session data. You will need to log in again. Continue?",
         "settings.clear_cookies.dialog.ok" to "Clear",
         "settings.clear_cookies.error" to "Failed to clear cookies. Please try again.",
+
         "settings.section.information" to "Information",
         "settings.about.title" to "About",
         "settings.about.description" to "Version and app information",
         "settings.licenses.title" to "Open source licenses",
         "settings.licenses.description" to "View licenses of used libraries",
 
-        "about.title" to "About",
-        "about.description" to "IITC Expressive is a mobile client for Ingress Intel Total Conversion that provides an enhanced interface for the Ingress Intel Map.",
-        "about.iitc_website.title" to "IITC-CE website",
-        "about.iitc_website.url" to "iitc.app",
-        "about.iitc_github.title" to "IITC-CE on GitHub",
-        "about.iitc_github.url" to "github.com/IITC-CE/ingress-intel-total-conversion",
-        "about.prime_github.title" to "IITC Prime on GitHub",
-        "about.prime_github.url" to "github.com/IITC-CE/IITC-Prime",
+        // Appearance
+        "appearance.title" to "Appearance",
+        "appearance.section.theme_mode" to "Theme Mode",
+        "appearance.theme.system" to "Follow system",
+        "appearance.theme.light" to "Light mode",
+        "appearance.theme.dark" to "Dark mode",
 
-        "panel.locate" to "Locate",
-        "plugins.search_hint" to "Search plugins...",
-        "plugins.add_plugin" to "Add plugin",
-        "plugins.no_plugins" to "No plugins",
-        "plugins.no_plugins_in_category" to "No plugins in %s category",
-        "plugins.delete.title_override" to "Remove override",
-        "plugins.delete.title_plugin" to "Delete plugin",
-        "plugins.delete.message_override" to "Remove the user override for \"%s\"? The official version will be used instead.",
-        "plugins.delete.message_plugin" to "Are you sure you want to delete \"%s\"?",
-        "plugins.delete.ok_override" to "Remove",
-        "plugins.delete.ok_plugin" to "Delete",
-        "plugins.toast.install_failed" to "Failed to install plugin",
-        "plugins.toast.delete_failed" to "Failed to delete plugin",
+        "appearance.section.colors" to "Color Palette",
+        "appearance.dynamic_color.title" to "Dynamic theme color (Material You)",
+        "appearance.dynamic_color.desc" to "Extract accent color from system wallpaper (Android 12+)",
+        "appearance.preset_colors.title" to "Preset accent colors",
+        "appearance.color.blue" to "Resistance Blue",
+        "appearance.color.green" to "Enlightened Green",
+        "appearance.color.red" to "Machina Red",
+        "appearance.color.purple" to "Amethyst Purple",
+        "appearance.color.amber" to "Amber Orange",
+        "appearance.color.teal" to "Aurora Teal",
+        "appearance.color.slate" to "Slate Grey",
 
-        "update_channel.title" to "Update channel",
-        "update_channel.update_now" to "Update now",
-        "update_channel.section.channel" to "Channel",
-        "update_channel.section.custom_url" to "Custom URL",
-        "update_channel.section.frequency" to "Update frequency",
-        "update_channel.last_check" to "Last check: %s",
-        "update_channel.release" to "Release",
-        "update_channel.release_sub" to "Stable IITC-CE release",
-        "update_channel.beta" to "Beta",
-        "update_channel.beta_sub" to "Early features, may be unstable",
-        "update_channel.custom" to "Custom",
-        "update_channel.custom_sub" to "Connect to a development server",
-        "update_channel.time.just_now" to "just now",
-        "update_channel.time.minutes_ago" to "%s min ago",
-        "update_channel.time.hours_ago" to "%s h ago",
-        "update_channel.time.days_ago" to "%s days ago",
+        "appearance.section.language" to "Language",
+        "appearance.language.title" to "App Language",
+        "appearance.language.system" to "Follow system",
+        "appearance.language.zh_cn" to "中文（简体）",
+        "appearance.language.zh_hk" to "中文（香港繁體）",
+        "appearance.language.zh_tw" to "中文（台灣繁體）",
+        "appearance.language.en" to "English",
+        "appearance.language.ja" to "日本語",
 
-        "update_interval.select_title" to "Select update interval",
-        "update_interval.channel_label" to "%s channel update frequency:",
-        "update_interval.external_label" to "External plugins update frequency:",
-        "update_interval.every_5s" to "Every 5 seconds",
-        "update_interval.every_6h" to "Every 6 hours",
-        "update_interval.every_12h" to "Every 12 hours",
-        "update_interval.every_day" to "Every day",
-        "update_interval.every_week" to "Every week",
-
-        "custom_channel.hint" to "Enter custom channel URL",
-        "custom_channel.examples" to "Examples:",
-
-        "backup.title" to "Backup & restore",
-        "backup.section.import" to "Import",
-        "backup.choose_file.title" to "Choose backup file",
-        "backup.choose_file.description" to "Restore from a previously exported .zip",
-        "backup.invalid" to "This file is not a valid IITC backup",
-        "backup.import_settings.title" to "Import settings",
-        "backup.import_settings.description" to "Update channel and plugin on/off state",
-        "backup.import_data.title" to "Import plugin data",
-        "backup.import_data.description" to "Stored data of installed plugins",
-        "backup.import_external.title" to "Import external plugins",
-        "backup.import_external.description" to "User scripts not from the official repository",
-        "backup.restore.title" to "Restore backup",
-        "backup.restore.description" to "Apply the selected items",
-        "backup.section.export" to "Export",
-        "backup.export_settings.title" to "Export settings",
-        "backup.export_settings.description" to "Update channel and plugin on/off state",
-        "backup.export_data.title" to "Export plugin data",
-        "backup.export_data.description" to "Stored data of installed plugins",
-        "backup.export_external.title" to "Export external plugins",
-        "backup.export_external.description" to "User scripts not from the official repository",
-        "backup.export_file.title" to "Export backup",
-        "backup.export_file.description" to "Save a backup file you can share",
-        "backup.dialog.nothing_to_restore.title" to "Nothing to restore",
-        "backup.dialog.nothing_to_restore.message" to "Select at least one item to restore",
-        "backup.dialog.restored.title" to "Backup restored",
-        "backup.dialog.restored.message" to "The backup has been restored",
-        "backup.dialog.restore_error.message" to "Failed to restore the backup. Please try again.",
-        "backup.dialog.nothing_to_export.title" to "Nothing to export",
-        "backup.dialog.nothing_to_export.message" to "Select at least one item to export",
-        "backup.dialog.export_error.message" to "Failed to create the backup. Please try again.",
-
-        "licenses.title" to "Open source licenses",
-
-        "plugin_info.loading" to "Loading...",
-        "plugin_info.unknown_name" to "Unknown plugin",
-        "plugin_info.default_category" to "Misc",
-        "plugin_info.override_notice" to "This user plugin overrides an official plugin",
-        "plugin_info.user_notice" to "This plugin was installed by the user",
-        "plugin_info.version" to "Version",
-        "plugin_info.author" to "Author",
-        "plugin_info.install" to "Install",
-        "plugin_info.website" to "Website",
-        "plugin_info.open_homepage" to "Open homepage",
-        "plugin_info.open_issue_tracker" to "Open issue tracker",
-        "plugin_info.share_download" to "Share download URL",
-        "plugin_info.share_update" to "Share update URL",
-        "plugin_info.remove_override" to "Remove override",
-        "plugin_info.delete_plugin" to "Delete plugin",
-
-        "add_plugin.title" to "Add plugin",
-        "add_plugin.unknown_error" to "Unknown error occurred",
-        "add_plugin.url_hint" to "https://example.com/plugin.user.js",
-        "add_plugin.load_url" to "Load from URL",
-        "add_plugin.or" to "or",
-        "add_plugin.choose_file" to "Choose from files",
-
-        "search.hint" to "Search...",
-        "debug.command_hint" to "Enter JavaScript command...",
-        "select_field.no_elements" to "No elements",
-        "select_field.select" to "Select...",
+        "appearance.section.map_display" to "Map Display & Typography",
+        "appearance.fullscreen_map.title" to "Fullscreen map",
+        "appearance.fullscreen_map.description" to "Extend map behind the status bar for an immersive view",
+        "appearance.dark_map.title" to "Dark map tiles",
+        "appearance.dark_map.description" to "Use high-contrast dark theme tiles",
+        "appearance.zoom_controls.title" to "Zoom controls (+/-)",
+        "appearance.zoom_controls.description" to "Show floating +/- buttons on the map",
+        "appearance.map_text_color.title" to "Map text color",
+        "appearance.portal_font_size.title" to "Portal name font size",
+        "appearance.agent_font_size.title" to "Player codename font size",
+        "appearance.font_family.title" to "Map font family",
+        "appearance.font_bold.title" to "Bold map text",
+        "appearance.text_halo.title" to "Text halo outline",
+        "appearance.player_icon_scale.title" to "Player marker scale",
 
         "nav.settings" to "Settings",
         "nav.plugins" to "Plugins",
         "nav.debug" to "Debug",
         "nav.reload_iitc" to "Reload",
         "nav.back" to "Back",
-
-        "panel.menu" to "Menu",
-        "panel.back_to_map" to "Back to map",
-        "panel.paste_link" to "Paste link",
-        "panel.my_location" to "My location",
+        "panel.locate" to "Locate",
         "panel.layers" to "Layers",
-        "panel.show" to "Show panel",
-
-        "layers.highlighter" to "Highlighter",
-        "layers.base_layer" to "Base layer",
-        "layers.select_highlighter" to "Select highlighter",
-        "layers.select_base_layer" to "Select base layer",
-
-        "portal_status.loading" to "Loading...",
-        "portal_status.sign_in_required" to "Sign in required",
-        "portal_status.no_portal_selected" to "No portal selected",
-
-        "common.loading" to "Loading...",
-        "map_status.portals" to "portals",
-        "map_status.all_links" to "all links",
-
-        "location.toast.failed" to "Could not determine your location",
-        "manager.server_not_available" to "Server is not available. Retry after %s seconds",
-        "clipboard.copy_failed" to "Failed to copy to clipboard",
-
-        "share.copy" to "Copy",
-        "share.open" to "Open",
-        "share.open_map" to "Open in maps",
-        "player_tracker.dialog_title" to "Agent Activity",
-        "player_tracker.locations_count" to "%s portals",
-        "player_tracker.latest" to "LATEST",
-        "player_tracker.focus" to "Locate",
-        "share.item.prime" to "Ingress Prime",
-        "share.item.prime_desc" to "Scanner game link",
-        "share.item.intel" to "Intel Map",
-        "share.item.intel_desc" to "Intel map link",
-        "share.item.coordinates" to "Coordinates",
-        "share.item.coordinates_desc" to "Maps & navigation",
-        "share.title" to "Share location",
-        "share.message" to "Choose how to share",
-        "share.action.text" to "Share as text",
-        "share.action.maps" to "Open in maps",
-        "share.action.open_in" to "Open in %s",
-        "share.action.coordinates" to "Copy coordinates",
-        "share.action.link" to "Share Intel link",
-        "share.action.ingress_prime" to "Open in Ingress Prime",
-        "share.action.copy_prime_link" to "Copy Prime link",
-        "share.action.copy_intel_link" to "Copy Intel link",
-        "share.action.open_intel" to "Open in Intel",
-        "share.action.open_prime" to "Open in Prime",
-        "share.toast.prime_copied" to "Ingress Prime link copied",
-        "share.toast.intel_copied" to "Intel map link copied",
-        "share.chooser.open_url" to "Open URL",
-        "share.chooser.share_text" to "Share text",
-        "share.chooser.fallback" to "Share via",
-        "share.toast.coordinates_copied" to "Coordinates copied",
-
         "nav.chat" to "Chat",
-        "panel.portal_details" to "Portal details",
-        "portal.mods" to "Mods",
-        "portal.resonators" to "Resonators",
-        "portal.captured_by" to "Owner: %s",
-        "portal.unclaimed" to "Unclaimed",
-        "portal.hack" to "Hack",
-        "nav.pane.chat_all" to "Chat: All",
-        "nav.pane.chat_faction" to "Chat: Faction",
-        "nav.pane.alerts" to "Alerts",
-        "nav.pane.info" to "Portal info",
-        "nav.pane.map" to "Map"
+        "bookmarks.title" to "Bookmarks",
+        "portallist.title" to "Portal List",
+        "drawtools.title" to "Draw Tools"
     )
 
+    private val zhCnMap = mapOf(
+        "app.name.release" to "IITC Expressive",
+        "app.name.beta" to "IITC Expressive Beta",
+        "app.name.debug" to "IITC Expressive Debug",
+
+        "dialog.ok" to "确定",
+        "dialog.cancel" to "取消",
+        "dialog.close" to "关闭",
+        "dialog.error.title" to "错误",
+
+        "demo.welcome.title" to "演示模式",
+        "demo.welcome.message" to "您正在使用模拟数据体验 IITC Expressive。登录 Ingress 账号即可加载实时情报图层。",
+
+        "settings.title" to "设置",
+        "settings.section.appearance" to "外观与个性化",
+        "settings.appearance.title" to "外观设置",
+        "settings.appearance.description" to "应用主题、配色方案、语言及地图排版视觉",
+
+        "settings.section.iitc_management" to "IITC 插件管理",
+        "settings.plugins.title" to "插件列表",
+        "settings.plugins.description" to "已启用 %s 个插件",
+        "settings.update_channel.title" to "更新通道",
+        "settings.update_channel.description" to "当前通道：%s",
+
+        "settings.section.map" to "地图与定位",
+        "settings.location.title" to "在地图上显示特工定位",
+        "settings.location.description" to "展示定位光标并实时跟踪位置",
+        "settings.persistent_zoom.title" to "保持缩放级别",
+        "settings.persistent_zoom.description" to "点击定位按钮时不强制重置缩放级别",
+
+        "settings.section.data" to "数据管理",
+        "settings.backup.title" to "备份与恢复",
+        "settings.backup.description" to "导出或导入配置与标绘数据",
+        "settings.clear_cookies.title" to "清除 Cookie 与会话",
+        "settings.clear_cookies.description" to "清除所有已保存的 Cookie 与登录状态",
+        "settings.clear_cookies.dialog.message" to "此操作将清除所有 Cookie 与会话数据，您需要重新登录 Ingress 账号。是否继续？",
+        "settings.clear_cookies.dialog.ok" to "清除",
+        "settings.clear_cookies.error" to "清除 Cookie 失败，请重试。",
+
+        "settings.section.information" to "关于信息",
+        "settings.about.title" to "关于 IITC Expressive",
+        "settings.about.description" to "版本信息与项目主页",
+        "settings.licenses.title" to "开源许可协议",
+        "settings.licenses.description" to "查看所使用开源库的许可证书",
+
+        // Appearance
+        "appearance.title" to "外观设置",
+        "appearance.section.theme_mode" to "应用主题",
+        "appearance.theme.system" to "跟随系统",
+        "appearance.theme.light" to "浅色模式",
+        "appearance.theme.dark" to "深色模式",
+
+        "appearance.section.colors" to "主题配色",
+        "appearance.dynamic_color.title" to "动态主题色 (Material You)",
+        "appearance.dynamic_color.desc" to "根据系统壁纸自动提取强调色 (Android 12+)",
+        "appearance.preset_colors.title" to "预设强调色",
+        "appearance.color.blue" to "Resistance 蓝军蓝",
+        "appearance.color.green" to "Enlightened 绿军绿",
+        "appearance.color.red" to "Machina 红军红",
+        "appearance.color.purple" to "Amethyst 紫晶紫",
+        "appearance.color.amber" to "Amber 琥珀橙",
+        "appearance.color.teal" to "Aurora 极光青",
+        "appearance.color.slate" to "Slate 静谧灰",
+
+        "appearance.section.language" to "语言选择",
+        "appearance.language.title" to "应用语言",
+        "appearance.language.system" to "跟随系统语言",
+        "appearance.language.zh_cn" to "中文（简体）",
+        "appearance.language.zh_hk" to "中文（香港繁體）",
+        "appearance.language.zh_tw" to "中文（台灣繁體）",
+        "appearance.language.en" to "English",
+        "appearance.language.ja" to "日本語",
+
+        "appearance.section.map_display" to "地图显示与排版",
+        "appearance.fullscreen_map.title" to "全面屏显示地图",
+        "appearance.fullscreen_map.description" to "地图直接延伸至状态栏区域，带来沉浸式视野",
+        "appearance.dark_map.title" to "深色地图模式",
+        "appearance.dark_map.description" to "切换高对比度暗黑地图底图瓦片",
+        "appearance.zoom_controls.title" to "缩放控制按钮 (+/-)",
+        "appearance.zoom_controls.description" to "在地图右侧显示悬浮 +/- 快捷缩放按钮",
+        "appearance.map_text_color.title" to "地图文字颜色",
+        "appearance.portal_font_size.title" to "Portal 名称字号",
+        "appearance.agent_font_size.title" to "特工代号字号",
+        "appearance.font_family.title" to "地图文字字族",
+        "appearance.font_bold.title" to "文字粗体显示",
+        "appearance.text_halo.title" to "文字光晕描边",
+        "appearance.player_icon_scale.title" to "玩家光标缩放比例",
+
+        "nav.settings" to "设置",
+        "nav.plugins" to "插件",
+        "nav.debug" to "调试",
+        "nav.reload_iitc" to "刷新",
+        "nav.back" to "返回",
+        "panel.locate" to "定位",
+        "panel.layers" to "图层",
+        "nav.chat" to "聊天",
+        "bookmarks.title" to "收藏",
+        "portallist.title" to "Portal 列表",
+        "drawtools.title" to "标绘工具"
+    )
+
+    private val zhHkMap = mapOf(
+        "app.name.release" to "IITC Expressive",
+        "app.name.beta" to "IITC Expressive Beta",
+        "app.name.debug" to "IITC Expressive Debug",
+
+        "dialog.ok" to "確定",
+        "dialog.cancel" to "取消",
+        "dialog.close" to "關閉",
+        "dialog.error.title" to "錯誤",
+
+        "settings.title" to "設定",
+        "settings.section.appearance" to "外觀與個人化",
+        "settings.appearance.title" to "外觀設定",
+        "settings.appearance.description" to "應用程式主題、配色、語言及地圖排版視覺",
+
+        "settings.section.iitc_management" to "IITC 外掛管理",
+        "settings.plugins.title" to "外掛列表",
+        "settings.plugins.description" to "已啟用 %s 個外掛",
+        "settings.update_channel.title" to "更新頻道",
+        "settings.update_channel.description" to "目前頻道：%s",
+
+        "settings.section.map" to "地圖與定位",
+        "settings.location.title" to "在地圖上顯示特務定位",
+        "settings.location.description" to "展示定位標記並即時追蹤位置",
+        "settings.persistent_zoom.title" to "保持縮放級別",
+        "settings.persistent_zoom.description" to "點擊定位按鈕時不強制重設縮放級別",
+
+        "settings.section.data" to "資料管理",
+        "settings.backup.title" to "備份與還原",
+        "settings.backup.description" to "匯出或匯入設定與繪圖資料",
+        "settings.clear_cookies.title" to "清除 Cookie 與連線階段",
+        "settings.clear_cookies.description" to "清除所有已儲存的 Cookie 與登入狀態",
+        "settings.clear_cookies.dialog.message" to "此動作將清除所有 Cookie 與連線階段，你需要重新登入 Ingress 帳戶。是否繼續？",
+        "settings.clear_cookies.dialog.ok" to "清除",
+        "settings.clear_cookies.error" to "清除 Cookie 失敗，請重試。",
+
+        "settings.section.information" to "關於資訊",
+        "settings.about.title" to "關於 IITC Expressive",
+        "settings.about.description" to "版本資訊與專案首頁",
+        "settings.licenses.title" to "開源許可協議",
+        "settings.licenses.description" to "查看使用之開源函式庫許可條款",
+
+        // Appearance
+        "appearance.title" to "外觀設定",
+        "appearance.section.theme_mode" to "應用程式主題",
+        "appearance.theme.system" to "跟隨系統",
+        "appearance.theme.light" to "淺色模式",
+        "appearance.theme.dark" to "深色模式",
+
+        "appearance.section.colors" to "色彩主題",
+        "appearance.dynamic_color.title" to "動態主題色彩 (Material You)",
+        "appearance.dynamic_color.desc" to "根據系統桌布自動提取強調色彩 (Android 12+)",
+        "appearance.preset_colors.title" to "預設強調色彩",
+        "appearance.color.blue" to "Resistance 藍軍藍",
+        "appearance.color.green" to "Enlightened 綠軍綠",
+        "appearance.color.red" to "Machina 紅軍紅",
+        "appearance.color.purple" to "Amethyst 紫晶紫",
+        "appearance.color.amber" to "Amber 琥珀橙",
+        "appearance.color.teal" to "Aurora 極光青",
+        "appearance.color.slate" to "Slate 靜謐灰",
+
+        "appearance.section.language" to "語言設定",
+        "appearance.language.title" to "應用程式語言",
+        "appearance.language.system" to "跟隨系統語言",
+        "appearance.language.zh_cn" to "中文（簡體）",
+        "appearance.language.zh_hk" to "中文（香港繁體）",
+        "appearance.language.zh_tw" to "中文（台灣繁體）",
+        "appearance.language.en" to "English",
+        "appearance.language.ja" to "日本語",
+
+        "appearance.section.map_display" to "地圖顯示與排版",
+        "appearance.fullscreen_map.title" to "全螢幕顯示地圖",
+        "appearance.fullscreen_map.description" to "地圖直接延伸至狀態列區域，提供沉浸式視野",
+        "appearance.dark_map.title" to "深色地圖模式",
+        "appearance.dark_map.description" to "切換高對比深色地圖磚",
+        "appearance.zoom_controls.title" to "縮放控制按鈕 (+/-)",
+        "appearance.zoom_controls.description" to "在地圖右側顯示浮動 +/- 快捷縮放按鈕",
+        "appearance.map_text_color.title" to "地圖文字顏色",
+        "appearance.portal_font_size.title" to "Portal 名稱字型大小",
+        "appearance.agent_font_size.title" to "特務代號字型大小",
+        "appearance.font_family.title" to "地圖文字字族",
+        "appearance.font_bold.title" to "文字粗體顯示",
+        "appearance.text_halo.title" to "文字光暈描邊",
+        "appearance.player_icon_scale.title" to "玩家標記縮放比例",
+
+        "nav.settings" to "設定",
+        "nav.plugins" to "外掛",
+        "nav.debug" to "除錯",
+        "nav.reload_iitc" to "重新載入",
+        "nav.back" to "返回",
+        "panel.locate" to "定位",
+        "panel.layers" to "圖層",
+        "nav.chat" to "通訊",
+        "bookmarks.title" to "收藏",
+        "portallist.title" to "Portal 列表",
+        "drawtools.title" to "繪圖工具"
+    )
+
+    private val zhTwMap = mapOf(
+        "app.name.release" to "IITC Expressive",
+        "app.name.beta" to "IITC Expressive Beta",
+        "app.name.debug" to "IITC Expressive Debug",
+
+        "dialog.ok" to "確定",
+        "dialog.cancel" to "取消",
+        "dialog.close" to "關閉",
+        "dialog.error.title" to "錯誤",
+
+        "settings.title" to "設定",
+        "settings.section.appearance" to "外觀與個人化",
+        "settings.appearance.title" to "外觀設定",
+        "settings.appearance.description" to "應用程式主題、配色、語言及地圖排版視覺",
+
+        "settings.section.iitc_management" to "IITC 外掛管理",
+        "settings.plugins.title" to "外掛列表",
+        "settings.plugins.description" to "已啟用 %s 個外掛",
+        "settings.update_channel.title" to "更新頻道",
+        "settings.update_channel.description" to "目前頻道：%s",
+
+        "settings.section.map" to "地圖與定位",
+        "settings.location.title" to "在地圖上顯示探員定位",
+        "settings.location.description" to "展示定位標記並即時追蹤位置",
+        "settings.persistent_zoom.title" to "保持縮放級別",
+        "settings.persistent_zoom.description" to "點擊定位按鈕時不強制重設縮放級別",
+
+        "settings.section.data" to "資料管理",
+        "settings.backup.title" to "備份與還原",
+        "settings.backup.description" to "匯出或匯入設定與繪圖資料",
+        "settings.clear_cookies.title" to "清除 Cookie 與連線階段",
+        "settings.clear_cookies.description" to "清除所有已儲存的 Cookie 與登入狀態",
+        "settings.clear_cookies.dialog.message" to "此動作將清除所有 Cookie 與連線階段，你需要重新登入 Ingress 帳戶。是否繼續？",
+        "settings.clear_cookies.dialog.ok" to "清除",
+        "settings.clear_cookies.error" to "清除 Cookie 失敗，請重試。",
+
+        "settings.section.information" to "關於資訊",
+        "settings.about.title" to "關於 IITC Expressive",
+        "settings.about.description" to "版本資訊與專案首頁",
+        "settings.licenses.title" to "開源授權協議",
+        "settings.licenses.description" to "查看使用之開源函式庫授權條款",
+
+        // Appearance
+        "appearance.title" to "外觀設定",
+        "appearance.section.theme_mode" to "應用程式主題",
+        "appearance.theme.system" to "跟隨系統",
+        "appearance.theme.light" to "淺色模式",
+        "appearance.theme.dark" to "深色模式",
+
+        "appearance.section.colors" to "色彩主題",
+        "appearance.dynamic_color.title" to "動態主題色彩 (Material You)",
+        "appearance.dynamic_color.desc" to "根據系統桌布自動提取強調色彩 (Android 12+)",
+        "appearance.preset_colors.title" to "預設強調色彩",
+        "appearance.color.blue" to "Resistance 藍軍藍",
+        "appearance.color.green" to "Enlightened 綠軍綠",
+        "appearance.color.red" to "Machina 紅軍紅",
+        "appearance.color.purple" to "Amethyst 紫晶紫",
+        "appearance.color.amber" to "Amber 琥珀橙",
+        "appearance.color.teal" to "Aurora 極光青",
+        "appearance.color.slate" to "Slate 靜謐灰",
+
+        "appearance.section.language" to "語言設定",
+        "appearance.language.title" to "應用程式語言",
+        "appearance.language.system" to "跟隨系統語言",
+        "appearance.language.zh_cn" to "中文（簡體）",
+        "appearance.language.zh_hk" to "中文（香港繁體）",
+        "appearance.language.zh_tw" to "中文（台灣繁體）",
+        "appearance.language.en" to "English",
+        "appearance.language.ja" to "日本語",
+
+        "appearance.section.map_display" to "地圖顯示與排版",
+        "appearance.fullscreen_map.title" to "全螢幕顯示地圖",
+        "appearance.fullscreen_map.description" to "地圖直接延伸至狀態列區域，提供沉浸式視野",
+        "appearance.dark_map.title" to "深色地圖模式",
+        "appearance.dark_map.description" to "切換高對比深色地圖磚",
+        "appearance.zoom_controls.title" to "縮放控制按鈕 (+/-)",
+        "appearance.zoom_controls.description" to "在地圖右側顯示浮動 +/- 快捷縮放按鈕",
+        "appearance.map_text_color.title" to "地圖文字顏色",
+        "appearance.portal_font_size.title" to "Portal 名稱字型大小",
+        "appearance.agent_font_size.title" to "探員代號字型大小",
+        "appearance.font_family.title" to "地圖文字字族",
+        "appearance.font_bold.title" to "文字粗體顯示",
+        "appearance.text_halo.title" to "文字光暈描邊",
+        "appearance.player_icon_scale.title" to "玩家標記縮放比例",
+
+        "nav.settings" to "設定",
+        "nav.plugins" to "外掛",
+        "nav.debug" to "除錯",
+        "nav.reload_iitc" to "重新載入",
+        "nav.back" to "返回",
+        "panel.locate" to "定位",
+        "panel.layers" to "圖層",
+        "nav.chat" to "通訊",
+        "bookmarks.title" to "收藏",
+        "portallist.title" to "Portal 列表",
+        "drawtools.title" to "繪圖工具"
+    )
+
+    private val jaMap = mapOf(
+        "app.name.release" to "IITC Expressive",
+        "app.name.beta" to "IITC Expressive Beta",
+        "app.name.debug" to "IITC Expressive Debug",
+
+        "dialog.ok" to "OK",
+        "dialog.cancel" to "キャンセル",
+        "dialog.close" to "閉じる",
+        "dialog.error.title" to "エラー",
+
+        "settings.title" to "設定",
+        "settings.section.appearance" to "外観とカスタマイズ",
+        "settings.appearance.title" to "外観設定",
+        "settings.appearance.description" to "アプリのテーマ、配色、言語、地図表示の調整",
+
+        "settings.section.iitc_management" to "IITC プラグイン管理",
+        "settings.plugins.title" to "プラグイン一覧",
+        "settings.plugins.description" to "%s 個のプラグインが有効",
+        "settings.update_channel.title" to "アップデートチャンネル",
+        "settings.update_channel.description" to "現在のチャンネル: %s",
+
+        "settings.section.map" to "地図と位置情報",
+        "settings.location.title" to "地図上に現在地を表示",
+        "settings.location.description" to "エージェントの位置マーカーを表示しリアルタイム追跡",
+        "settings.persistent_zoom.title" to "ズーム倍率を維持",
+        "settings.persistent_zoom.description" to "現在地ボタンをタップした際にズーム倍率をリセットしない",
+
+        "settings.section.data" to "データ管理",
+        "settings.backup.title" to "バックアップと復元",
+        "settings.backup.description" to "設定や描画データのインポート・エクスポート",
+        "settings.clear_cookies.title" to "Cookie とセッションを削除",
+        "settings.clear_cookies.description" to "保存されたすべての Cookie とログイン情報を消去",
+        "settings.clear_cookies.dialog.message" to "すべての Cookie とセッションデータが消去されます。再度ログインが必要になります。続行しますか？",
+        "settings.clear_cookies.dialog.ok" to "削除",
+        "settings.clear_cookies.error" to "Cookie の削除に失敗しました。もう一度お試しください。",
+
+        "settings.section.information" to "アプリ情報",
+        "settings.about.title" to "IITC Expressive について",
+        "settings.about.description" to "バージョン情報とプロジェクトリンク",
+        "settings.licenses.title" to "オープンソースライセンス",
+        "settings.licenses.description" to "使用しているライブラリのライセンス条項",
+
+        // Appearance
+        "appearance.title" to "外観設定",
+        "appearance.section.theme_mode" to "テーマモード",
+        "appearance.theme.system" to "システム設定に従う",
+        "appearance.theme.light" to "ライトモード",
+        "appearance.theme.dark" to "ダークモード",
+
+        "appearance.section.colors" to "カラーテーマ",
+        "appearance.dynamic_color.title" to "ダイナミックカラー (Material You)",
+        "appearance.dynamic_color.desc" to "壁紙に基づいてアクセントカラーを自動抽出 (Android 12+)",
+        "appearance.preset_colors.title" to "プリセットアクセントカラー",
+        "appearance.color.blue" to "Resistance ブルー",
+        "appearance.color.green" to "Enlightened グリーン",
+        "appearance.color.red" to "Machina レッド",
+        "appearance.color.purple" to "Amethyst パープル",
+        "appearance.color.amber" to "Amber オレンジ",
+        "appearance.color.teal" to "Aurora ティール",
+        "appearance.color.slate" to "Slate スレートグレー",
+
+        "appearance.section.language" to "言語設定",
+        "appearance.language.title" to "アプリの言語",
+        "appearance.language.system" to "システム言語に従う",
+        "appearance.language.zh_cn" to "中文（简体）",
+        "appearance.language.zh_hk" to "中文（香港繁體）",
+        "appearance.language.zh_tw" to "中文（台灣繁體）",
+        "appearance.language.en" to "English",
+        "appearance.language.ja" to "日本語",
+
+        "appearance.section.map_display" to "地図表示と文字設定",
+        "appearance.fullscreen_map.title" to "全画面マップ表示",
+        "appearance.fullscreen_map.description" to "ステータスバーの領域まで地図を拡張し没入感を向上",
+        "appearance.dark_map.title" to "ダークマップモード",
+        "appearance.dark_map.description" to "高コントラストのダークマップタイルを使用",
+        "appearance.zoom_controls.title" to "ズームボタン (+/-)",
+        "appearance.zoom_controls.description" to "地図の右側にフローティング +/- ボタンを表示",
+        "appearance.map_text_color.title" to "地図テキストの色",
+        "appearance.portal_font_size.title" to "ポータル名フォントサイズ",
+        "appearance.agent_font_size.title" to "エージェント名フォントサイズ",
+        "appearance.font_family.title" to "地図フォントファミリー",
+        "appearance.font_bold.title" to "文字を太字にする",
+        "appearance.text_halo.title" to "文字のアウトライン効果",
+        "appearance.player_icon_scale.title" to "プレイヤーマーカーのスケール",
+
+        "nav.settings" to "設定",
+        "nav.plugins" to "プラグイン",
+        "nav.debug" to "デバッグ",
+        "nav.reload_iitc" to "再読み込み",
+        "nav.back" to "戻る",
+        "panel.locate" to "現在地",
+        "panel.layers" to "レイヤー",
+        "nav.chat" to "通信",
+        "bookmarks.title" to "ブックマーク",
+        "portallist.title" to "ポータル一覧",
+        "drawtools.title" to "描画ツール"
+    )
+
+    fun setLanguage(lang: String) {
+        currentLanguage = lang
+    }
+
+    fun getLanguage(): String = currentLanguage
+
     fun get(key: String, vararg args: Any): String {
-        val template = map[key] ?: key
+        val targetMap = when (currentLanguage) {
+            "zh-CN", "zh_CN" -> zhCnMap
+            "zh-HK", "zh_HK" -> zhHkMap
+            "zh-TW", "zh_TW" -> zhTwMap
+            "ja" -> jaMap
+            "en" -> enMap
+            else -> {
+                // System fallback: check if platform is Chinese or Japanese
+                val sysLang = getSystemLanguageTag()
+                when {
+                    sysLang.startsWith("zh-HK", ignoreCase = true) || sysLang.startsWith("zh-MO", ignoreCase = true) -> zhHkMap
+                    sysLang.startsWith("zh-TW", ignoreCase = true) -> zhTwMap
+                    sysLang.startsWith("zh", ignoreCase = true) -> zhCnMap
+                    sysLang.startsWith("ja", ignoreCase = true) -> jaMap
+                    else -> enMap
+                }
+            }
+        }
+
+        val template = targetMap[key] ?: enMap[key] ?: key
         if (args.isEmpty()) return template
         var result = template
         for (arg in args) {
             result = result.replaceFirst("%s", arg.toString())
         }
         return result
+    }
+
+    private fun getSystemLanguageTag(): String {
+        return io.github.movetakeitblue.iitcexpressive.platform.PlatformUtils.getSystemLanguage()
     }
 }
 

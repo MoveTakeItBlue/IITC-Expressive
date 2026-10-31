@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">IITC Expressive</string>
+    <string name="dialog_ok">OK</string>
+    <string name="dialog_cancel">Cancel</string>
+    <string name="dialog_close">Close</string>
+    <string name="dialog_error_title">Error</string>
+
+    <string name="settings_title">Settings</string>
+    <string name="settings_section_appearance">Appearance</string>
+    <string name="settings_appearance_title">Appearance &amp; Theme</string>
+    <string name="settings_appearance_description">Theme mode, accent colors, language, and map display</string>
+
+    <string name="settings_section_iitc_management">IITC management</string>
+    <string name="settings_plugins_title">Plugins</string>
+    <string name="settings_plugins_description">%s plugins enabled</string>
+    <string name="settings_update_channel_title">Update channel</string>
+    <string name="settings_update_channel_description">Current: %s</string>
+
+    <string name="settings_section_map">Map &amp; Location</string>
+    <string name="settings_location_title">Display user location on map</string>
+    <string name="settings_location_description">Show position marker and track location</string>
+    <string name="settings_persistent_zoom_title">Persistent zoom level</string>
+    <string name="settings_persistent_zoom_description">Don\'t change zoom level when locate button is pressed</string>
+
+    <string name="settings_section_data">Data management</string>
+    <string name="settings_backup_title">Backup &amp; restore</string>
+    <string name="settings_backup_description">Export or import your data</string>
+    <string name="settings_clear_cookies_title">Clear cookies</string>
+    <string name="settings_clear_cookies_description">Remove all stored cookies and session data</string>
+    <string name="settings_clear_cookies_dialog_message">This will clear all cookies and session data. You will need to log in again. Continue?</string>
+    <string name="settings_clear_cookies_dialog_ok">Clear</string>
+    <string name="settings_clear_cookies_error">Failed to clear cookies. Please try again.</string>
+
+    <string name="settings_section_information">Information</string>
+    <string name="settings_about_title">About</string>
+    <string name="settings_about_description">Version and app information</string>
+    <string name="settings_licenses_title">Open source licenses</string>
+    <string name="settings_licenses_description">View licenses of used libraries</string>
+
+    <!-- Appearance Screen -->
+    <string name="appearance_title">Appearance &amp; Theme</string>
+    <string name="appearance_section_theme_mode">Theme Mode</string>
+    <string name="appearance_theme_system">Follow system</string>
+    <string name="appearance_theme_light">Light mode</string>
+    <string name="appearance_theme_dark">Dark mode</string>
+
+    <string name="appearance_section_colors">Color Scheme</string>
+    <string name="appearance_dynamic_color_title">Dynamic theme color (Material You)</string>
+    <string name="appearance_dynamic_color_desc">Extract accent color from system wallpaper (Android 12+)</string>
+    <string name="appearance_preset_colors_title">Preset accent colors</string>
+    <string name="appearance_color_blue">Resistance Blue</string>
+    <string name="appearance_color_green">Enlightened Green</string>
+    <string name="appearance_color_red">Machina Red</string>
+    <string name="appearance_color_purple">Amethyst Purple</string>
+    <string name="appearance_color_amber">Amber Orange</string>
+    <string name="appearance_color_teal">Aurora Teal</string>
+    <string name="appearance_color_slate">Slate Grey</string>
+
+    <string name="appearance_section_language">Language</string>
+    <string name="appearance_language_title">App Language</string>
+    <string name="appearance_language_system">Follow system</string>
+    <string name="appearance_language_zh_cn">中文（简体）</string>
+    <string name="appearance_language_zh_hk">中文（香港繁體）</string>
+    <string name="appearance_language_zh_tw">中文（台灣繁體）</string>
+    <string name="appearance_language_en">English</string>
+    <string name="appearance_language_ja">日本語</string>
+
+    <string name="appearance_section_map_display">Map Display &amp; Typography</string>
+    <string name="appearance_fullscreen_map_title">Fullscreen map</string>
+    <string name="appearance_fullscreen_map_description">Extend map behind the status bar for an immersive view</string>
+    <string name="appearance_dark_map_title">Dark map</string>
+    <string name="appearance_dark_map_description">Use high-contrast dark theme tiles</string>
+    <string name="appearance_zoom_controls_title">Zoom controls (+/-)</string>
+    <string name="appearance_zoom_controls_description">Show floating +/- zoom buttons on the map</string>
+    <string name="appearance_map_text_color_title">Map text color</string>
+    <string name="appearance_portal_font_size_title">Portal name font size</string>
+    <string name="appearance_agent_font_size_title">Player codename font size</string>
+    <string name="appearance_font_family_title">Map font family</string>
+    <string name="appearance_font_bold_title">Bold map text</string>
+    <string name="appearance_text_halo_title">Text halo outline</string>
+    <string name="appearance_player_icon_scale_title">Player marker scale</string>
+
+    <!-- Navigation & Common -->
+    <string name="nav_settings">Settings</string>
+    <string name="nav_plugins">Plugins</string>
+    <string name="nav_debug">Debug</string>
+    <string name="nav_reload">Reload</string>
+    <string name="nav_back">Back</string>
+    <string name="nav_locate">Locate</string>
+    <string name="nav_layers">Layers</string>
+    <string name="nav_chat">Chat</string>
+    <string name="nav_bookmarks">Bookmarks</string>
+    <string name="nav_portallist">Portal List</string>
+    <string name="nav_drawtools">Draw Tools</string>
+</resources>

@@ -214,35 +214,43 @@ actual object PlatformUtils {
             }
 
             if (lm.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
-                lm.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000L, 1f, locationListener!!)
+                lm.requestLocationUpdates(LocationManager.GPS_PROVIDER, 2000L, 2f, locationListener!!)
             }
             if (lm.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
-                lm.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 1000L, 1f, locationListener!!)
+                lm.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 2000L, 2f, locationListener!!)
             }
         } catch (e: SecurityException) {
             listener.onError("Location permission not granted")
         }
 
-        // Compass tracking
+        // Compass tracking with throttling to avoid flooding JS bridge and UI thread
         val sm = ctx.getSystemService(Context.SENSOR_SERVICE) as SensorManager
         sensorManager = sm
         val rotationSensor = sm.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR)
         if (rotationSensor != null) {
             val rotationMatrix = FloatArray(9)
             val orientationAngles = FloatArray(3)
+            var lastAzimuth = -1.0
+            var lastAzimuthTime = 0L
             sensorListener = object : SensorEventListener {
                 override fun onSensorChanged(event: SensorEvent) {
                     if (event.sensor.type == Sensor.TYPE_ROTATION_VECTOR) {
+                        val now = System.currentTimeMillis()
+                        if (now - lastAzimuthTime < 150L) return
                         SensorManager.getRotationMatrixFromVector(rotationMatrix, event.values)
                         SensorManager.getOrientation(rotationMatrix, orientationAngles)
                         val azimuth = Math.toDegrees(orientationAngles[0].toDouble())
                         val normalized = (azimuth + 360.0) % 360.0
-                        listener.onOrientation(normalized)
+                        if (lastAzimuth < 0 || kotlin.math.abs(normalized - lastAzimuth) >= 1.5) {
+                            lastAzimuth = normalized
+                            lastAzimuthTime = now
+                            listener.onOrientation(normalized)
+                        }
                     }
                 }
                 override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
             }
-            sm.registerListener(sensorListener, rotationSensor, SensorManager.SENSOR_DELAY_UI)
+            sm.registerListener(sensorListener, rotationSensor, SensorManager.SENSOR_DELAY_NORMAL)
         }
     }
 
@@ -340,6 +348,15 @@ actual object PlatformUtils {
             bmp?.asImageBitmap()
         } catch (_: Exception) {
             null
+        }
+    }
+
+    actual fun getSystemLanguage(): String {
+        return try {
+            val locale = java.util.Locale.getDefault()
+            "${locale.language}-${locale.country}"
+        } catch (_: Throwable) {
+            "en"
         }
     }
 }

@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">IITC Expressive</string>
+    <string name="dialog_ok">确定</string>
+    <string name="dialog_cancel">取消</string>
+    <string name="dialog_close">关闭</string>
+    <string name="dialog_error_title">错误</string>
+
+    <string name="settings_title">设置</string>
+    <string name="settings_section_appearance">外观与个性化</string>
+    <string name="settings_appearance_title">外观设置</string>
+    <string name="settings_appearance_description">应用主题、配色方案、语言及地图排版视觉</string>
+
+    <string name="settings_section_iitc_management">IITC 插件管理</string>
+    <string name="settings_plugins_title">插件列表</string>
+    <string name="settings_plugins_description">已启用 %s 个插件</string>
+    <string name="settings_update_channel_title">更新通道</string>
+    <string name="settings_update_channel_description">当前通道：%s</string>
+
+    <string name="settings_section_map">地图与定位</string>
+    <string name="settings_location_title">在地图上显示特工定位</string>
+    <string name="settings_location_description">展示定位光标并实时跟踪位置</string>
+    <string name="settings_persistent_zoom_title">保持缩放级别</string>
+    <string name="settings_persistent_zoom_description">点击定位按钮时不强制重置缩放级别</string>
+
+    <string name="settings_section_data">数据管理</string>
+    <string name="settings_backup_title">备份与恢复</string>
+    <string name="settings_backup_description">导出或导入配置与标绘数据</string>
+    <string name="settings_clear_cookies_title">清除 Cookie 与会话</string>
+    <string name="settings_clear_cookies_description">清除所有已保存的 Cookie 与登录状态</string>
+    <string name="settings_clear_cookies_dialog_message">此操作将清除所有 Cookie 与会话数据，您需要重新登录 Ingress 账号。是否继续？</string>
+    <string name="settings_clear_cookies_dialog_ok">清除</string>
+    <string name="settings_clear_cookies_error">清除 Cookie 失败，请重试。</string>
+
+    <string name="settings_section_information">关于信息</string>
+    <string name="settings_about_title">关于 IITC Expressive</string>
+    <string name="settings_about_description">版本信息与项目主页</string>
+    <string name="settings_licenses_title">开源许可协议</string>
+    <string name="settings_licenses_description">查看所使用开源库的许可证书</string>
+
+    <!-- Appearance Screen -->
+    <string name="appearance_title">外观设置</string>
+    <string name="appearance_section_theme_mode">应用主题</string>
+    <string name="appearance_theme_system">跟随系统</string>
+    <string name="appearance_theme_light">浅色模式</string>
+    <string name="appearance_theme_dark">深色模式</string>
+
+    <string name="appearance_section_colors">主题配色</string>
+    <string name="appearance_dynamic_color_title">动态主题色 (Material You)</string>
+    <string name="appearance_dynamic_color_desc">根据系统壁纸自动提取强调色 (Android 12+)</string>
+    <string name="appearance_preset_colors_title">预设强调色</string>
+    <string name="appearance_color_blue">Resistance 蓝军蓝</string>
+    <string name="appearance_color_green">Enlightened 绿军绿</string>
+    <string name="appearance_color_red">Machina 红军红</string>
+    <string name="appearance_color_purple">Amethyst 紫晶紫</string>
+    <string name="appearance_color_amber">Amber 琥珀橙</string>
+    <string name="appearance_color_teal">Aurora 极光青</string>
+    <string name="appearance_color_slate">Slate 静谧灰</string>
+
+    <string name="appearance_section_language">语言选择</string>
+    <string name="appearance_language_title">应用语言</string>
+    <string name="appearance_language_system">跟随系统语言</string>
+    <string name="appearance_language_zh_cn">中文（简体）</string>
+    <string name="appearance_language_zh_hk">中文（香港繁體）</string>
+    <string name="appearance_language_zh_tw">中文（台灣繁體）</string>
+    <string name="appearance_language_en">English</string>
+    <string name="appearance_language_ja">日本語</string>
+
+    <string name="appearance_section_map_display">地图显示与排版</string>
+    <string name="appearance_fullscreen_map_title">全面屏显示地图</string>
+    <string name="appearance_fullscreen_map_description">地图直接延伸至状态栏区域，带来沉浸式视野</string>
+    <string name="appearance_dark_map_title">深色地图模式</string>
+    <string name="appearance_dark_map_description">切换高对比度暗黑地图底图瓦片</string>
+    <string name="appearance_zoom_controls_title">缩放控制按钮 (+/-)</string>
+    <string name="appearance_zoom_controls_description">在地图右侧显示悬浮 +/- 快捷缩放按钮</string>
+    <string name="appearance_map_text_color_title">地图文字颜色</string>
+    <string name="appearance_portal_font_size_title">Portal 名称字号</string>
+    <string name="appearance_agent_font_size_title">特工代号字号</string>
+    <string name="appearance_font_family_title">地图文字字族</string>
+    <string name="appearance_font_bold_title">文字粗体显示</string>
+    <string name="appearance_text_halo_title">文字光晕描边</string>
+    <string name="appearance_player_icon_scale_title">玩家光标缩放比例</string>
+
+    <!-- Navigation & Common -->
+    <string name="nav_settings">设置</string>
+    <string name="nav_plugins">插件</string>
+    <string name="nav_debug">调试</string>
+    <string name="nav_reload">刷新</string>
+    <string name="nav_back">返回</string>
+    <string name="nav_locate">定位</string>
+    <string name="nav_layers">图层</string>
+    <string name="nav_chat">聊天</string>
+    <string name="nav_bookmarks">收藏</string>
+    <string name="nav_portallist">Portal 列表</string>
+    <string name="nav_drawtools">标绘工具</string>
+</resources>
