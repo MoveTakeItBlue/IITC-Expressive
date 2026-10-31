@@ -73,12 +73,17 @@ fun PortalDetailsSheet(
 ) {
     val portalStatus by viewModel.portalStatus.collectAsState()
     val isExpanded by viewModel.isPortalDetailsExpanded.collectAsState()
+    val isFullscreenMap by viewModel.isFullscreenMap.collectAsState()
 
     if (!portalStatus.hasSelected) return
 
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
         val screenHeight = maxHeight
-        val navBottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+        val navBottom = if (isFullscreenMap) {
+            WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+        } else {
+            0.dp
+        }
         val peekHeight = PortalSheetDefaults.PeekHeight + navBottom
         val expandedHeight = (screenHeight * 0.85f).coerceAtLeast(460.dp)
 
@@ -142,7 +147,7 @@ fun PortalDetailsSheet(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .navigationBarsPadding()
+                    .then(if (isFullscreenMap) Modifier.navigationBarsPadding() else Modifier)
             ) {
                 // Drag Handle
                 Box(

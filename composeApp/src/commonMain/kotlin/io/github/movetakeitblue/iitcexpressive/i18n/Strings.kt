@@ -78,7 +78,7 @@ object Strings {
 
         "appearance.section.map_display" to "Map Display & Typography",
         "appearance.fullscreen_map.title" to "Fullscreen map",
-        "appearance.fullscreen_map.description" to "Extend map behind the status bar for an immersive view",
+        "appearance.fullscreen_map.description" to "Extend map behind status bar and navigation bar for an immersive view",
         "appearance.dark_map.title" to "Dark map tiles",
         "appearance.dark_map.description" to "Use high-contrast dark theme tiles",
         "appearance.zoom_controls.title" to "Zoom controls (+/-)",
@@ -179,7 +179,7 @@ object Strings {
 
         "appearance.section.map_display" to "地图显示与排版",
         "appearance.fullscreen_map.title" to "全面屏显示地图",
-        "appearance.fullscreen_map.description" to "地图直接延伸至状态栏区域，带来沉浸式视野",
+        "appearance.fullscreen_map.description" to "地图直接延伸至状态栏与导航栏区域，带来沉浸式视野",
         "appearance.dark_map.title" to "深色地图模式",
         "appearance.dark_map.description" to "切换高对比度暗黑地图底图瓦片",
         "appearance.zoom_controls.title" to "缩放控制按钮 (+/-)",
@@ -277,7 +277,7 @@ object Strings {
 
         "appearance.section.map_display" to "地圖顯示與排版",
         "appearance.fullscreen_map.title" to "全螢幕顯示地圖",
-        "appearance.fullscreen_map.description" to "地圖直接延伸至狀態列區域，提供沉浸式視野",
+        "appearance.fullscreen_map.description" to "地圖直接延伸至狀態列與導覽列區域，提供沉浸式視野",
         "appearance.dark_map.title" to "深色地圖模式",
         "appearance.dark_map.description" to "切換高對比深色地圖磚",
         "appearance.zoom_controls.title" to "縮放控制按鈕 (+/-)",
@@ -375,7 +375,7 @@ object Strings {
 
         "appearance.section.map_display" to "地圖顯示與排版",
         "appearance.fullscreen_map.title" to "全螢幕顯示地圖",
-        "appearance.fullscreen_map.description" to "地圖直接延伸至狀態列區域，提供沉浸式視野",
+        "appearance.fullscreen_map.description" to "地圖直接延伸至狀態列與導覽列區域，提供沉浸式視野",
         "appearance.dark_map.title" to "深色地圖模式",
         "appearance.dark_map.description" to "切換高對比深色地圖磚",
         "appearance.zoom_controls.title" to "縮放控制按鈕 (+/-)",
@@ -473,7 +473,7 @@ object Strings {
 
         "appearance.section.map_display" to "地図表示と文字設定",
         "appearance.fullscreen_map.title" to "全画面マップ表示",
-        "appearance.fullscreen_map.description" to "ステータスバーの領域まで地図を拡張し没入感を向上",
+        "appearance.fullscreen_map.description" to "ステータスバーとナビゲーションバーの領域まで地図を拡張し没入感を向上",
         "appearance.dark_map.title" to "ダークマップモード",
         "appearance.dark_map.description" to "高コントラストのダークマップタイルを使用",
         "appearance.zoom_controls.title" to "ズームボタン (+/-)",

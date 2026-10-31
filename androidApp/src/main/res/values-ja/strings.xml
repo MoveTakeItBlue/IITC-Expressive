@@ -68,7 +68,7 @@
 
     <string name="appearance_section_map_display">地図表示と文字設定</string>
     <string name="appearance_fullscreen_map_title">全画面マップ表示</string>
-    <string name="appearance_fullscreen_map_description">ステータスバーの領域まで地図を拡張し没入感を向上</string>
+    <string name="appearance_fullscreen_map_description">ステータスバーとナビゲーションバーの領域まで地図を拡張し没入感を向上</string>
     <string name="appearance_dark_map_title">ダークマップモード</string>
     <string name="appearance_dark_map_description">高コントラストのダークマップタイルを使用</string>
     <string name="appearance_zoom_controls_title">ズームボタン (+/-)</string>

@@ -68,7 +68,7 @@
 
     <string name="appearance_section_map_display">地圖顯示與排版</string>
     <string name="appearance_fullscreen_map_title">全螢幕顯示地圖</string>
-    <string name="appearance_fullscreen_map_description">地圖直接延伸至狀態列區域，提供沉浸式視野</string>
+    <string name="appearance_fullscreen_map_description">地圖直接延伸至狀態列與導覽列區域，提供沉浸式視野</string>
     <string name="appearance_dark_map_title">深色地圖模式</string>
     <string name="appearance_dark_map_description">切換高對比深色地圖磚</string>
     <string name="appearance_zoom_controls_title">縮放控制按鈕 (+/-)</string>

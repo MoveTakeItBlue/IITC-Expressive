@@ -68,7 +68,7 @@
 
     <string name="appearance_section_map_display">Map Display &amp; Typography</string>
     <string name="appearance_fullscreen_map_title">Fullscreen map</string>
-    <string name="appearance_fullscreen_map_description">Extend map behind the status bar for an immersive view</string>
+    <string name="appearance_fullscreen_map_description">Extend map behind status bar and navigation bar for an immersive view</string>
     <string name="appearance_dark_map_title">Dark map</string>
     <string name="appearance_dark_map_description">Use high-contrast dark theme tiles</string>
     <string name="appearance_zoom_controls_title">Zoom controls (+/-)</string>

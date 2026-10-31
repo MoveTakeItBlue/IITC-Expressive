@@ -79,6 +79,10 @@ fun MainScreen(
         PlatformUtils.setStatusBarContrast(isEffectiveStatusBarDarkContent)
     }
 
+    LaunchedEffect(isFullscreenMap) {
+        viewModel.evaluateJs("if (window.map && window.map.invalidateSize) { window.map.invalidateSize(); }")
+    }
+
     // ViewModels for sub-screens
     val settingsViewModel = remember(viewModel) { SettingsViewModel(viewModel.storage, viewModel) }
     val pluginsViewModel = remember(viewModel) { PluginsViewModel(viewModel.manager) }
@@ -87,13 +91,10 @@ fun MainScreen(
 
     Box(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         // Map and main overlay container.
-        // 全面屏显示地图：开启后顶部不留白，地图直接铺满到手机屏幕顶部状态栏区域；
-        // 未开启时，顶部避开状态栏，保持与状态栏的分隔。
-        // 底部避开导航栏，确保地图下边缘与导航栏相邻。
+        // 全面屏显示地图：开启后顶部与底部不留白，地图直接铺满到手机屏幕顶部状态栏与底部导航栏区域；
+        // 未开启时，避开状态栏与导航栏，保持清晰分隔。
         val mapContainerModifier = if (isFullscreenMap) {
-            Modifier
-                .fillMaxSize()
-                .windowInsetsPadding(WindowInsets.navigationBars)
+            Modifier.fillMaxSize()
         } else {
             Modifier
                 .fillMaxSize()
@@ -181,10 +182,7 @@ fun MainScreen(
                 }
 
                 if (!isDebugActive) {
-                    // Portal 详情 sheet 收起时占用的高度（含导航栏 inset）。
-                    // FAB 必须让出这块空间，否则会被 sheet 压住；这里与 sheet 内部用的是同一套计算。
-                    val sheetPeekHeight = PortalSheetDefaults.PeekHeight +
-                        WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+                    val sheetPeekHeight = PortalSheetDefaults.PeekHeight
 
                     // Portal Details Sheet (Collapsed peek bar or expanded full details)
                     if (isIitcLoaded) {
@@ -264,6 +262,7 @@ fun MainScreen(
                             host = viewModel.pluginHost,
                             modifier = Modifier
                                 .align(Alignment.BottomCenter)
+                                .navigationBarsPadding()
                                 .padding(bottom = if (portalStatus.hasSelected) sheetPeekHeight + 16.dp else 24.dp)
                         )
                     }
@@ -316,14 +315,36 @@ fun MainScreen(
             }
         }
 
-        // 导航栏：同样用实色表面填充，让地图下边缘正好与导航栏相邻
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .windowInsetsBottomHeight(WindowInsets.navigationBars)
-                .align(Alignment.BottomCenter)
-                .background(MaterialTheme.colorScheme.surfaceContainer)
-        )
+        // 导航栏：全面屏模式下使用优雅的渐变护罩保护手势栏/按键可读性且透出地图；普通模式下使用 M3E 实色表面覆盖
+        if (currentScreen == "main" && isFullscreenMap) {
+            val navBarHeight = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+            if (navBarHeight > 0.dp) {
+                val scrimColor = if (isMapDark) Color.Black else Color.White
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(navBarHeight + 12.dp)
+                        .align(Alignment.BottomCenter)
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(
+                                    Color.Transparent,
+                                    scrimColor.copy(alpha = 0.15f),
+                                    scrimColor.copy(alpha = 0.45f)
+                                )
+                            )
+                        )
+                )
+            }
+        } else if (!isFullscreenMap) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .windowInsetsBottomHeight(WindowInsets.navigationBars)
+                    .align(Alignment.BottomCenter)
+                    .background(MaterialTheme.colorScheme.surfaceContainer)
+            )
+        }
 
         // Sub-screens layered on top of map
         when (currentScreen) {
