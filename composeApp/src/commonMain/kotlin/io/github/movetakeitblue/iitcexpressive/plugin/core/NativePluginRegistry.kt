@@ -15,6 +15,12 @@ object NativePluginRegistry {
     val uniquesPlugin = UniquesPlugin()
     val machinaTrackerPlugin = MachinaTrackerPlugin
     val layerCountPlugin = LayerCountPlugin
+    val farmsFindPlugin = FarmsFindPlugin()
+    val playerLevelGuessPlugin = PlayerLevelGuessPlugin()
+    val flyLinksPlugin = FlyLinksPlugin()
+    val tidyLinksPlugin = TidyLinksPlugin()
+    val regionsPlugin = RegionsPlugin()
+    val multiProjectsPlugin = MultiProjectsPlugin()
 
     private val allPlugins = listOf(
         bookmarksPlugin,
@@ -24,6 +30,12 @@ object NativePluginRegistry {
         apStatsPlugin,
         portalCountsPlugin,
         crossLinksPlugin,
+        farmsFindPlugin,
+        playerLevelGuessPlugin,
+        flyLinksPlugin,
+        tidyLinksPlugin,
+        regionsPlugin,
+        multiProjectsPlugin,
         periodicRefreshPlugin,
         keysPlugin,
         uniquesPlugin,
@@ -57,6 +69,16 @@ object NativePluginRegistry {
         "keys", "keysonmap", "keys-on-map",
         "uniques",
         "playeractivitytracker", "player-activity-tracker",
+        "farmsfind", "farms-find", "farmsfinder", "farms-finder",
+        "playerlevelguess", "player-level-guess", "guessplayerlevels", "guess-player-levels",
+        "flylinks", "fly-links",
+        "tidylinks", "tidy-links",
+        "regions", "scoreregions", "score-regions", "scoringregions", "scoring-regions",
+        "multiprojects", "multi-projects", "multiprojectsextension", "multi-projects-extension",
+        "debugconsole", "debug-console",
+        "overlaykml", "overlay-kml",
+        "sync",
+        "linkstomovedportals", "links-to-moved-portals",
 
         // Base Maps (Native MapLibre Vector/Raster Tiles)
         "basemapbing", "basemap-bing",

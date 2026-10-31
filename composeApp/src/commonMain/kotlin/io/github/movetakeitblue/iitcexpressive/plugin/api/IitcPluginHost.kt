@@ -1,5 +1,6 @@
 package io.github.movetakeitblue.iitcexpressive.plugin.api
 
+import io.github.movetakeitblue.iitcexpressive.model.ChatMessage
 import io.github.movetakeitblue.iitcexpressive.model.NativeField
 import io.github.movetakeitblue.iitcexpressive.model.NativeLink
 import io.github.movetakeitblue.iitcexpressive.model.NativeMapEntities
@@ -10,7 +11,7 @@ import kotlinx.coroutines.flow.StateFlow
 /**
  * Standardized host API provided to IITC native plugins.
  * Encapsulates access to map state, portal entities, persistence, drawing, bookmarks,
- * regional scoreboard, key inventory, and periodic refresh.
+ * regional scoreboard, key inventory, chat messages, and periodic refresh.
  * Designed to be extracted into :iitc-core-api in Step 3.
  */
 interface IitcPluginHost {
@@ -22,6 +23,7 @@ interface IitcPluginHost {
     val selectedPortal: StateFlow<PortalStatus>
     val drawnShapes: StateFlow<List<DrawnShape>>
     val bookmarkFolders: StateFlow<List<BookmarkFolder>>
+    val chatMessages: StateFlow<Map<String, List<ChatMessage>>>
 
     // Scoreboard & Cycle
     val regionScoreData: StateFlow<RegionScoreData?>

@@ -1,5 +1,6 @@
 package io.github.movetakeitblue.iitcexpressive.plugin.api
 
+import io.github.movetakeitblue.iitcexpressive.model.ChatMessage
 import io.github.movetakeitblue.iitcexpressive.model.NativeField
 import io.github.movetakeitblue.iitcexpressive.model.NativeLink
 import io.github.movetakeitblue.iitcexpressive.model.NativeMapEntities
@@ -57,6 +58,9 @@ class MockIitcPluginHost(
 
     private val _bookmarkFolders = MutableStateFlow(initialBookmarks)
     override val bookmarkFolders: StateFlow<List<BookmarkFolder>> = _bookmarkFolders.asStateFlow()
+
+    private val _chatMessages = MutableStateFlow<Map<String, List<ChatMessage>>>(sampleChatMessages())
+    override val chatMessages: StateFlow<Map<String, List<ChatMessage>>> = _chatMessages.asStateFlow()
 
     // Scoreboard mock
     private val _regionScoreData = MutableStateFlow<RegionScoreData?>(sampleScoreboard())
@@ -305,6 +309,29 @@ class MockIitcPluginHost(
                 TopAgent(2, "GreenVanguard", "ENLIGHTENED"),
                 TopAgent(3, "ResOpsSpecialist", "RESISTANCE"),
                 TopAgent(4, "FieldMasterEnl", "ENLIGHTENED")
+            )
+        )
+
+        fun sampleChatMessages(): Map<String, List<ChatMessage>> = mapOf(
+            "all" to listOf(
+                ChatMessage(
+                    id = "msg_1",
+                    time = PlatformUtils.currentTimeMillis() - 120000L,
+                    formattedTime = "14:20",
+                    sender = "AgentBluePrime",
+                    team = "RESISTANCE",
+                    text = "deployed an L8 Resonator on Forbidden City Meridian Gate",
+                    portal = io.github.movetakeitblue.iitcexpressive.model.ChatPortal("Forbidden City Meridian Gate", 39.914, 116.397)
+                ),
+                ChatMessage(
+                    id = "msg_2",
+                    time = PlatformUtils.currentTimeMillis() - 60000L,
+                    formattedTime = "14:21",
+                    sender = "GreenVanguard",
+                    team = "ENLIGHTENED",
+                    text = "captured Tiananmen Square Monument",
+                    portal = io.github.movetakeitblue.iitcexpressive.model.ChatPortal("Tiananmen Square Monument", 39.905, 116.391)
+                )
             )
         )
     }

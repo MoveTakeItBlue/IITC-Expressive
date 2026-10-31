@@ -480,6 +480,8 @@ class MainViewModel(
             get() = _drawnShapes.asStateFlow()
         override val bookmarkFolders: StateFlow<List<BookmarkFolder>>
             get() = _bookmarkFolders.asStateFlow()
+        override val chatMessages: StateFlow<Map<String, List<ChatMessage>>>
+            get() = _chatMessages.asStateFlow()
 
         // Scoreboard & Cycle
         override val regionScoreData: StateFlow<RegionScoreData?>
