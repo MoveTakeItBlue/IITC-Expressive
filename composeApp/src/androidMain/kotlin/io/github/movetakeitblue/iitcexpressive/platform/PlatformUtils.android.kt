@@ -320,6 +320,20 @@ actual object PlatformUtils {
         }
     }
 
+    actual fun getPlatformWebViewParams(): Any? {
+        val client = object : com.multiplatform.webview.web.AccompanistWebViewClient() {
+            override fun onRenderProcessGone(
+                view: android.webkit.WebView?,
+                detail: android.webkit.RenderProcessGoneDetail?
+            ): Boolean {
+                val didCrash = detail?.didCrash() ?: false
+                android.util.Log.w("IITCExpressive", "WebView render process gone (didCrash=$didCrash). Handled gracefully to prevent app exit.")
+                return true
+            }
+        }
+        return com.multiplatform.webview.web.PlatformWebViewParams(client = client)
+    }
+
     actual fun decodeImageBitmap(bytes: ByteArray): androidx.compose.ui.graphics.ImageBitmap? {
         return try {
             val bmp = android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size)

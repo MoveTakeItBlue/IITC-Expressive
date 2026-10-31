@@ -162,12 +162,17 @@ fun AppWebView(
         }
     }
 
+    val platformParams = remember {
+        PlatformUtils.getPlatformWebViewParams() as? PlatformWebViewParams
+    }
+
     WebView(
         state = webViewState,
         navigator = webViewNavigator,
         webViewJsBridge = jsBridge,
         modifier = modifier.fillMaxSize(),
         captureBackPresses = false,
+        platformWebViewParams = platformParams,
         onCreated = { nativeWebView ->
             PlatformUtils.configureNativeWebView(nativeWebView)
         }

@@ -118,6 +118,8 @@ actual object PlatformUtils {
         // Platform specific WKWebView configuration on iOS if needed
     }
 
+    actual fun getPlatformWebViewParams(): Any? = null
+
     actual fun decodeImageBitmap(bytes: ByteArray): androidx.compose.ui.graphics.ImageBitmap? = null
 }
 
