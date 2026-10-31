@@ -276,6 +276,7 @@ class MainViewModel(
 
     private val _userLocation = MutableStateFlow<UserLocation?>(null)
     val userLocation: StateFlow<UserLocation?> = _userLocation.asStateFlow()
+    private var lastKnownOrientation: Double? = null
 
     private val _showLocation = MutableStateFlow(storage.getBoolean("show_location", false))
     val showLocation: StateFlow<Boolean> = _showLocation.asStateFlow()
@@ -1183,13 +1184,15 @@ class MainViewModel(
             override fun onLocation(lat: Double, lng: Double, accuracy: Double) {
                 _locationState.value = LocationState.FOLLOWING
                 val current = _userLocation.value
-                _userLocation.value = UserLocation(lat, lng, accuracy, current?.orientation)
+                val orientationToUse = current?.orientation ?: lastKnownOrientation
+                _userLocation.value = UserLocation(lat, lng, accuracy, orientationToUse)
                 val targetZoom = if (persistentZoom) (getSavedMapPosition()?.third ?: 16.5) else 16.5
                 zoomToLocation(lat, lng, targetZoom)
                 evaluateJs(EventsToIitc.userLocationLocate(lat, lng, accuracy, persistentZoom))
             }
 
             override fun onOrientation(direction: Double?) {
+                lastKnownOrientation = direction
                 val current = _userLocation.value
                 if (current != null && current.orientation != direction) {
                     _userLocation.value = current.copy(orientation = direction)
@@ -1213,11 +1216,13 @@ class MainViewModel(
         PlatformUtils.startLocationTracking(object : PlatformLocationListener {
             override fun onLocation(lat: Double, lng: Double, accuracy: Double) {
                 val current = _userLocation.value
-                _userLocation.value = UserLocation(lat, lng, accuracy, current?.orientation)
+                val orientationToUse = current?.orientation ?: lastKnownOrientation
+                _userLocation.value = UserLocation(lat, lng, accuracy, orientationToUse)
                 evaluateJs(EventsToIitc.userLocationUpdate(lat, lng))
             }
 
             override fun onOrientation(direction: Double?) {
+                lastKnownOrientation = direction
                 val current = _userLocation.value
                 if (current != null && current.orientation != direction) {
                     _userLocation.value = current.copy(orientation = direction)

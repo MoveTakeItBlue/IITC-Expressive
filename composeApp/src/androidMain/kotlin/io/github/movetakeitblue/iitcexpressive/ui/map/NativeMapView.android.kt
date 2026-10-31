@@ -2394,16 +2394,18 @@ actual fun NativeMapView(
         // M3E User Location Indicator Overlay
         if (showLocation && userLocation != null && userScreenOffset != null) {
             val offset = userScreenOffset!!
+            val indicatorSize = 28.dp
             M3EUserLocationIndicator(
                 modifier = Modifier
                     .offset {
                         IntOffset(
-                            (offset.x - 26.dp.toPx()).roundToInt(),
-                            (offset.y - 26.dp.toPx()).roundToInt()
+                            (offset.x - (indicatorSize / 2).toPx()).roundToInt(),
+                            (offset.y - (indicatorSize / 2).toPx()).roundToInt()
                         )
                     },
-                size = 26.dp,
-                orientation = userLocation?.orientation
+                size = indicatorSize,
+                orientation = userLocation?.orientation,
+                mapBearing = mapLibreMap?.cameraPosition?.bearing ?: 0.0
             )
         }
     }

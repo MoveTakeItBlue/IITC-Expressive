@@ -13,6 +13,7 @@ import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.webkit.CookieManager
 import android.widget.Toast
@@ -226,31 +227,38 @@ actual object PlatformUtils {
         // Compass tracking with throttling to avoid flooding JS bridge and UI thread
         val sm = ctx.getSystemService(Context.SENSOR_SERVICE) as SensorManager
         sensorManager = sm
-        val rotationSensor = sm.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR)
-        if (rotationSensor != null) {
+        val isEmulator = Build.HARDWARE.contains("ranchu") || Build.HARDWARE.contains("goldfish") || Build.MODEL.contains("sdk")
+        val chosenSensor = if (isEmulator) {
+            sm.getDefaultSensor(Sensor.TYPE_ORIENTATION) ?: sm.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR)
+        } else {
+            sm.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR) ?: sm.getDefaultSensor(Sensor.TYPE_ORIENTATION)
+        }
+        if (chosenSensor != null) {
             val rotationMatrix = FloatArray(9)
             val orientationAngles = FloatArray(3)
             var lastAzimuth = -1.0
             var lastAzimuthTime = 0L
             sensorListener = object : SensorEventListener {
                 override fun onSensorChanged(event: SensorEvent) {
-                    if (event.sensor.type == Sensor.TYPE_ROTATION_VECTOR) {
-                        val now = System.currentTimeMillis()
-                        if (now - lastAzimuthTime < 150L) return
+                    val now = System.currentTimeMillis()
+                    if (now - lastAzimuthTime < 100L) return
+                    val azimuth = if (event.sensor.type == Sensor.TYPE_ROTATION_VECTOR) {
                         SensorManager.getRotationMatrixFromVector(rotationMatrix, event.values)
                         SensorManager.getOrientation(rotationMatrix, orientationAngles)
-                        val azimuth = Math.toDegrees(orientationAngles[0].toDouble())
-                        val normalized = (azimuth + 360.0) % 360.0
-                        if (lastAzimuth < 0 || kotlin.math.abs(normalized - lastAzimuth) >= 1.5) {
-                            lastAzimuth = normalized
-                            lastAzimuthTime = now
-                            listener.onOrientation(normalized)
-                        }
+                        Math.toDegrees(orientationAngles[0].toDouble())
+                    } else {
+                        event.values[0].toDouble()
+                    }
+                    val normalized = (azimuth + 360.0) % 360.0
+                    if (lastAzimuth < 0 || kotlin.math.abs(normalized - lastAzimuth) >= 1.0) {
+                        lastAzimuth = normalized
+                        lastAzimuthTime = now
+                        listener.onOrientation(normalized)
                     }
                 }
                 override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
             }
-            sm.registerListener(sensorListener, rotationSensor, SensorManager.SENSOR_DELAY_NORMAL)
+            sm.registerListener(sensorListener, chosenSensor, SensorManager.SENSOR_DELAY_NORMAL)
         }
     }
 
