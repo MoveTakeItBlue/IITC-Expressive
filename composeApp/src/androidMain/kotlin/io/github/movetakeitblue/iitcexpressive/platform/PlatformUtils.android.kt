@@ -359,4 +359,13 @@ actual object PlatformUtils {
             "en"
         }
     }
+
+    actual fun isDebugBuild(): Boolean {
+        return try {
+            val appInfo = PlatformContext.context.applicationInfo
+            (appInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0
+        } catch (_: Throwable) {
+            false
+        }
+    }
 }

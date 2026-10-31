@@ -104,7 +104,6 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         PlatformContext.setActivity(this)
-        viewModel.checkClipboard()
     }
 
     override fun onPause() {

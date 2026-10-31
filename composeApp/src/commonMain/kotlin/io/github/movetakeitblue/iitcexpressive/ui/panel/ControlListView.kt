@@ -365,6 +365,7 @@ private fun ExpressiveActionButtonsGroup(
     onDebug: () -> Unit,
     onReload: () -> Unit
 ) {
+    val showDebug = io.github.movetakeitblue.iitcexpressive.platform.PlatformUtils.isDebugBuild()
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -375,7 +376,9 @@ private fun ExpressiveActionButtonsGroup(
     ) {
         ExpressiveActionButtonItem(icon = Icons.Default.Settings, text = L("nav.settings"), onClick = onSettings)
         ExpressiveActionButtonItem(icon = Icons.Default.Extension, text = L("nav.plugins"), onClick = onPlugins)
-        ExpressiveActionButtonItem(icon = Icons.Default.Terminal, text = L("nav.debug"), onClick = onDebug)
+        if (showDebug) {
+            ExpressiveActionButtonItem(icon = Icons.Default.Terminal, text = L("nav.debug"), onClick = onDebug)
+        }
         ExpressiveActionButtonItem(icon = Icons.Default.Refresh, text = L("nav.reload_iitc"), onClick = onReload)
     }
 }

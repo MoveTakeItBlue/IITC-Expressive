@@ -1,8 +1,11 @@
 package io.github.movetakeitblue.iitcexpressive.ui.main
 
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import com.multiplatform.webview.jsbridge.IJsMessageHandler
 import com.multiplatform.webview.jsbridge.JsMessage
 import com.multiplatform.webview.jsbridge.rememberWebViewJsBridge
@@ -120,23 +123,39 @@ fun AppWebView(
 
     // Watch loading state
     val loadingState = webViewState.loadingState
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val onPrimaryColor = MaterialTheme.colorScheme.onPrimary
+    val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
+
+    val primaryHex = remember(primaryColor) { primaryColor.toHex() }
+    val onPrimaryHex = remember(onPrimaryColor) { onPrimaryColor.toHex() }
+
     LaunchedEffect(loadingState) {
         when (loadingState) {
             is LoadingState.Loading -> {
                 viewModel.setProgress(loadingState.progress)
+                if (loadingState.progress >= 0.5f) {
+                    webViewNavigator.evaluateJavaScript(
+                        BridgeScripts.buildM3ELoginScript(primaryHex, onPrimaryHex, isDark)
+                    )
+                }
             }
             is LoadingState.Finished -> {
                 viewModel.setProgress(1f)
 
-                // 1. Inject bridge startup bundle (bridge, params, debug, demo)
+                // 1. Inject bridge startup bundle (bridge, params, debug, demo, m3e-login)
                 val bridgeBundle = buildString {
                     appendLine(BridgeScripts.buildBridgeScript())
                     appendLine(";")
                     appendLine(BridgeScripts.buildPrimeParamsScript("1.2.0", showZoom = zoomControl))
                     appendLine(";")
-                    appendLine(BridgeScripts.buildDebugBridgeScript())
-                    appendLine(";")
+                    if (PlatformUtils.isDebugBuild()) {
+                        appendLine(BridgeScripts.buildDebugBridgeScript())
+                        appendLine(";")
+                    }
                     appendLine(BridgeScripts.buildDemoModeScript())
+                    appendLine(";")
+                    appendLine(BridgeScripts.buildM3ELoginScript(primaryHex, onPrimaryHex, isDark))
                 }
                 webViewNavigator.evaluateJavaScript(bridgeBundle)
 
@@ -177,4 +196,11 @@ fun AppWebView(
             PlatformUtils.configureNativeWebView(nativeWebView)
         }
     )
+}
+
+private fun Color.toHex(): String {
+    val r = (red * 255).toInt().coerceIn(0, 255).toString(16).padStart(2, '0')
+    val g = (green * 255).toInt().coerceIn(0, 255).toString(16).padStart(2, '0')
+    val b = (blue * 255).toInt().coerceIn(0, 255).toString(16).padStart(2, '0')
+    return "#$r$g$b"
 }

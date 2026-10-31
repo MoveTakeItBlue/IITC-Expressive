@@ -64,6 +64,8 @@ fun FabMenu(
     onLocate: () -> Unit,
     onDebug: () -> Unit,
     onReload: () -> Unit,
+    isIitcLoaded: Boolean = true,
+    showDebug: Boolean = io.github.movetakeitblue.iitcexpressive.platform.PlatformUtils.isDebugBuild(),
     bottomOffset: Dp = 16.dp,
     modifier: Modifier = Modifier
 ) {
@@ -87,18 +89,47 @@ fun FabMenu(
         label = "fabBottomOffset"
     )
 
-    val actions = listOf(
-        FabMenuAction(Icons.Default.Settings, L("nav.settings"), onNavigateToSettings),
-        FabMenuAction(Icons.Default.Extension, L("nav.plugins"), onNavigateToPlugins),
-        FabMenuAction(Icons.Default.Layers, L("panel.layers"), onOpenLayers),
-        FabMenuAction(Icons.AutoMirrored.Filled.Chat, L("nav.chat"), onOpenChat),
-        FabMenuAction(Icons.Default.Bookmarks, "Bookmarks", onOpenBookmarks),
-        FabMenuAction(Icons.Default.FormatListBulleted, "Portal List", onOpenPortalList),
-        FabMenuAction(Icons.Default.Gesture, "Draw Tools", onOpenDrawTools),
-        FabMenuAction(Icons.Default.MyLocation, L("panel.locate"), onLocate),
-        FabMenuAction(Icons.Default.Terminal, L("nav.debug"), onDebug),
-        FabMenuAction(Icons.Default.Refresh, L("nav.reload_iitc"), onReload)
-    )
+    val actions = remember(
+        isIitcLoaded,
+        showDebug,
+        onNavigateToSettings,
+        onNavigateToPlugins,
+        onOpenLayers,
+        onOpenChat,
+        onOpenBookmarks,
+        onOpenPortalList,
+        onOpenDrawTools,
+        onLocate,
+        onDebug,
+        onReload
+    ) {
+        if (!isIitcLoaded) {
+            // Unauthenticated / login page: only show non-map controls
+            buildList {
+                add(FabMenuAction(Icons.Default.Settings, L("nav.settings"), onNavigateToSettings))
+                if (showDebug) {
+                    add(FabMenuAction(Icons.Default.Terminal, L("nav.debug"), onDebug))
+                }
+                add(FabMenuAction(Icons.Default.Refresh, L("nav.reload_iitc"), onReload))
+            }
+        } else {
+            // Map / IITC loaded state
+            buildList {
+                add(FabMenuAction(Icons.Default.Settings, L("nav.settings"), onNavigateToSettings))
+                add(FabMenuAction(Icons.Default.Extension, L("nav.plugins"), onNavigateToPlugins))
+                add(FabMenuAction(Icons.Default.Layers, L("panel.layers"), onOpenLayers))
+                add(FabMenuAction(Icons.AutoMirrored.Filled.Chat, L("nav.chat"), onOpenChat))
+                add(FabMenuAction(Icons.Default.Bookmarks, "Bookmarks", onOpenBookmarks))
+                add(FabMenuAction(Icons.Default.FormatListBulleted, "Portal List", onOpenPortalList))
+                add(FabMenuAction(Icons.Default.Gesture, "Draw Tools", onOpenDrawTools))
+                add(FabMenuAction(Icons.Default.MyLocation, L("panel.locate"), onLocate))
+                if (showDebug) {
+                    add(FabMenuAction(Icons.Default.Terminal, L("nav.debug"), onDebug))
+                }
+                add(FabMenuAction(Icons.Default.Refresh, L("nav.reload_iitc"), onReload))
+            }
+        }
+    }
 
     Box(modifier = modifier) {
         // 透明点击层：保留「点击空白处收起」，但不额外压暗地图

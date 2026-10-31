@@ -130,6 +130,8 @@ actual object PlatformUtils {
             "en"
         }
     }
+
+    actual fun isDebugBuild(): Boolean = false
 }
 
 private fun ByteArray.toNSData(): NSData {

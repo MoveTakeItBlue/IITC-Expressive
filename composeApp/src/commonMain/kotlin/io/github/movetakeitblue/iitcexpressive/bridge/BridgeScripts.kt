@@ -1272,6 +1272,302 @@ body.light-map .leaflet-popup-pane .portal-name {
         """.trimIndent()
     }
 
+    fun buildM3ELoginScript(
+        primaryHex: String = "#78D7C7",
+        onPrimaryHex: String = "#003730",
+        isDark: Boolean = true
+    ): String {
+        val bgGrad = if (isDark) {
+            "radial-gradient(circle at 50% 28%, #1c2624 0%, #111416 85%)"
+        } else {
+            "radial-gradient(circle at 50% 28%, #EEF5F3 0%, #E3E8E7 85%)"
+        }
+        val cardBg = if (isDark) "#1D2022" else "#FFFFFF"
+        val cardBorder = if (isDark) "1px solid rgba(255, 255, 255, 0.08)" else "1px solid rgba(0, 0, 0, 0.08)"
+        val cardShadow = if (isDark) {
+            "0 20px 48px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.06)"
+        } else {
+            "0 12px 36px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.04)"
+        }
+        val titleColor = if (isDark) "#E0E3E3" else "#1A1C1E"
+        val subtitleColor = if (isDark) "#8E9192" else "#72777A"
+        val tonalBg = if (isDark) "#282B2D" else "#EEF2F4"
+        val tonalActiveBg = if (isDark) "#333638" else "#E2E6E9"
+        val footerBorder = if (isDark) "1px solid rgba(255, 255, 255, 0.08)" else "1px solid rgba(0, 0, 0, 0.08)"
+        val footerLinkColor = if (isDark) "#8E9192" else "#72777A"
+        val footerLinkHover = if (isDark) "#E0E3E3" else "#1A1C1E"
+
+        return """
+        (function() {
+          var style = document.getElementById('m3e-login-custom-style');
+          if (!style) {
+            style = document.createElement('style');
+            style.id = 'm3e-login-custom-style';
+            (document.head || document.documentElement).appendChild(style);
+          }
+          style.textContent = `
+            html, body {
+              margin: 0 !important;
+              padding: 0 !important;
+              width: 100vw !important;
+              height: 100vh !important;
+              min-width: 0 !important;
+              min-height: 0 !important;
+              background: ${if (isDark) "#111416" else "#F8F9FA"} !important;
+              background: ${bgGrad} !important;
+              display: flex !important;
+              align-items: center !important;
+              justify-content: center !important;
+              font-family: system-ui, -apple-system, Roboto, "Segoe UI", sans-serif !important;
+              overflow: hidden !important;
+              -webkit-font-smoothing: antialiased !important;
+            }
+
+            #header, .separator, .separator_left_arm, .separator_center, .separator_right_arm, #tm_position {
+              display: none !important;
+              visibility: hidden !important;
+              height: 0 !important;
+            }
+
+            #dashboard_container {
+              border: ${cardBorder} !important;
+              border-radius: 28px !important;
+              background: ${cardBg} !important;
+              box-shadow: ${cardShadow} !important;
+              padding: 36px 26px 26px 26px !important;
+              width: 88% !important;
+              max-width: 360px !important;
+              box-sizing: border-box !important;
+              display: flex !important;
+              flex-direction: column !important;
+              align-items: center !important;
+              text-align: center !important;
+              min-height: unset !important;
+              min-width: unset !important;
+              margin: auto !important;
+              position: relative !important;
+              z-index: 10 !important;
+            }
+
+            #dashboard_container > *:not(.m3e-login-content) {
+              display: none !important;
+            }
+
+            .m3e-login-badge {
+              width: 68px !important;
+              height: 68px !important;
+              border-radius: 20px !important;
+              background: rgba(120, 215, 199, 0.12) !important;
+              border: 1.5px solid ${primaryHex}4D !important;
+              display: flex !important;
+              align-items: center !important;
+              justify-content: center !important;
+              margin-bottom: 18px !important;
+              box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3) !important;
+            }
+
+            .m3e-login-title {
+              margin: 0 0 6px 0 !important;
+              font-size: 24px !important;
+              font-weight: 700 !important;
+              color: ${titleColor} !important;
+              letter-spacing: -0.4px !important;
+              font-family: inherit !important;
+            }
+
+            .m3e-login-subtitle {
+              margin: 0 0 26px 0 !important;
+              font-size: 13px !important;
+              color: ${subtitleColor} !important;
+              font-weight: 400 !important;
+              font-family: inherit !important;
+            }
+
+            .m3e-btn-primary {
+              display: flex !important;
+              align-items: center !important;
+              justify-content: center !important;
+              width: 100% !important;
+              height: 52px !important;
+              border-radius: 9999px !important;
+              background: ${primaryHex} !important;
+              color: ${onPrimaryHex} !important;
+              font-size: 15px !important;
+              font-weight: 700 !important;
+              letter-spacing: 0.2px !important;
+              text-decoration: none !important;
+              border: none !important;
+              box-shadow: 0 3px 12px rgba(0, 0, 0, 0.3) !important;
+              transition: transform 0.12s ease, opacity 0.12s ease !important;
+              box-sizing: border-box !important;
+              margin-bottom: 12px !important;
+              cursor: pointer !important;
+            }
+
+            .m3e-btn-primary:active {
+              transform: scale(0.97) !important;
+              opacity: 0.88 !important;
+            }
+
+            .m3e-btn-tonal {
+              display: flex !important;
+              align-items: center !important;
+              justify-content: center !important;
+              width: 100% !important;
+              height: 48px !important;
+              border-radius: 9999px !important;
+              background: ${tonalBg} !important;
+              border: 1px solid ${primaryHex}55 !important;
+              color: ${primaryHex} !important;
+              font-size: 14px !important;
+              font-weight: 600 !important;
+              text-decoration: none !important;
+              transition: transform 0.12s ease, background-color 0.12s ease !important;
+              box-sizing: border-box !important;
+              margin-bottom: 20px !important;
+              cursor: pointer !important;
+            }
+
+            .m3e-btn-tonal:active {
+              transform: scale(0.97) !important;
+              background: ${tonalActiveBg} !important;
+            }
+
+            .m3e-login-footer {
+              display: flex !important;
+              gap: 16px !important;
+              align-items: center !important;
+              justify-content: center !important;
+              border-top: ${footerBorder} !important;
+              padding-top: 16px !important;
+              width: 100% !important;
+            }
+
+            .m3e-login-footer a {
+              color: ${footerLinkColor} !important;
+              font-size: 12px !important;
+              text-decoration: none !important;
+              font-weight: 500 !important;
+              transition: color 0.15s ease !important;
+            }
+
+            .m3e-login-footer a:hover, .m3e-login-footer a:active {
+              color: ${footerLinkHover} !important;
+              text-decoration: underline !important;
+            }
+
+            .m3e-login-footer-sep {
+              color: rgba(255, 255, 255, 0.2) !important;
+              font-size: 11px !important;
+            }
+          `;
+
+          function transformDashboard() {
+            var container = document.getElementById('dashboard_container');
+            if (!container) return false;
+            if (container.getAttribute('data-m3e-transformed') === 'true') return true;
+            container.setAttribute('data-m3e-transformed', 'true');
+
+            var allLinks = container.querySelectorAll('a');
+            var signInHref = 'https://login.ingress.com/';
+            var signInOnClick = '';
+            var learnMoreHref = 'https://support.ingress.com/hc';
+            var nianticHref = 'https://nianticspatial.com';
+
+            for (var i = 0; i < allLinks.length; i++) {
+              var a = allLinks[i];
+              var h = a.getAttribute('href') || '';
+              if (h.indexOf('login.ingress.com') !== -1 || a.textContent.indexOf('Sign in') !== -1) {
+                signInHref = h;
+                signInOnClick = a.getAttribute('onclick') || '';
+              } else if (h.indexOf('support.ingress.com') !== -1 || a.textContent.indexOf('Learn More') !== -1) {
+                learnMoreHref = h;
+              } else if (h.indexOf('niantic') !== -1 || a.textContent.indexOf('Niantic') !== -1) {
+                nianticHref = h;
+              }
+            }
+
+            var existingCustom = container.querySelector('.m3e-login-content');
+            if (existingCustom) existingCustom.remove();
+
+            var wrapper = document.createElement('div');
+            wrapper.className = 'm3e-login-content';
+            wrapper.style.width = '100%';
+            wrapper.style.display = 'flex';
+            wrapper.style.flexDirection = 'column';
+            wrapper.style.alignItems = 'center';
+
+            var badge = document.createElement('div');
+            badge.className = 'm3e-login-badge';
+            badge.innerHTML = '<svg width="38" height="38" viewBox="0 0 24 24" fill="none"><polygon points="12,2 22,8.5 22,15.5 12,22 2,15.5 2,8.5" stroke="${primaryHex}" stroke-width="2" fill="${primaryHex}2B" /><circle cx="12" cy="12" r="3.2" fill="${primaryHex}" /></svg>';
+            wrapper.appendChild(badge);
+
+            var title = document.createElement('h1');
+            title.className = 'm3e-login-title';
+            title.textContent = 'IITC Expressive';
+            wrapper.appendChild(title);
+
+            var subtitle = document.createElement('p');
+            subtitle.className = 'm3e-login-subtitle';
+            subtitle.textContent = 'Ingress Intel Map · Material 3';
+            wrapper.appendChild(subtitle);
+
+            var btnSignIn = document.createElement('a');
+            btnSignIn.className = 'm3e-btn-primary';
+            btnSignIn.href = signInHref;
+            if (signInOnClick) btnSignIn.setAttribute('onclick', signInOnClick);
+            btnSignIn.textContent = 'Sign in with Ingress';
+            wrapper.appendChild(btnSignIn);
+
+            var btnDemo = document.createElement('a');
+            btnDemo.className = 'm3e-btn-tonal';
+            btnDemo.href = '#';
+            btnDemo.textContent = 'Try demo (no sign-in required)';
+            btnDemo.addEventListener('click', function(e) {
+              e.preventDefault();
+              if (window.app && window.app.openDemo) {
+                window.app.openDemo();
+              }
+            });
+            wrapper.appendChild(btnDemo);
+
+            var footer = document.createElement('div');
+            footer.className = 'm3e-login-footer';
+
+            var linkLearn = document.createElement('a');
+            linkLearn.href = learnMoreHref;
+            linkLearn.target = '_blank';
+            linkLearn.textContent = 'Learn More';
+            footer.appendChild(linkLearn);
+
+            var sep = document.createElement('span');
+            sep.className = 'm3e-login-footer-sep';
+            sep.textContent = '•';
+            footer.appendChild(sep);
+
+            var linkNia = document.createElement('a');
+            linkNia.href = nianticHref;
+            linkNia.target = '_blank';
+            linkNia.textContent = 'Niantic Labs';
+            footer.appendChild(linkNia);
+
+            wrapper.appendChild(footer);
+            container.appendChild(wrapper);
+            return true;
+          }
+
+          if (!transformDashboard()) {
+            var checkTimer = setInterval(function() {
+              if (transformDashboard()) {
+                clearInterval(checkTimer);
+              }
+            }, 100);
+            setTimeout(function() { clearInterval(checkTimer); }, 6000);
+          }
+        })();
+        """.trimIndent()
+    }
+
     fun buildDebugBridgeScript(): String {
         return """
         (function() {

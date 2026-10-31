@@ -49,6 +49,7 @@ fun MainScreen(
     val currentScreen by viewModel.currentScreen.collectAsState()
     val progress by viewModel.progress.collectAsState()
     val isDebugActive by viewModel.isDebugActive.collectAsState()
+    val isIitcLoaded by viewModel.isIitcLoaded.collectAsState()
     val panelPosition by viewModel.panelPosition.collectAsState()
     val currentDialog by viewModel.currentDialog.collectAsState()
     val isLayersSheetOpen by viewModel.isLayersSheetOpen.collectAsState()
@@ -83,11 +84,6 @@ fun MainScreen(
     val pluginsViewModel = remember(viewModel) { PluginsViewModel(viewModel.manager) }
     val updateChannelViewModel = remember(viewModel) { UpdateChannelViewModel(viewModel.manager, viewModel.storage) }
     val backupViewModel = remember(viewModel) { BackupViewModel(BackupManager(viewModel.storage, viewModel.manager)) }
-
-    // Check clipboard periodically or on start
-    LaunchedEffect(Unit) {
-        viewModel.checkClipboard()
-    }
 
     Box(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         // Map and main overlay container.
@@ -191,10 +187,12 @@ fun MainScreen(
                         WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
 
                     // Portal Details Sheet (Collapsed peek bar or expanded full details)
-                    PortalDetailsSheet(
-                        viewModel = viewModel,
-                        modifier = Modifier.fillMaxSize()
-                    )
+                    if (isIitcLoaded) {
+                        PortalDetailsSheet(
+                            viewModel = viewModel,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
 
                     // FAB Menu for quick actions and settings
                     AnimatedVisibility(
@@ -230,8 +228,10 @@ fun MainScreen(
                                 viewModel.closeFabMenu()
                                 viewModel.reloadWebView()
                             },
+                            isIitcLoaded = isIitcLoaded,
+                            showDebug = PlatformUtils.isDebugBuild(),
                             // portal 被选中后，FAB 跟随 sheet 一起向上让位
-                            bottomOffset = if (portalStatus.hasSelected) {
+                            bottomOffset = if (isIitcLoaded && portalStatus.hasSelected) {
                                 sheetPeekHeight + PortalSheetDefaults.FabGap
                             } else {
                                 16.dp
@@ -243,7 +243,7 @@ fun MainScreen(
                     // Floating Zoom Controls (when enabled in settings, hide when FAB menu expands to prevent overlap)
                     val isZoomControlEnabled by viewModel.isZoomControlEnabled.collectAsState()
                     AnimatedVisibility(
-                        visible = isZoomControlEnabled && !isPortalDetailsExpanded && !isFabMenuExpanded,
+                        visible = isIitcLoaded && isZoomControlEnabled && !isPortalDetailsExpanded && !isFabMenuExpanded,
                         enter = fadeIn() + scaleIn(initialScale = 0.85f),
                         exit = fadeOut() + scaleOut(targetScale = 0.85f),
                         modifier = Modifier

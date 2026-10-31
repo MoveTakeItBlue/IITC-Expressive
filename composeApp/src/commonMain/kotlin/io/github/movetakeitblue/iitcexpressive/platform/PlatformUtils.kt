@@ -30,4 +30,5 @@ expect object PlatformUtils {
     fun getPlatformWebViewParams(): Any?
     fun decodeImageBitmap(bytes: ByteArray): androidx.compose.ui.graphics.ImageBitmap?
     fun getSystemLanguage(): String
+    fun isDebugBuild(): Boolean
 }
