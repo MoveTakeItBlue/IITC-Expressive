@@ -331,6 +331,7 @@ actual object PlatformUtils {
                 "https://signin.nianticspatial.com",
                 "_ncc=0; Path=/; Domain=.nianticspatial.com"
             )
+            cookieManager.flush()
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -338,6 +339,13 @@ actual object PlatformUtils {
 
     actual fun getPlatformWebViewParams(): Any? {
         val client = object : com.multiplatform.webview.web.AccompanistWebViewClient() {
+            override fun onPageFinished(view: android.webkit.WebView, url: String?) {
+                super.onPageFinished(view, url)
+                try {
+                    android.webkit.CookieManager.getInstance().flush()
+                } catch (_: Exception) {}
+            }
+
             override fun onRenderProcessGone(
                 view: android.webkit.WebView?,
                 detail: android.webkit.RenderProcessGoneDetail?

@@ -77,6 +77,9 @@ class MainViewModel(
     private val _isIitcLoaded = MutableStateFlow(false)
     val isIitcLoaded: StateFlow<Boolean> = _isIitcLoaded.asStateFlow()
 
+    private val _isLoginPage = MutableStateFlow(false)
+    val isLoginPage: StateFlow<Boolean> = _isLoginPage.asStateFlow()
+
     private val _progress = MutableStateFlow(0f)
     val progress: StateFlow<Float> = _progress.asStateFlow()
 
@@ -119,6 +122,24 @@ class MainViewModel(
     fun setFullscreenMap(enabled: Boolean) {
         _isFullscreenMap.value = enabled
         storage.setBoolean("fullscreen_map", enabled)
+    }
+
+    // Persistent Floating Toolbar on Map
+    private val _isPersistentToolbarEnabled = MutableStateFlow(storage.getBoolean("persistent_toolbar", false))
+    val isPersistentToolbarEnabled: StateFlow<Boolean> = _isPersistentToolbarEnabled.asStateFlow()
+
+    fun setPersistentToolbar(enabled: Boolean) {
+        _isPersistentToolbarEnabled.value = enabled
+        storage.setBoolean("persistent_toolbar", enabled)
+    }
+
+    // Developer Debug mode enabled via Settings
+    private val _isDebugModeEnabled = MutableStateFlow(storage.getBoolean("debug_mode_enabled", false))
+    val isDebugModeEnabled: StateFlow<Boolean> = _isDebugModeEnabled.asStateFlow()
+
+    fun setDebugModeEnabled(enabled: Boolean) {
+        _isDebugModeEnabled.value = enabled
+        storage.setBoolean("debug_mode_enabled", enabled)
     }
 
     // Map Typography states (configurable in Settings)
@@ -1043,6 +1064,8 @@ class MainViewModel(
     }
 
     fun reloadWebView(clearCache: Boolean = false) {
+        _isIitcLoaded.value = false
+        _isLoginPage.value = false
         if (clearCache) {
             PlatformUtils.clearCookies {}
         }
@@ -1331,8 +1354,14 @@ class MainViewModel(
                 val id = data.jsonObject["id"]?.jsonPrimitive?.contentOrNull ?: "map"
                 _currentPane.value = id
             }
+            "setLoginPage" -> {
+                val isLogin = data.jsonObject["isLogin"]?.jsonPrimitive?.booleanOrNull
+                    ?: (data as? JsonPrimitive)?.booleanOrNull ?: true
+                _isLoginPage.value = isLogin
+            }
             "bootFinished" -> {
                 _isIitcLoaded.value = true
+                _isLoginPage.value = false
                 addLog("info", "IITC boot finished", "iitc")
                 evaluateJs(EventsToIitc.setSafeAreaInsets(top = 0f, bottom = 108f, left = 0f, right = 0f))
                 if (_drawnShapes.value.isNotEmpty()) {
@@ -1751,6 +1780,7 @@ class MainViewModel(
                 _dialogStack.value = _dialogStack.value.filter { it != id } + id
             }
             "openDemo" -> {
+                _isLoginPage.value = false
                 loadUrl(UrlConfig.DEMO_INTEL_MAP)
             }
             "spinnerEnabled" -> {}

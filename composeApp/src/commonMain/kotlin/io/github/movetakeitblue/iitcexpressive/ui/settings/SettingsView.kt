@@ -21,6 +21,8 @@ fun SettingsView(
     onNavigateToLicenses: () -> Unit
 ) {
     val persistentZoom by viewModel.persistentZoom.collectAsState()
+    val persistentToolbar by viewModel.persistentToolbar.collectAsState()
+    val debugModeEnabled by viewModel.debugModeEnabled.collectAsState()
     val showLocation by viewModel.showLocation.collectAsState()
     val nativeMapEnabled by viewModel.nativeMapEnabled.collectAsState()
     val currentChannel by viewModel.currentChannel.collectAsState()
@@ -85,6 +87,12 @@ fun SettingsView(
             isFirst = true
         )
         SwitchSettingsItem(
+            title = L("settings.persistent_toolbar.title"),
+            description = L("settings.persistent_toolbar.description"),
+            checked = persistentToolbar,
+            onCheckedChange = { viewModel.setPersistentToolbar(it) }
+        )
+        SwitchSettingsItem(
             title = L("settings.location.title"),
             description = L("settings.location.description"),
             checked = showLocation,
@@ -113,6 +121,19 @@ fun SettingsView(
             description = L("settings.clear_cookies.description"),
             isLast = true,
             onClick = { showClearCookiesConfirm = true }
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Developer section
+        SettingsSection(title = L("settings.section.developer"))
+        SwitchSettingsItem(
+            title = L("settings.debug_mode.title"),
+            description = L("settings.debug_mode.description"),
+            checked = debugModeEnabled,
+            onCheckedChange = { viewModel.setDebugModeEnabled(it) },
+            isFirst = true,
+            isLast = true
         )
 
         Spacer(modifier = Modifier.height(16.dp))

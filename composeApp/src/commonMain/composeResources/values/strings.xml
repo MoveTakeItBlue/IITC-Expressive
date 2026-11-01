@@ -20,8 +20,14 @@
     <string name="settings_section_map">Map &amp; Location</string>
     <string name="settings_location_title">Display user location on map</string>
     <string name="settings_location_description">Show position marker and track location</string>
+    <string name="settings_persistent_toolbar_title">Persistent floating toolbar</string>
+    <string name="settings_persistent_toolbar_description">Display a Material 3 Expressive floating toolbar on the map with quick access buttons</string>
     <string name="settings_persistent_zoom_title">Persistent zoom level</string>
     <string name="settings_persistent_zoom_description">Don\'t change zoom level when locate button is pressed</string>
+
+    <string name="settings_section_developer">Developer Options</string>
+    <string name="settings_debug_mode_title">Developer debug mode</string>
+    <string name="settings_debug_mode_description">Show debug console in the quick actions menu</string>
 
     <string name="settings_section_data">Data management</string>
     <string name="settings_backup_title">Backup &amp; restore</string>

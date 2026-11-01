@@ -159,20 +159,54 @@ fun AppWebView(
                 }
                 webViewNavigator.evaluateJavaScript(bridgeBundle)
 
-                // 2. Inject enabled plugins and core individually (avoids monolithic payload that causes renderer crash)
-                val scripts = viewModel.manager.getEnabledPluginScripts()
-                for (script in scripts) {
-                    webViewNavigator.evaluateJavaScript(script)
-                }
-
-                // 3. Signal bootFinished once IITC completes loading and ensure Leaflet renders full size
+                // 2. Check if current page is Intel Map and not on login page
                 webViewNavigator.evaluateJavaScript("""
                     (function() {
-                        if (window.map && window.map.invalidateSize) {
-                            window.map.invalidateSize();
+                        var host = window.location.hostname;
+                        var isIntel = host === 'intel.ingress.com' || host === 'demo.iitc.app';
+                        var isLoginPage = document.querySelector('a[href*="login.ingress.com"]') !== null;
+                        window.__isIntelMapReady = isIntel && !isLoginPage;
+                    })();
+                """.trimIndent())
+
+                // 3. Inject enabled plugins and core individually (only executes when on Intel Map)
+                val scripts = viewModel.manager.getEnabledPluginScripts()
+                for (script in scripts) {
+                    webViewNavigator.evaluateJavaScript("""
+                        if (window.__isIntelMapReady) {
+                            $script
                         }
-                        if (window.iitcLoaded || window.bootDone || (window.map && window.portals)) {
-                            window.app?.bootFinished?.();
+                    """.trimIndent())
+                }
+
+                // 4. Signal bootFinished once IITC completes loading and ensure Leaflet renders full size
+                webViewNavigator.evaluateJavaScript("""
+                    (function() {
+                        if (!window.__isIntelMapReady) return;
+
+                        function checkAndSignalBoot() {
+                            if (window.map && window.map.invalidateSize) {
+                                window.map.invalidateSize();
+                            }
+                            if (window.iitcLoaded || window.bootDone || (window.map && window.portals)) {
+                                if (window.kmpJsBridge && window.kmpJsBridge.callNative) {
+                                    window.kmpJsBridge.callNative("bridge", JSON.stringify(["JSBridge", ["bootFinished", {}]]));
+                                } else if (window.app && window.app.bootFinished) {
+                                    window.app.bootFinished();
+                                }
+                                return true;
+                            }
+                            return false;
+                        }
+
+                        if (!checkAndSignalBoot()) {
+                            var attempts = 0;
+                            var bootTimer = setInterval(function() {
+                                attempts++;
+                                if (checkAndSignalBoot() || attempts > 25) {
+                                    clearInterval(bootTimer);
+                                }
+                            }, 200);
                         }
                     })();
                 """.trimIndent())

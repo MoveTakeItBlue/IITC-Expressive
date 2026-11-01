@@ -629,10 +629,12 @@ body.light-map .leaflet-popup-pane .portal-name {
                 },
                 emit: function(event, data) {
                     var payload = JSON.stringify([event, data]);
-                    if (window.androidJsBridge && window.androidJsBridge.callAndroid) {
-                        window.androidJsBridge.callAndroid(0, "bridge", payload);
-                    } else if (window.kmpJsBridge && window.kmpJsBridge.callNative) {
+                    if (window.kmpJsBridge && window.kmpJsBridge.callNative) {
                         window.kmpJsBridge.callNative("bridge", payload);
+                    } else if (window.androidJsBridge && window.androidJsBridge.call) {
+                        window.androidJsBridge.call(JSON.stringify({ methodName: "bridge", params: payload, callbackId: -1 }));
+                    } else if (window.androidJsBridge && window.androidJsBridge.callAndroid) {
+                        window.androidJsBridge.callAndroid(0, "bridge", payload);
                     } else if (window.androidBridge && window.androidBridge.postMessage) {
                         window.androidBridge.postMessage(payload);
                     } else if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.nsWebViewBridge) {
@@ -655,7 +657,7 @@ body.light-map .leaflet-popup-pane .portal-name {
             };
 
             var syncEvents = [
-                'intentPosLink', 'shareString', 'copy', 'switchToPane', 'bootFinished',
+                'intentPosLink', 'shareString', 'copy', 'switchToPane', 'bootFinished', 'setLoginPage',
                 'setLayers', 'addPortalHighlighter', 'setActiveHighlighter', 'addPane',
                 'setFollowMode', 'setMapDarkMode', 'setPortalStatus', 'setPortalDetails', 'setChatMessages', 'setMapStatus',
                 'setProgress', 'setPermalink', 'addInternalHostname', 'saveFile',
@@ -664,6 +666,7 @@ body.light-map .leaflet-popup-pane .portal-name {
             ];
 
             var argNames = {
+                setLoginPage: ['isLogin'],
                 intentPosLink: ['lat', 'lng', 'zoom', 'title', 'isPortal', 'guid'],
                 shareString: ['str'],
                 copy: ['s'],
@@ -710,6 +713,7 @@ body.light-map .leaflet-popup-pane .portal-name {
             window.nsWebViewBridge = bridge;
             window.app = bridge;
             window.android = bridge;
+            window.bridge = bridge;
             window.isApp = true;
 
             // Inject M3E Expressive CSS Sheet
@@ -1272,6 +1276,7 @@ body.light-map .leaflet-popup-pane .portal-name {
         """.trimIndent()
     }
 
+
     fun buildM3ELoginScript(
         primaryHex: String = "#78D7C7",
         onPrimaryHex: String = "#003730",
@@ -1299,188 +1304,269 @@ body.light-map .leaflet-popup-pane .portal-name {
 
         return """
         (function() {
-          var style = document.getElementById('m3e-login-custom-style');
-          if (!style) {
-            style = document.createElement('style');
-            style.id = 'm3e-login-custom-style';
-            (document.head || document.documentElement).appendChild(style);
+          var host = window.location.hostname;
+          var isAuthHost = host === 'login.ingress.com' ||
+                           host.indexOf('google.') !== -1 ||
+                           host.indexOf('apple.') !== -1 ||
+                           host.indexOf('niantic') !== -1;
+
+          if (isAuthHost) {
+            // On OAuth login flow (Niantic, Google, Apple):
+            // Purge any login card styles so the provider's native auth UI renders cleanly
+            if (document.body) {
+              document.body.classList.remove('m3e-login-active');
+            }
+            var s = document.getElementById('m3e-login-custom-style');
+            if (s) s.remove();
+            // Do NOT call setLoginPage(false) here, so the Compose full-screen loading overlay
+            // does NOT cover up the OAuth sign-in form!
+            return;
           }
-          style.textContent = `
-            html, body {
-              margin: 0 !important;
-              padding: 0 !important;
-              width: 100vw !important;
-              height: 100vh !important;
-              min-width: 0 !important;
-              min-height: 0 !important;
-              background: ${if (isDark) "#111416" else "#F8F9FA"} !important;
-              background: ${bgGrad} !important;
-              display: flex !important;
-              align-items: center !important;
-              justify-content: center !important;
-              font-family: system-ui, -apple-system, Roboto, "Segoe UI", sans-serif !important;
-              overflow: hidden !important;
-              -webkit-font-smoothing: antialiased !important;
-            }
 
-            #header, .separator, .separator_left_arm, .separator_center, .separator_right_arm, #tm_position {
-              display: none !important;
-              visibility: hidden !important;
-              height: 0 !important;
+          function cleanupLoginPage() {
+            if (document.body) {
+              document.body.classList.remove('m3e-login-active');
             }
+            var s = document.getElementById('m3e-login-custom-style');
+            if (s) s.remove();
+            if (window.app && window.app.setLoginPage) {
+              window.app.setLoginPage(false);
+            }
+            if (window.bridge && window.bridge.setLoginPage) {
+              window.bridge.setLoginPage(false);
+            }
+          }
 
-            #dashboard_container {
-              border: ${cardBorder} !important;
-              border-radius: 28px !important;
-              background: ${cardBg} !important;
-              box-shadow: ${cardShadow} !important;
-              padding: 36px 26px 26px 26px !important;
-              width: 88% !important;
-              max-width: 360px !important;
-              box-sizing: border-box !important;
-              display: flex !important;
-              flex-direction: column !important;
-              align-items: center !important;
-              text-align: center !important;
-              min-height: unset !important;
-              min-width: unset !important;
-              margin: auto !important;
-              position: relative !important;
-              z-index: 10 !important;
-            }
+          var container = document.getElementById('dashboard_container');
+          if (!container) {
+            cleanupLoginPage();
+            return;
+          }
 
-            #dashboard_container > *:not(.m3e-login-content) {
-              display: none !important;
+          function applyLoginStyle() {
+            var style = document.getElementById('m3e-login-custom-style');
+            if (!style) {
+              style = document.createElement('style');
+              style.id = 'm3e-login-custom-style';
+              (document.head || document.documentElement).appendChild(style);
             }
+            style.textContent = `
+              body.m3e-login-active {
+                margin: 0 !important;
+                padding: 0 !important;
+                width: 100vw !important;
+                height: 100vh !important;
+                min-width: 0 !important;
+                min-height: 0 !important;
+                background: ${if (isDark) "#111416" else "#F8F9FA"} !important;
+                background: ${bgGrad} !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                font-family: system-ui, -apple-system, Roboto, "Segoe UI", sans-serif !important;
+                overflow: hidden !important;
+                -webkit-font-smoothing: antialiased !important;
+              }
 
-            .m3e-login-badge {
-              width: 68px !important;
-              height: 68px !important;
-              border-radius: 20px !important;
-              background: rgba(120, 215, 199, 0.12) !important;
-              border: 1.5px solid ${primaryHex}4D !important;
-              display: flex !important;
-              align-items: center !important;
-              justify-content: center !important;
-              margin-bottom: 18px !important;
-              box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3) !important;
-            }
+              body.m3e-login-active #header,
+              body.m3e-login-active .separator,
+              body.m3e-login-active .separator_left_arm,
+              body.m3e-login-active .separator_center,
+              body.m3e-login-active .separator_right_arm,
+              body.m3e-login-active #tm_position,
+              body.m3e-login-active #map {
+                display: none !important;
+                visibility: hidden !important;
+                height: 0 !important;
+              }
 
-            .m3e-login-title {
-              margin: 0 0 6px 0 !important;
-              font-size: 24px !important;
-              font-weight: 700 !important;
-              color: ${titleColor} !important;
-              letter-spacing: -0.4px !important;
-              font-family: inherit !important;
-            }
+              body.m3e-login-active > *:not(#dashboard_container):not(#m3e-login-custom-style):not(script) {
+                display: none !important;
+              }
 
-            .m3e-login-subtitle {
-              margin: 0 0 26px 0 !important;
-              font-size: 13px !important;
-              color: ${subtitleColor} !important;
-              font-weight: 400 !important;
-              font-family: inherit !important;
-            }
+              #dashboard_container {
+                border: ${cardBorder} !important;
+                border-radius: 28px !important;
+                background: ${cardBg} !important;
+                box-shadow: ${cardShadow} !important;
+                padding: 36px 26px 26px 26px !important;
+                width: 88% !important;
+                max-width: 360px !important;
+                box-sizing: border-box !important;
+                display: flex !important;
+                flex-direction: column !important;
+                align-items: center !important;
+                text-align: center !important;
+                min-height: unset !important;
+                min-width: unset !important;
+                margin: 0 !important;
+                position: fixed !important;
+                top: 50% !important;
+                left: 50% !important;
+                right: auto !important;
+                bottom: auto !important;
+                transform: translate(-50%, -50%) !important;
+                z-index: 9999 !important;
+              }
 
-            .m3e-btn-primary {
-              display: flex !important;
-              align-items: center !important;
-              justify-content: center !important;
-              width: 100% !important;
-              height: 52px !important;
-              border-radius: 9999px !important;
-              background: ${primaryHex} !important;
-              color: ${onPrimaryHex} !important;
-              font-size: 15px !important;
-              font-weight: 700 !important;
-              letter-spacing: 0.2px !important;
-              text-decoration: none !important;
-              border: none !important;
-              box-shadow: 0 3px 12px rgba(0, 0, 0, 0.3) !important;
-              transition: transform 0.12s ease, opacity 0.12s ease !important;
-              box-sizing: border-box !important;
-              margin-bottom: 12px !important;
-              cursor: pointer !important;
-            }
+              #dashboard_container > *:not(.m3e-login-content) {
+                display: none !important;
+              }
 
-            .m3e-btn-primary:active {
-              transform: scale(0.97) !important;
-              opacity: 0.88 !important;
-            }
+              .m3e-login-badge {
+                width: 72px !important;
+                height: 72px !important;
+                border-radius: 20px !important;
+                display: block !important;
+                margin-bottom: 20px !important;
+                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25) !important;
+                object-fit: cover !important;
+              }
 
-            .m3e-btn-tonal {
-              display: flex !important;
-              align-items: center !important;
-              justify-content: center !important;
-              width: 100% !important;
-              height: 48px !important;
-              border-radius: 9999px !important;
-              background: ${tonalBg} !important;
-              border: 1px solid ${primaryHex}55 !important;
-              color: ${primaryHex} !important;
-              font-size: 14px !important;
-              font-weight: 600 !important;
-              text-decoration: none !important;
-              transition: transform 0.12s ease, background-color 0.12s ease !important;
-              box-sizing: border-box !important;
-              margin-bottom: 20px !important;
-              cursor: pointer !important;
-            }
+              .m3e-login-title {
+                margin: 0 0 24px 0 !important;
+                font-size: 24px !important;
+                font-weight: 700 !important;
+                color: ${titleColor} !important;
+                letter-spacing: -0.4px !important;
+                font-family: inherit !important;
+              }
 
-            .m3e-btn-tonal:active {
-              transform: scale(0.97) !important;
-              background: ${tonalActiveBg} !important;
-            }
+              .m3e-btn-primary {
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                width: 100% !important;
+                height: 52px !important;
+                border-radius: 9999px !important;
+                background: ${primaryHex} !important;
+                color: ${onPrimaryHex} !important;
+                font-size: 15px !important;
+                font-weight: 700 !important;
+                letter-spacing: 0.2px !important;
+                text-decoration: none !important;
+                border: none !important;
+                box-shadow: 0 3px 12px rgba(0, 0, 0, 0.3) !important;
+                transition: transform 0.12s ease, opacity 0.12s ease !important;
+                box-sizing: border-box !important;
+                margin-bottom: 12px !important;
+                cursor: pointer !important;
+              }
 
-            .m3e-login-footer {
-              display: flex !important;
-              gap: 16px !important;
-              align-items: center !important;
-              justify-content: center !important;
-              border-top: ${footerBorder} !important;
-              padding-top: 16px !important;
-              width: 100% !important;
-            }
+              .m3e-btn-primary:active {
+                transform: scale(0.97) !important;
+                opacity: 0.88 !important;
+              }
 
-            .m3e-login-footer a {
-              color: ${footerLinkColor} !important;
-              font-size: 12px !important;
-              text-decoration: none !important;
-              font-weight: 500 !important;
-              transition: color 0.15s ease !important;
-            }
+              .m3e-btn-tonal {
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                width: 100% !important;
+                height: 48px !important;
+                border-radius: 9999px !important;
+                background: ${tonalBg} !important;
+                border: 1px solid ${primaryHex}55 !important;
+                color: ${primaryHex} !important;
+                font-size: 14px !important;
+                font-weight: 600 !important;
+                text-decoration: none !important;
+                transition: transform 0.12s ease, background-color 0.12s ease !important;
+                box-sizing: border-box !important;
+                margin-bottom: 20px !important;
+                cursor: pointer !important;
+              }
 
-            .m3e-login-footer a:hover, .m3e-login-footer a:active {
-              color: ${footerLinkHover} !important;
-              text-decoration: underline !important;
-            }
+              .m3e-btn-tonal:active {
+                transform: scale(0.97) !important;
+                background: ${tonalActiveBg} !important;
+              }
 
-            .m3e-login-footer-sep {
-              color: rgba(255, 255, 255, 0.2) !important;
-              font-size: 11px !important;
+              .m3e-login-footer {
+                display: flex !important;
+                gap: 16px !important;
+                align-items: center !important;
+                justify-content: center !important;
+                border-top: ${footerBorder} !important;
+                padding-top: 16px !important;
+                width: 100% !important;
+              }
+
+              .m3e-login-footer a {
+                color: ${footerLinkColor} !important;
+                font-size: 12px !important;
+                text-decoration: none !important;
+                font-weight: 500 !important;
+                transition: color 0.15s ease !important;
+              }
+
+              .m3e-login-footer a:hover, .m3e-login-footer a:active {
+                color: ${footerLinkHover} !important;
+                text-decoration: underline !important;
+              }
+
+              .m3e-login-footer-sep {
+                color: rgba(255, 255, 255, 0.2) !important;
+                font-size: 11px !important;
+              }
+            `;
+            if (document.body) {
+              document.body.classList.add('m3e-login-active');
             }
-          `;
+          }
 
           function transformDashboard() {
             var container = document.getElementById('dashboard_container');
-            if (!container) return false;
+            if (!container) {
+              cleanupLoginPage();
+              return false;
+            }
+
+            var origSignInLink = container.querySelector('a[href*="login.ingress.com"], a.button_link');
+            if (!origSignInLink) {
+              // The inner elements of dashboard_container have not finished parsing yet
+              return false;
+            }
+
+            var rawHref = origSignInLink.getAttribute('href') || origSignInLink.href || '';
+            if (!rawHref || rawHref === '#') {
+              return false;
+            }
+
+            var signInHref = rawHref;
+            if (origSignInLink.href && origSignInLink.href.indexOf('authorize') !== -1) {
+              signInHref = origSignInLink.href;
+            }
+
             if (container.getAttribute('data-m3e-transformed') === 'true') return true;
             container.setAttribute('data-m3e-transformed', 'true');
 
+            // Apply scoped M3E styling only when login container is ready
+            applyLoginStyle();
+
+            container.style.position = 'fixed';
+            container.style.top = '50%';
+            container.style.left = '50%';
+            container.style.right = 'auto';
+            container.style.bottom = 'auto';
+            container.style.transform = 'translate(-50%, -50%)';
+            container.style.margin = '0';
+
+            if (window.app && window.app.setLoginPage) {
+              window.app.setLoginPage(true);
+            }
+            if (window.bridge && window.bridge.setLoginPage) {
+              window.bridge.setLoginPage(true);
+            }
+
             var allLinks = container.querySelectorAll('a');
-            var signInHref = 'https://login.ingress.com/';
-            var signInOnClick = '';
             var learnMoreHref = 'https://support.ingress.com/hc';
             var nianticHref = 'https://nianticspatial.com';
 
             for (var i = 0; i < allLinks.length; i++) {
               var a = allLinks[i];
-              var h = a.getAttribute('href') || '';
-              if (h.indexOf('login.ingress.com') !== -1 || a.textContent.indexOf('Sign in') !== -1) {
-                signInHref = h;
-                signInOnClick = a.getAttribute('onclick') || '';
-              } else if (h.indexOf('support.ingress.com') !== -1 || a.textContent.indexOf('Learn More') !== -1) {
+              var h = a.getAttribute('href') || a.href || '';
+              if (h.indexOf('support.ingress.com') !== -1 || a.textContent.indexOf('Learn More') !== -1) {
                 learnMoreHref = h;
               } else if (h.indexOf('niantic') !== -1 || a.textContent.indexOf('Niantic') !== -1) {
                 nianticHref = h;
@@ -1499,7 +1585,11 @@ body.light-map .leaflet-popup-pane .portal-name {
 
             var badge = document.createElement('div');
             badge.className = 'm3e-login-badge';
-            badge.innerHTML = '<svg width="38" height="38" viewBox="0 0 24 24" fill="none"><polygon points="12,2 22,8.5 22,15.5 12,22 2,15.5 2,8.5" stroke="${primaryHex}" stroke-width="2" fill="${primaryHex}2B" /><circle cx="12" cy="12" r="3.2" fill="${primaryHex}" /></svg>';
+            badge.innerHTML = '<svg width=\"72\" height=\"72\" viewBox=\"0 0 120 120\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\">' +
+              '<rect width=\"120\" height=\"120\" rx=\"34\" fill=\"#703b9a\"/>' +
+              '<g transform=\"translate(11, 15) scale(0.9)\">' +
+              '<path d=\"M34.5,76.5 C28.5,76.5 24.5,73.8 22.3,69.5 C20.1,65.2 20.7,60.8 23.2,56.5 L42.9,22.3 C45.5,17.8 49.3,15.5 54,15.5 C58.7,15.5 62.5,17.8 65.1,22.3 L84.8,56.5 C87.3,60.8 87.9,65.2 85.7,69.5 C83.5,73.8 79.5,76.5 73.5,76.5 Z\" fill=\"#FFFFFF\"/>' +
+              '</g></svg>';
             wrapper.appendChild(badge);
 
             var title = document.createElement('h1');
@@ -1507,16 +1597,19 @@ body.light-map .leaflet-popup-pane .portal-name {
             title.textContent = 'IITC Expressive';
             wrapper.appendChild(title);
 
-            var subtitle = document.createElement('p');
-            subtitle.className = 'm3e-login-subtitle';
-            subtitle.textContent = 'Ingress Intel Map · Material 3';
-            wrapper.appendChild(subtitle);
-
             var btnSignIn = document.createElement('a');
             btnSignIn.className = 'm3e-btn-primary';
             btnSignIn.href = signInHref;
-            if (signInOnClick) btnSignIn.setAttribute('onclick', signInOnClick);
             btnSignIn.textContent = 'Sign in with Ingress';
+            btnSignIn.addEventListener('click', function(e) {
+              e.preventDefault();
+              if (document.body) {
+                document.body.classList.remove('m3e-login-active');
+              }
+              var s = document.getElementById('m3e-login-custom-style');
+              if (s) s.remove();
+              window.location.href = signInHref;
+            });
             wrapper.appendChild(btnSignIn);
 
             var btnDemo = document.createElement('a');
@@ -1525,6 +1618,7 @@ body.light-map .leaflet-popup-pane .portal-name {
             btnDemo.textContent = 'Try demo (no sign-in required)';
             btnDemo.addEventListener('click', function(e) {
               e.preventDefault();
+              cleanupLoginPage();
               if (window.app && window.app.openDemo) {
                 window.app.openDemo();
               }
@@ -1557,12 +1651,13 @@ body.light-map .leaflet-popup-pane .portal-name {
           }
 
           if (!transformDashboard()) {
+            var retryCount = 0;
             var checkTimer = setInterval(function() {
-              if (transformDashboard()) {
+              retryCount++;
+              if (transformDashboard() || retryCount > 30) {
                 clearInterval(checkTimer);
               }
-            }, 100);
-            setTimeout(function() { clearInterval(checkTimer); }, 6000);
+            }, 200);
           }
         })();
         """.trimIndent()

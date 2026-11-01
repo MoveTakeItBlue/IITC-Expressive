@@ -30,8 +30,14 @@ object Strings {
         "settings.section.map" to "Map & Location",
         "settings.location.title" to "Display user location on map",
         "settings.location.description" to "Show position marker and track location",
+        "settings.persistent_toolbar.title" to "Persistent floating toolbar",
+        "settings.persistent_toolbar.description" to "Display a Material 3 Expressive floating toolbar on the map with quick access buttons",
         "settings.persistent_zoom.title" to "Persistent zoom level",
         "settings.persistent_zoom.description" to "Don't change zoom level when locate button is pressed",
+
+        "settings.section.developer" to "Developer Options",
+        "settings.debug_mode.title" to "Developer debug mode",
+        "settings.debug_mode.description" to "Show debug console in the quick actions menu",
 
         "settings.section.data" to "Data management",
         "settings.backup.title" to "Backup & restore",
@@ -131,8 +137,14 @@ object Strings {
         "settings.section.map" to "地图与定位",
         "settings.location.title" to "在地图上显示特工定位",
         "settings.location.description" to "展示定位光标并实时跟踪位置",
+        "settings.persistent_toolbar.title" to "开启常驻工具栏",
+        "settings.persistent_toolbar.description" to "在地图底部常驻显示 M3E 悬浮工具栏，快捷访问常用功能",
         "settings.persistent_zoom.title" to "保持缩放级别",
         "settings.persistent_zoom.description" to "点击定位按钮时不强制重置缩放级别",
+
+        "settings.section.developer" to "开发者选项",
+        "settings.debug_mode.title" to "开发者调试模式",
+        "settings.debug_mode.description" to "在快捷菜单中显示调试控制台入口",
 
         "settings.section.data" to "数据管理",
         "settings.backup.title" to "备份与恢复",
@@ -229,8 +241,14 @@ object Strings {
         "settings.section.map" to "地圖與定位",
         "settings.location.title" to "在地圖上顯示特務定位",
         "settings.location.description" to "展示定位標記並即時追蹤位置",
+        "settings.persistent_toolbar.title" to "開啟常駐工具列",
+        "settings.persistent_toolbar.description" to "在地圖底部常駐顯示 M3E 懸浮工具列，快速存取常用功能",
         "settings.persistent_zoom.title" to "保持縮放級別",
         "settings.persistent_zoom.description" to "點擊定位按鈕時不強制重設縮放級別",
+
+        "settings.section.developer" to "開發者選項",
+        "settings.debug_mode.title" to "開發者除錯模式",
+        "settings.debug_mode.description" to "在快捷選單中顯示除錯主控台入口",
 
         "settings.section.data" to "資料管理",
         "settings.backup.title" to "備份與還原",
@@ -327,8 +345,14 @@ object Strings {
         "settings.section.map" to "地圖與定位",
         "settings.location.title" to "在地圖上顯示探員定位",
         "settings.location.description" to "展示定位標記並即時追蹤位置",
+        "settings.persistent_toolbar.title" to "開啟常駐工具列",
+        "settings.persistent_toolbar.description" to "在地圖底部常駐顯示 M3E 懸浮工具列，快速存取常用功能",
         "settings.persistent_zoom.title" to "保持縮放級別",
         "settings.persistent_zoom.description" to "點擊定位按鈕時不強制重設縮放級別",
+
+        "settings.section.developer" to "開發人員選項",
+        "settings.debug_mode.title" to "開發人員偵錯模式",
+        "settings.debug_mode.description" to "在捷徑選單中顯示偵錯主控台入口",
 
         "settings.section.data" to "資料管理",
         "settings.backup.title" to "備份與還原",
@@ -425,8 +449,14 @@ object Strings {
         "settings.section.map" to "地図と位置情報",
         "settings.location.title" to "地図上に現在地を表示",
         "settings.location.description" to "エージェントの位置マーカーを表示しリアルタイム追跡",
+        "settings.persistent_toolbar.title" to "常駐フローティングツールバー",
+        "settings.persistent_toolbar.description" to "地図画面にクイックアクセス用の M3E フローティングツールバーを常駐表示します",
         "settings.persistent_zoom.title" to "ズーム倍率を維持",
         "settings.persistent_zoom.description" to "現在地ボタンをタップした際にズーム倍率をリセットしない",
+
+        "settings.section.developer" to "開発者向けオプション",
+        "settings.debug_mode.title" to "開発者向けデバッグモード",
+        "settings.debug_mode.description" to "クイックメニューにデバッグコンソールの項目を表示します",
 
         "settings.section.data" to "データ管理",
         "settings.backup.title" to "バックアップと復元",

@@ -20,8 +20,14 @@
     <string name="settings_section_map">地圖與定位</string>
     <string name="settings_location_title">在地圖上顯示探員定位</string>
     <string name="settings_location_description">展示定位標記並即時追蹤位置</string>
+    <string name="settings_persistent_toolbar_title">開啟常駐工具列</string>
+    <string name="settings_persistent_toolbar_description">在地圖底部常駐顯示 M3E 懸浮工具列，快速存取常用功能</string>
     <string name="settings_persistent_zoom_title">保持縮放級別</string>
     <string name="settings_persistent_zoom_description">點擊定位按鈕時不強制重設縮放級別</string>
+
+    <string name="settings_section_developer">開發人員選項</string>
+    <string name="settings_debug_mode_title">開發人員偵錯模式</string>
+    <string name="settings_debug_mode_description">在捷徑選單中顯示偵錯主控台入口</string>
 
     <string name="settings_section_data">資料管理</string>
     <string name="settings_backup_title">備份與還原</string>

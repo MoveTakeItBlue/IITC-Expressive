@@ -6,6 +6,7 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -14,9 +15,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
+import androidx.compose.material.icons.automirrored.filled.FormatListBulleted
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -42,20 +46,23 @@ private data class FabMenuAction(
 )
 
 /**
- * Material 3 Expressive FAB Menu（默认紧凑样式）
+ * Material 3 Expressive FAB Menu 与 Floating Toolbar with FAB
  *
- * 规格对齐 M3 Expressive FAB menu：
- * - 触发 FAB：56dp 圆形，primaryContainer；图标旋转 45° 从「+」变成「×」，不替换图标。
- * - 菜单项：40dp 高的 pill（胶囊），secondaryContainer，无阴影/无描边，图标 18dp + 12sp Medium 文字。
- * - 间距：菜单项之间 6dp，最后一项与触发 FAB 之间 12dp。
- * - 展开时逐项错峰淡入 + 轻微缩放；不使用厚重遮罩，只保留一层透明点击层用于点击空白关闭。
+ * 规格对齐 M3 Expressive 规范：
+ * - 当 [persistentToolbar] = true 时：
+ *   在地图底部常驻展示 M3E 风格的 Floating Toolbar，常驻提供 Settings, Locate, Reload 按钮与末端 FAB。
+ *   点击末端 FAB 仅在上方展开其余快捷操作（Layers, Chat, Bookmarks, Portal List, Draw Tools，以及开启时的 Debug）。
+ * - 当 [persistentToolbar] = false 时：
+ *   保持标准的 56dp FAB，点击展开全部快捷菜单项。
+ * - Plugins 入口统一由 Settings 进入，不在此处显示。
+ * - Debug 仅在 [showDebug] 为 true（用户在 Settings 中开启）时才显示。
  */
 @Composable
 fun FabMenu(
     isExpanded: Boolean,
     onToggle: () -> Unit,
     onNavigateToSettings: () -> Unit,
-    onNavigateToPlugins: () -> Unit,
+    onNavigateToPlugins: () -> Unit = {},
     onOpenLayers: () -> Unit,
     onOpenChat: () -> Unit,
     onOpenBookmarks: () -> Unit = {},
@@ -65,7 +72,8 @@ fun FabMenu(
     onDebug: () -> Unit,
     onReload: () -> Unit,
     isIitcLoaded: Boolean = true,
-    showDebug: Boolean = io.github.movetakeitblue.iitcexpressive.platform.PlatformUtils.isDebugBuild(),
+    showDebug: Boolean = false,
+    persistentToolbar: Boolean = false,
     bottomOffset: Dp = 16.dp,
     modifier: Modifier = Modifier
 ) {
@@ -79,7 +87,7 @@ fun FabMenu(
         label = "fabIconRotation"
     )
 
-    // 与 Portal 详情 sheet 使用同一套弹簧参数，保证 FAB 与 sheet 同步上浮、不会错位
+    // 与 Portal 详情 sheet 同步弹簧参数，随 sheet 展开平滑上浮
     val animatedBottom by animateDpAsState(
         targetValue = bottomOffset,
         animationSpec = spring(
@@ -89,11 +97,12 @@ fun FabMenu(
         label = "fabBottomOffset"
     )
 
+    // 弹出的菜单项列表
     val actions = remember(
         isIitcLoaded,
         showDebug,
+        persistentToolbar,
         onNavigateToSettings,
-        onNavigateToPlugins,
         onOpenLayers,
         onOpenChat,
         onOpenBookmarks,
@@ -103,36 +112,53 @@ fun FabMenu(
         onDebug,
         onReload
     ) {
-        if (!isIitcLoaded) {
-            // Unauthenticated / login page: only show non-map controls
-            buildList {
-                add(FabMenuAction(Icons.Default.Settings, L("nav.settings"), onNavigateToSettings))
-                if (showDebug) {
-                    add(FabMenuAction(Icons.Default.Terminal, L("nav.debug"), onDebug))
+        if (persistentToolbar) {
+            // 常驻工具栏模式：Settings, Locate, Reload 已常驻在 toolbar 上
+            // FAB 展开仅显示其余项
+            if (!isIitcLoaded) {
+                emptyList()
+            } else {
+                buildList {
+                    add(FabMenuAction(Icons.Default.Layers, L("panel.layers"), onOpenLayers))
+                    add(FabMenuAction(Icons.AutoMirrored.Filled.Chat, L("nav.chat"), onOpenChat))
+                    add(FabMenuAction(Icons.Default.Bookmarks, "Bookmarks", onOpenBookmarks))
+                    add(FabMenuAction(Icons.AutoMirrored.Filled.FormatListBulleted, "Portal List", onOpenPortalList))
+                    add(FabMenuAction(Icons.Default.Gesture, "Draw Tools", onOpenDrawTools))
+                    if (showDebug) {
+                        add(FabMenuAction(Icons.Default.Terminal, L("nav.debug"), onDebug))
+                    }
                 }
-                add(FabMenuAction(Icons.Default.Refresh, L("nav.reload_iitc"), onReload))
             }
         } else {
-            // Map / IITC loaded state
-            buildList {
-                add(FabMenuAction(Icons.Default.Settings, L("nav.settings"), onNavigateToSettings))
-                add(FabMenuAction(Icons.Default.Extension, L("nav.plugins"), onNavigateToPlugins))
-                add(FabMenuAction(Icons.Default.Layers, L("panel.layers"), onOpenLayers))
-                add(FabMenuAction(Icons.AutoMirrored.Filled.Chat, L("nav.chat"), onOpenChat))
-                add(FabMenuAction(Icons.Default.Bookmarks, "Bookmarks", onOpenBookmarks))
-                add(FabMenuAction(Icons.Default.FormatListBulleted, "Portal List", onOpenPortalList))
-                add(FabMenuAction(Icons.Default.Gesture, "Draw Tools", onOpenDrawTools))
-                add(FabMenuAction(Icons.Default.MyLocation, L("panel.locate"), onLocate))
-                if (showDebug) {
-                    add(FabMenuAction(Icons.Default.Terminal, L("nav.debug"), onDebug))
+            // 单 FAB 模式：点击展开所有功能（Plugins 移除，Debug 受设置控制）
+            if (!isIitcLoaded) {
+                buildList {
+                    add(FabMenuAction(Icons.Default.Settings, L("nav.settings"), onNavigateToSettings))
+                    if (showDebug) {
+                        add(FabMenuAction(Icons.Default.Terminal, L("nav.debug"), onDebug))
+                    }
+                    add(FabMenuAction(Icons.Default.Refresh, L("nav.reload_iitc"), onReload))
                 }
-                add(FabMenuAction(Icons.Default.Refresh, L("nav.reload_iitc"), onReload))
+            } else {
+                buildList {
+                    add(FabMenuAction(Icons.Default.Settings, L("nav.settings"), onNavigateToSettings))
+                    add(FabMenuAction(Icons.Default.Layers, L("panel.layers"), onOpenLayers))
+                    add(FabMenuAction(Icons.AutoMirrored.Filled.Chat, L("nav.chat"), onOpenChat))
+                    add(FabMenuAction(Icons.Default.Bookmarks, "Bookmarks", onOpenBookmarks))
+                    add(FabMenuAction(Icons.AutoMirrored.Filled.FormatListBulleted, "Portal List", onOpenPortalList))
+                    add(FabMenuAction(Icons.Default.Gesture, "Draw Tools", onOpenDrawTools))
+                    add(FabMenuAction(Icons.Default.MyLocation, L("panel.locate"), onLocate))
+                    if (showDebug) {
+                        add(FabMenuAction(Icons.Default.Terminal, L("nav.debug"), onDebug))
+                    }
+                    add(FabMenuAction(Icons.Default.Refresh, L("nav.reload_iitc"), onReload))
+                }
             }
         }
     }
 
     Box(modifier = modifier) {
-        // 透明点击层：保留「点击空白处收起」，但不额外压暗地图
+        // 透明点击层：点击空白处收起菜单
         AnimatedVisibility(
             visible = isExpanded,
             enter = fadeIn(tween(120)),
@@ -150,14 +176,23 @@ fun FabMenu(
             )
         }
 
+        val columnAlignment = if (persistentToolbar) Alignment.BottomCenter else Alignment.BottomEnd
+        val columnHorizontalAlignment = Alignment.End
+        val columnPadding = if (persistentToolbar) {
+            Modifier.padding(bottom = animatedBottom)
+        } else {
+            Modifier.padding(end = 16.dp, bottom = animatedBottom)
+        }
+
         Column(
             modifier = Modifier
-                .align(Alignment.BottomEnd)
+                .align(columnAlignment)
                 .navigationBarsPadding()
-                .padding(end = 16.dp, bottom = animatedBottom),
-            horizontalAlignment = Alignment.End,
-            verticalArrangement = Arrangement.spacedBy(6.dp)
+                .then(columnPadding),
+            horizontalAlignment = columnHorizontalAlignment,
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
+            // 展开的快捷功能项
             actions.forEachIndexed { index, action ->
                 val enterDelay = index * 22
                 AnimatedVisibility(
@@ -172,36 +207,133 @@ fun FabMenu(
                     FabMenuItem(
                         icon = action.icon,
                         label = action.label,
-                        onClick = action.onClick
+                        onClick = {
+                            onToggle()
+                            action.onClick()
+                        }
                     )
                 }
             }
 
-            // 触发 FAB：56dp，颜色在展开/收起时保持一致（M3 默认行为）
-            // 顶部 6dp padding 与 Column 的 6dp 间距叠加 = 与菜单项间隔 12dp；收起时无菜单项，不影响 FAB 位置
-            FloatingActionButton(
-                onClick = onToggle,
-                shape = CircleShape,
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                modifier = Modifier
-                    .padding(top = 6.dp)
-                    .size(56.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = if (isExpanded) "Close menu" else "Open menu",
+            // 底部触发区域：根据 persistentToolbar 渲染 Floating Toolbar 或 单 FAB
+            if (persistentToolbar) {
+                // M3 Expressive Floating Toolbar with Separated FAB
+                // 胶囊形工具栏与独立方圆角 FAB 分离并列居中展示
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier.padding(top = 4.dp)
+                ) {
+                    // 1. 胶囊形状常驻工具栏
+                    Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        tonalElevation = 6.dp,
+                        shadowElevation = 6.dp,
+                        border = BorderStroke(
+                            width = 1.dp,
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+                        )
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(
+                                horizontal = 6.dp,
+                                vertical = 4.dp
+                            )
+                        ) {
+                            IconButton(
+                                onClick = onNavigateToSettings,
+                                modifier = Modifier.size(48.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Settings,
+                                    contentDescription = L("nav.settings"),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+
+                            if (isIitcLoaded) {
+                                IconButton(
+                                    onClick = onLocate,
+                                    modifier = Modifier.size(48.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.MyLocation,
+                                        contentDescription = L("panel.locate"),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
+                            }
+
+                            IconButton(
+                                onClick = onReload,
+                                modifier = Modifier.size(48.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Refresh,
+                                    contentDescription = L("nav.reload_iitc"),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+                        }
+                    }
+
+                    // 2. 独立分离出来的 M3 Expressive FAB 按钮（圆角矩形）
+                    if (isIitcLoaded) {
+                        FloatingActionButton(
+                            onClick = onToggle,
+                            shape = RoundedCornerShape(18.dp),
+                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                            elevation = FloatingActionButtonDefaults.elevation(
+                                defaultElevation = 6.dp,
+                                pressedElevation = 6.dp,
+                                focusedElevation = 6.dp,
+                                hoveredElevation = 6.dp
+                            ),
+                            modifier = Modifier.size(56.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Add,
+                                contentDescription = if (isExpanded) "Close menu" else "Open menu",
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier
+                                    .size(26.dp)
+                                    .rotate(iconRotation)
+                            )
+                        }
+                    }
+                }
+            } else {
+                // 标准单 FAB（56dp 圆形）
+                FloatingActionButton(
+                    onClick = onToggle,
+                    shape = CircleShape,
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                     modifier = Modifier
-                        .size(24.dp)
-                        .rotate(iconRotation)
-                )
+                        .padding(top = 6.dp)
+                        .size(56.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = if (isExpanded) "Close menu" else "Open menu",
+                        modifier = Modifier
+                            .size(24.dp)
+                            .rotate(iconRotation)
+                    )
+                }
             }
         }
     }
 }
 
 /**
- * M3 Expressive FAB menu item：40dp 高胶囊，图标 + 文字，无阴影。
+ * M3 Expressive FAB menu item：44dp 高胶囊，图标 + 文字，无阴影。
  */
 @Composable
 private fun FabMenuItem(
@@ -215,23 +347,23 @@ private fun FabMenuItem(
         shape = RoundedCornerShape(percent = 50),
         color = MaterialTheme.colorScheme.secondaryContainer,
         contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-        modifier = modifier.height(40.dp)
+        modifier = modifier.height(44.dp)
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 12.dp),
+            modifier = Modifier.padding(horizontal = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = label,
                 tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                modifier = Modifier.size(18.dp)
+                modifier = Modifier.size(20.dp)
             )
             Text(
                 text = label,
                 color = MaterialTheme.colorScheme.onSecondaryContainer,
-                fontSize = 12.sp,
+                fontSize = 13.sp,
                 fontWeight = FontWeight.Medium
             )
         }

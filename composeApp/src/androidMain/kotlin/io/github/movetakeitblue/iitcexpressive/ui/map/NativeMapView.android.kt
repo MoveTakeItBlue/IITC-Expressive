@@ -273,40 +273,36 @@ private fun createAgentSpeechBubbleBitmap(
 
     val singleBodyH = textHeight + paddingVert * 2f
 
-    // Find maximum body width among all items so stacked bubbles are aligned
-    var maxBodyW = 0f
-    for (agent in agents) {
+    // Calculate individual body widths for each bubble so each bubble matches its own text length
+    val agentBodyWidths = agents.map { agent ->
         val displayName = agent.sender.ifBlank { "Agent" }
         val textWidth = textPaint.measureText(displayName)
-        val bodyW = textWidth + paddingHoriz * 2f
-        if (bodyW > maxBodyW) {
-            maxBodyW = bodyW
-        }
+        textWidth + paddingHoriz * 2f
     }
-    if (cleanPortalTitle != null) {
-        val portalTextWidth = portalPaint.measureText(cleanPortalTitle)
-        val bodyW = portalTextWidth + paddingHoriz * 2f
-        if (bodyW > maxBodyW) {
-            maxBodyW = bodyW
-        }
+    val portalBodyWidth = cleanPortalTitle?.let {
+        portalPaint.measureText(it) + paddingHoriz * 2f
     }
+    val maxBodyW = maxOf(
+        agentBodyWidths.maxOrNull() ?: 0f,
+        portalBodyWidth ?: 0f
+    )
 
     val totalBodiesH = agents.size * singleBodyH + (if (hasPortal) portalBodyH else 0f) + (totalCount - 1) * bubbleGap
     val totalW = (shadowPadX + pointerW + maxBodyW + shadowPadX).toInt().coerceAtLeast(1)
     val totalH = (shadowPadY + totalBodiesH + shadowPadY + shadowOffsetY).toInt().coerceAtLeast(1)
 
     val left = shadowPadX + pointerW
-    val right = left + maxBodyW
     val tipX = shadowPadX
     val pointerHalfH = (pointerH / 2f).coerceAtMost(singleBodyH / 2f - 1f)
     val startY = shadowPadY
 
-    fun buildBubblePath(t: Float, b: Float, cy: Float, offsetY: Float = 0f): android.graphics.Path {
+    fun buildBubblePath(t: Float, b: Float, cy: Float, bodyW: Float, offsetY: Float = 0f): android.graphics.Path {
         val p = android.graphics.Path()
         val curT = t + offsetY
         val curB = b + offsetY
         val curCy = cy + offsetY
         val r = cornerRadius.coerceAtMost((curB - curT) / 2f)
+        val right = left + bodyW
 
         // Arrow top base on body left edge
         p.moveTo(left, curCy - pointerHalfH)
@@ -349,10 +345,11 @@ private fun createAgentSpeechBubbleBitmap(
     var curTop = startY
     for (i in 0 until totalCount) {
         val curH = if (i < agents.size) singleBodyH else portalBodyH
+        val curW = if (i < agents.size) agentBodyWidths[i] else (portalBodyWidth ?: 0f)
         val top_i = curTop
         val bottom_i = top_i + curH
         val cy_i = (top_i + bottom_i) / 2f
-        val shadowPath = buildBubblePath(top_i, bottom_i, cy_i, offsetY = shadowOffsetY)
+        val shadowPath = buildBubblePath(top_i, bottom_i, cy_i, bodyW = curW, offsetY = shadowOffsetY)
         canvas.drawPath(shadowPath, shadowPaint)
         curTop = bottom_i + bubbleGap
     }
@@ -404,7 +401,7 @@ private fun createAgentSpeechBubbleBitmap(
             isDither = true
         }
 
-        val bubblePath = buildBubblePath(top_i, bottom_i, cy_i, offsetY = 0f)
+        val bubblePath = buildBubblePath(top_i, bottom_i, cy_i, bodyW = agentBodyWidths[i], offsetY = 0f)
         canvas.drawPath(bubblePath, fillPaint)
         canvas.drawPath(bubblePath, strokePaint)
 
@@ -416,7 +413,7 @@ private fun createAgentSpeechBubbleBitmap(
     }
 
     // 2b. Portal Name bubble placed at the bottom (below all agent bubbles)
-    if (cleanPortalTitle != null) {
+    if (cleanPortalTitle != null && portalBodyWidth != null) {
         val top_i = curTop
         val bottom_i = top_i + portalBodyH
         val cy_i = (top_i + bottom_i) / 2f
@@ -456,7 +453,7 @@ private fun createAgentSpeechBubbleBitmap(
             isDither = true
         }
 
-        val bubblePath = buildBubblePath(top_i, bottom_i, cy_i, offsetY = 0f)
+        val bubblePath = buildBubblePath(top_i, bottom_i, cy_i, bodyW = portalBodyWidth, offsetY = 0f)
         canvas.drawPath(bubblePath, fillPaint)
         canvas.drawPath(bubblePath, strokePaint)
 

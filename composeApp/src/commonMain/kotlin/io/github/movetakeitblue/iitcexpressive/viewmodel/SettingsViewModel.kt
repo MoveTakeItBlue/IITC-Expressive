@@ -13,6 +13,16 @@ class SettingsViewModel(
 
     val zoomControl: StateFlow<Boolean> = mainViewModel.isZoomControlEnabled
 
+    val persistentToolbar: StateFlow<Boolean> = mainViewModel.isPersistentToolbarEnabled
+    fun setPersistentToolbar(enabled: Boolean) {
+        mainViewModel.setPersistentToolbar(enabled)
+    }
+
+    val debugModeEnabled: StateFlow<Boolean> = mainViewModel.isDebugModeEnabled
+    fun setDebugModeEnabled(enabled: Boolean) {
+        mainViewModel.setDebugModeEnabled(enabled)
+    }
+
     private val _persistentZoom = MutableStateFlow(storage.getBoolean("persistent_zoom", false))
     val persistentZoom: StateFlow<Boolean> = _persistentZoom.asStateFlow()
 

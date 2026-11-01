@@ -1,16 +1,27 @@
 package io.github.movetakeitblue.iitcexpressive.ui.main
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.scale
+import androidx.compose.ui.graphics.drawscope.translate
 import io.github.movetakeitblue.iitcexpressive.platform.PlatformUtils
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -60,6 +71,8 @@ fun MainScreen(
     val mapStatus by viewModel.mapStatus.collectAsState()
     val isFullscreenMap by viewModel.isFullscreenMap.collectAsState()
     val isMapDark by viewModel.isMapDark.collectAsState()
+    val isPersistentToolbarEnabled by viewModel.isPersistentToolbarEnabled.collectAsState()
+    val isDebugModeEnabled by viewModel.isDebugModeEnabled.collectAsState()
 
     // Adapt status bar icons/text contrast dynamically based on current screen & fullscreen map mode:
     // When in fullscreen map mode on main screen, contrast matches the map brightness:
@@ -121,14 +134,20 @@ fun MainScreen(
             }
 
             // Main Map UI overlay
-            if (currentScreen == "main") {
-                val isMapSyncing = progress < 1f || mapStatus.requests.hasActive
+            AnimatedVisibility(
+                visible = currentScreen == "main",
+                enter = fadeIn(tween(200)),
+                exit = fadeOut(tween(150)),
+                modifier = Modifier.fillMaxSize()
+            ) {
+                Box(modifier = Modifier.fillMaxSize()) {
+                    val isMapSyncing = progress < 1f || mapStatus.requests.hasActive
 
-                val statusBarTopPadding = if (isFullscreenMap) {
-                    WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-                } else {
-                    0.dp
-                }
+                    val statusBarTopPadding = if (isFullscreenMap) {
+                        WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+                    } else {
+                        0.dp
+                    }
 
                 // Top Expressive Floating Pill Indicator
                 AnimatedVisibility(
@@ -205,10 +224,6 @@ fun MainScreen(
                                 viewModel.closeFabMenu()
                                 viewModel.navigateTo("settings")
                             },
-                            onNavigateToPlugins = {
-                                viewModel.closeFabMenu()
-                                viewModel.navigateTo("plugins")
-                            },
                             onOpenLayers = { viewModel.openLayersSheet() },
                             onOpenChat = { viewModel.openChatSheet() },
                             onOpenBookmarks = { viewModel.openPluginSheet("bookmarks") },
@@ -227,7 +242,8 @@ fun MainScreen(
                                 viewModel.reloadWebView()
                             },
                             isIitcLoaded = isIitcLoaded,
-                            showDebug = PlatformUtils.isDebugBuild(),
+                            showDebug = isDebugModeEnabled,
+                            persistentToolbar = isPersistentToolbarEnabled,
                             // portal 被选中后，FAB 跟随 sheet 一起向上让位
                             bottomOffset = if (isIitcLoaded && portalStatus.hasSelected) {
                                 sheetPeekHeight + PortalSheetDefaults.FabGap
@@ -279,27 +295,10 @@ fun MainScreen(
                 }
             }
         }
+        }
 
-        // 状态栏：全面屏模式下使用优雅的渐变护罩保护文字可读性；普通模式下使用 M3E 实色表面覆盖
-        if (currentScreen == "main" && isFullscreenMap) {
-            val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-            val scrimColor = if (isMapDark) Color.Black else Color.White
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(statusBarHeight + 16.dp)
-                    .align(Alignment.TopCenter)
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(
-                                scrimColor.copy(alpha = 0.50f),
-                                scrimColor.copy(alpha = 0.20f),
-                                Color.Transparent
-                            )
-                        )
-                    )
-            )
-        } else if (!isFullscreenMap) {
+        // 普通模式下使用 M3E 实色表面覆盖避让状态栏与导航栏；全屏地图模式下完全去除阴影遮罩，直接显示地图
+        if (!isFullscreenMap) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -315,28 +314,7 @@ fun MainScreen(
             }
         }
 
-        // 导航栏：全面屏模式下使用优雅的渐变护罩保护手势栏/按键可读性且透出地图；普通模式下使用 M3E 实色表面覆盖
-        if (currentScreen == "main" && isFullscreenMap) {
-            val navBarHeight = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
-            if (navBarHeight > 0.dp) {
-                val scrimColor = if (isMapDark) Color.Black else Color.White
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(navBarHeight + 12.dp)
-                        .align(Alignment.BottomCenter)
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(
-                                    Color.Transparent,
-                                    scrimColor.copy(alpha = 0.15f),
-                                    scrimColor.copy(alpha = 0.45f)
-                                )
-                            )
-                        )
-                )
-            }
-        } else if (!isFullscreenMap) {
+        if (!isFullscreenMap) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -346,54 +324,97 @@ fun MainScreen(
             )
         }
 
-        // Sub-screens layered on top of map
-        when (currentScreen) {
-            "settings" -> {
-                SettingsView(
-                    viewModel = settingsViewModel,
-                    onBack = { viewModel.navigateTo("main") },
-                    onNavigateToAppearance = { viewModel.navigateTo("settings_appearance") },
-                    onNavigateToPlugins = { viewModel.navigateTo("plugins") },
-                    onNavigateToUpdateChannel = { viewModel.navigateTo("update_channel") },
-                    onNavigateToBackup = { viewModel.navigateTo("backup") },
-                    onNavigateToAbout = { viewModel.navigateTo("about") },
-                    onNavigateToLicenses = { viewModel.navigateTo("licenses") }
-                )
+        // Sub-screens layered on top of map with slide animation
+        val screenDepth = remember {
+            fun(screen: String): Int = when (screen) {
+                "main" -> 0
+                "settings" -> 1
+                else -> 2
             }
-            "settings_appearance", "appearance" -> {
-                AppearanceView(
-                    viewModel = viewModel,
-                    settingsViewModel = settingsViewModel,
-                    onBack = { viewModel.navigateTo("settings") }
-                )
-            }
-            "plugins" -> {
-                PluginsView(
-                    viewModel = pluginsViewModel,
-                    onBack = { viewModel.navigateTo("settings") }
-                )
-            }
-            "update_channel" -> {
-                UpdateChannelView(
-                    viewModel = updateChannelViewModel,
-                    onBack = { viewModel.navigateTo("settings") }
-                )
-            }
-            "backup" -> {
-                BackupView(
-                    viewModel = backupViewModel,
-                    onBack = { viewModel.navigateTo("settings") }
-                )
-            }
-            "about" -> {
-                AboutView(
-                    onBack = { viewModel.navigateTo("settings") }
-                )
-            }
-            "licenses" -> {
-                LicensesView(
-                    onBack = { viewModel.navigateTo("settings") }
-                )
+        }
+
+        AnimatedContent(
+            targetState = currentScreen,
+            transitionSpec = {
+                val isForward = screenDepth(targetState) >= screenDepth(initialState)
+                if (isForward) {
+                    (slideInHorizontally(
+                        initialOffsetX = { fullWidth -> fullWidth },
+                        animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing)
+                    ) + fadeIn(animationSpec = tween(220)))
+                        .togetherWith(
+                            slideOutHorizontally(
+                                targetOffsetX = { fullWidth -> -fullWidth / 3 },
+                                animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing)
+                            ) + fadeOut(animationSpec = tween(220))
+                        )
+                } else {
+                    (slideInHorizontally(
+                        initialOffsetX = { fullWidth -> -fullWidth / 3 },
+                        animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing)
+                    ) + fadeIn(animationSpec = tween(220)))
+                        .togetherWith(
+                            slideOutHorizontally(
+                                targetOffsetX = { fullWidth -> fullWidth },
+                                animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing)
+                            ) + fadeOut(animationSpec = tween(220))
+                        )
+                }
+            },
+            label = "screenSlideTransition",
+            modifier = Modifier.fillMaxSize()
+        ) { screen ->
+            when (screen) {
+                "settings" -> {
+                    SettingsView(
+                        viewModel = settingsViewModel,
+                        onBack = { viewModel.navigateTo("main") },
+                        onNavigateToAppearance = { viewModel.navigateTo("settings_appearance") },
+                        onNavigateToPlugins = { viewModel.navigateTo("plugins") },
+                        onNavigateToUpdateChannel = { viewModel.navigateTo("update_channel") },
+                        onNavigateToBackup = { viewModel.navigateTo("backup") },
+                        onNavigateToAbout = { viewModel.navigateTo("about") },
+                        onNavigateToLicenses = { viewModel.navigateTo("licenses") }
+                    )
+                }
+                "settings_appearance", "appearance" -> {
+                    AppearanceView(
+                        viewModel = viewModel,
+                        settingsViewModel = settingsViewModel,
+                        onBack = { viewModel.navigateTo("settings") }
+                    )
+                }
+                "plugins" -> {
+                    PluginsView(
+                        viewModel = pluginsViewModel,
+                        onBack = { viewModel.navigateTo("settings") }
+                    )
+                }
+                "update_channel" -> {
+                    UpdateChannelView(
+                        viewModel = updateChannelViewModel,
+                        onBack = { viewModel.navigateTo("settings") }
+                    )
+                }
+                "backup" -> {
+                    BackupView(
+                        viewModel = backupViewModel,
+                        onBack = { viewModel.navigateTo("settings") }
+                    )
+                }
+                "about" -> {
+                    AboutView(
+                        onBack = { viewModel.navigateTo("settings") }
+                    )
+                }
+                "licenses" -> {
+                    LicensesView(
+                        onBack = { viewModel.navigateTo("settings") }
+                    )
+                }
+                else -> {
+                    Box(modifier = Modifier.fillMaxSize())
+                }
             }
         }
 

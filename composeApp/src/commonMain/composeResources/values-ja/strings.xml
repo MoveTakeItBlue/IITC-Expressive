@@ -20,8 +20,14 @@
     <string name="settings_section_map">地図と位置情報</string>
     <string name="settings_location_title">地図上に現在地を表示</string>
     <string name="settings_location_description">エージェントの位置マーカーを表示しリアルタイム追跡</string>
+    <string name="settings_persistent_toolbar_title">常駐フローティングツールバー</string>
+    <string name="settings_persistent_toolbar_description">地図画面にクイックアクセス用の M3E フローティングツールバーを常駐表示します</string>
     <string name="settings_persistent_zoom_title">ズーム倍率を維持</string>
     <string name="settings_persistent_zoom_description">現在地ボタンをタップした際にズーム倍率をリセットしない</string>
+
+    <string name="settings_section_developer">開発者向けオプション</string>
+    <string name="settings_debug_mode_title">開発者向けデバッグモード</string>
+    <string name="settings_debug_mode_description">クイックメニューにデバッグコンソールの項目を表示します</string>
 
     <string name="settings_section_data">データ管理</string>
     <string name="settings_backup_title">バックアップと復元</string>
