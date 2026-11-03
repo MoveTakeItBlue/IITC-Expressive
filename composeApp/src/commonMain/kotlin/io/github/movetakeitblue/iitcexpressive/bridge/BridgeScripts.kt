@@ -1216,39 +1216,9 @@ body.light-map .leaflet-popup-pane .portal-name {
             } catch (e) {}
           }
 
-          function tryAttachDemoButton() {
-            var container = document.getElementById('dashboard_container');
-            if (!container) return false;
-            if (document.getElementById('iitc-demo-button')) return true;
-
-            var wrapper = document.createElement('div');
-            wrapper.className = 'button unselectable';
-
-            var link = document.createElement('a');
-            link.id = 'iitc-demo-button';
-            link.className = 'button_link';
-            link.href = '#';
-            link.textContent = 'Try demo (no sign-in required)';
-            link.addEventListener('click', function (event) {
-              event.preventDefault();
-              if (window.app && window.app.openDemo) {
-                window.app.openDemo();
-              }
-            });
-
-            wrapper.appendChild(link);
-            container.appendChild(wrapper);
-            return true;
-          }
-
-          if (!tryAttachDemoButton()) {
-            var tries = 0;
-            var timer = setInterval(function() {
-              tries++;
-              if (tryAttachDemoButton() || tries > 30) {
-                clearInterval(timer);
-              }
-            }, 300);
+          var existingBtn = document.getElementById('iitc-demo-button');
+          if (existingBtn && existingBtn.parentNode) {
+            existingBtn.parentNode.remove();
           }
         })();
         """.trimIndent()

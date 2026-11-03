@@ -19,9 +19,21 @@ android {
         versionName = "1.0.0"
     }
 
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("armeabi-v7a", "arm64-v8a", "x86_64")
+            isUniversalApk = true
+        }
+    }
+
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
+        }
+        jniLibs {
+            useLegacyPackaging = true
         }
     }
 
@@ -29,6 +41,10 @@ android {
         getByName("release") {
             isMinifyEnabled = true
             isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
     }
 
@@ -51,7 +67,7 @@ dependencies {
     implementation(libs.compose.material3)
     implementation("com.google.android.material:material:1.12.0")
 
-    // Compose Preview：代码放在 src/debug，注解与渲染器都只进 debug 变体，release 包零影响
+    // Compose Preview
     debugImplementation("org.jetbrains.compose.ui:ui-tooling-preview:${libs.versions.compose.multiplatform.get()}")
     debugImplementation("org.jetbrains.compose.ui:ui-tooling:${libs.versions.compose.multiplatform.get()}")
     debugImplementation(libs.serialization.json)
