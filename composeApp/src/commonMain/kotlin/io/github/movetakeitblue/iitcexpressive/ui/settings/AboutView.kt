@@ -18,6 +18,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.movetakeitblue.iitcexpressive.i18n.L
+import io.github.movetakeitblue.iitcexpressive.platform.PlatformUtils
 
 /**
  * Authentic Material 3 Expressive About Screen
@@ -75,7 +76,7 @@ fun AboutView(
                     .padding(horizontal = 14.dp, vertical = 4.dp)
             ) {
                 Text(
-                    text = "v0.42.5 (Expressive)",
+                    text = "v${PlatformUtils.getAppVersionName()} (Expressive)",
                     color = colorScheme.onSecondaryContainer,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold
