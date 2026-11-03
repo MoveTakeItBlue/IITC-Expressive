@@ -132,7 +132,7 @@ fun AppWebView(
                 val bridgeBundle = buildString {
                     appendLine(BridgeScripts.buildBridgeScript())
                     appendLine(";")
-                    appendLine(BridgeScripts.buildPrimeParamsScript("1.2.0", showZoom = zoomControl))
+                    appendLine(BridgeScripts.buildPrimeParamsScript(PlatformUtils.getAppVersionName(), showZoom = zoomControl))
                     appendLine(";")
                     if (PlatformUtils.isDebugBuild()) {
                         appendLine(BridgeScripts.buildDebugBridgeScript())
