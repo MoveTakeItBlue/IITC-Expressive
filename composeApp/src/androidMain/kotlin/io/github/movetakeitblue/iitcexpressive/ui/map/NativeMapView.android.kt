@@ -32,6 +32,8 @@ import org.maplibre.android.geometry.LatLng
 import org.maplibre.android.maps.MapLibreMap
 import org.maplibre.android.maps.MapLibreMapOptions
 import org.maplibre.android.maps.MapView
+import org.maplibre.android.maps.ImageContent
+import org.maplibre.android.maps.ImageStretches
 import org.maplibre.android.maps.Style
 import org.maplibre.android.style.expressions.Expression.get
 import org.maplibre.android.style.layers.CircleLayer
@@ -77,6 +79,7 @@ private const val LAYER_PORTAL_SELECTION_RING = "iitc-portal-selection-ring"
 private const val LAYER_PORTALS_HALO = "iitc-portals-halo"
 private const val LAYER_PORTALS = "iitc-portals-layer"
 private const val LAYER_PORTALS_TITLE = "iitc-portals-title"
+private const val PORTAL_BUBBLE_BG = "portal_bubble_bg" 
 private const val LAYER_PLAYER_TRAILS_CASING = "iitc-player-trails-casing"
 private const val LAYER_PLAYER_TRAILS = "iitc-player-trails"
 private const val LAYER_PLAYER_MARKERS_HALO = "iitc-player-markers-halo"
@@ -217,6 +220,83 @@ private fun groupPlayerTrailsByPortal(
  * - Crisp pure white agent codename text inside
  * - Subtle faction accent outline and drop shadow
  */
+/**
+ * Creates a single reusable 9-patch stretchable M3E speech bubble background for portal titles.
+ * Stretched to fit any title length via MapLibre's native ImageStretches and iconTextFit.
+ */
+private fun createPortalSpeechBubbleBgBitmap(
+    density: Float,
+    densityDpi: Int
+): android.graphics.Bitmap {
+    val cornerRadius = 6f * density
+    val pointerW = 6f * density
+    val pointerH = 8f * density
+    val shadowPad = 3f * density
+    val shadowOffsetY = 1.5f * density
+
+    val bodyW = 32f * density
+    val bodyH = 20f * density
+
+    val totalW = (shadowPad + pointerW + bodyW + shadowPad).toInt().coerceAtLeast(1)
+    val totalH = (shadowPad + bodyH + shadowPad + shadowOffsetY).toInt().coerceAtLeast(1)
+
+    val bmp = android.graphics.Bitmap.createBitmap(totalW, totalH, android.graphics.Bitmap.Config.ARGB_8888)
+    bmp.density = densityDpi
+    val canvas = android.graphics.Canvas(bmp)
+
+    val left = shadowPad + pointerW
+    val tipX = shadowPad
+    val top = shadowPad
+    val bottom = shadowPad + bodyH
+    val cy = (top + bottom) / 2f
+    val pointerHalfH = pointerH / 2f
+
+    fun buildPath(offsetY: Float = 0f): android.graphics.Path {
+        val p = android.graphics.Path()
+        val curT = top + offsetY
+        val curB = bottom + offsetY
+        val curCy = cy + offsetY
+        p.moveTo(left, curCy - pointerHalfH)
+        p.lineTo(tipX, curCy)
+        p.lineTo(left, curCy + pointerHalfH)
+        p.lineTo(left, curB - cornerRadius)
+        p.quadTo(left, curB, left + cornerRadius, curB)
+        p.lineTo(left + bodyW - cornerRadius, curB)
+        p.quadTo(left + bodyW, curB, left + bodyW, curB - cornerRadius)
+        p.lineTo(left + bodyW, curT + cornerRadius)
+        p.quadTo(left + bodyW, curT, left + bodyW - cornerRadius, curT)
+        p.lineTo(left + cornerRadius, curT)
+        p.quadTo(left, curT, left, curT + cornerRadius)
+        p.close()
+        return p
+    }
+
+    // 1. Drop shadow
+    val shadowPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+        color = android.graphics.Color.argb(80, 0, 0, 0)
+        style = android.graphics.Paint.Style.FILL
+        maskFilter = android.graphics.BlurMaskFilter(shadowPad, android.graphics.BlurMaskFilter.Blur.NORMAL)
+    }
+    canvas.drawPath(buildPath(offsetY = shadowOffsetY), shadowPaint)
+
+    // 2. Unclaimed dark gray fill (#3c4043)
+    val fillPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+        color = android.graphics.Color.parseColor("#3c4043")
+        style = android.graphics.Paint.Style.FILL
+    }
+    canvas.drawPath(buildPath(), fillPaint)
+
+    // 3. Subtle stroke (#5f6368)
+    val strokePaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+        color = android.graphics.Color.parseColor("#5f6368")
+        style = android.graphics.Paint.Style.STROKE
+        strokeWidth = 1f * density
+    }
+    canvas.drawPath(buildPath(), strokePaint)
+
+    return bmp
+}
+
 private fun createAgentSpeechBubbleBitmap(
     agents: List<AgentBubbleItem>,
     portalTitle: String? = null,
@@ -979,7 +1059,13 @@ actual fun NativeMapView(
 
     var mapLibreMap by remember { mutableStateOf<MapLibreMap?>(null) }
     var mapStyle by remember { mutableStateOf<Style?>(null) }
-    val bubbleBitmapCache = remember { mutableMapOf<String, android.graphics.Bitmap>() }
+    val bubbleBitmapCache = remember {
+        object : java.util.LinkedHashMap<String, android.graphics.Bitmap>(100, 0.75f, true) {
+            override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, android.graphics.Bitmap>?): Boolean {
+                return size > 100
+            }
+        }
+    }
 
     val entities by viewModel.nativeMapEntities.collectAsState()
     val isNativeMapEnabled by viewModel.isNativeMapEnabled.collectAsState()
@@ -1242,16 +1328,37 @@ actual fun NativeMapView(
         }
         styleBuilder.withLayer(playerMarkersLayer)
 
-        // 12. Portals title symbol layer (M3E speech bubble style, unclaimed dark gray, white text)
+        // 12. Portals title symbol layer (M3E speech bubble style with native 9-patch iconTextFit)
+        val portalBubbleBmp = createPortalSpeechBubbleBgBitmap(density, densityDpi)
+        val stretchX = listOf(ImageStretches(16f * density, 34f * density))
+        val stretchY = listOf(ImageStretches(10f * density, 16f * density))
+        val content = ImageContent(
+            14f * density,
+            5f * density,
+            (3f + 6f + 32f - 5f) * density,
+            (3f + 20f - 3f) * density
+        )
+        styleBuilder.withImage(PORTAL_BUBBLE_BG, portalBubbleBmp, stretchX, stretchY, content)
+
         val portalTitlesLayer = SymbolLayer(LAYER_PORTALS_TITLE, SOURCE_PORTALS).apply {
             setProperties(
-                iconImage(get("portalBubbleIcon")),
-                iconSize(playerIconScale / 1.5f),
+                iconImage(PORTAL_BUBBLE_BG),
+                iconTextFit(Property.ICON_TEXT_FIT_BOTH),
+                iconTextFitPadding(arrayOf(3.5f * density, 7.5f * density, 3.5f * density, 7.5f * density)),
                 iconAnchor(Property.ICON_ANCHOR_LEFT),
                 iconOffset(arrayOf(10f, 0f)),
+                textField(get("title")),
+                textSize(portalNameFontSize),
+                textColor("#ffffff"),
+                textFont(fontStack),
+                textAnchor(Property.TEXT_ANCHOR_LEFT),
+                textOffset(arrayOf(1.0f, 0f)),
                 iconAllowOverlap(false),
+                textAllowOverlap(false),
                 iconIgnorePlacement(false),
-                iconOptional(false)
+                textIgnorePlacement(false),
+                iconOptional(false),
+                textOptional(false)
             )
             minZoom = 15.0f
             maxZoom = 22f
@@ -1457,26 +1564,6 @@ actual fun NativeMapView(
                 )
                 val displayTitle = if (hasAgentBubble) "" else p.title
                 feat.addStringProperty("title", displayTitle)
-                if (!hasAgentBubble && p.title.isNotBlank()) {
-                    val portalBubbleKey = "portal_bubble_${p.title.hashCode()}_${portalNameFontSize.toInt()}_${if (mapFontBold) "1" else "0"}"
-                    feat.addStringProperty("portalBubbleIcon", portalBubbleKey)
-                    val density = context.resources.displayMetrics.density
-                    val densityDpi = context.resources.displayMetrics.densityDpi
-                    val bmp = bubbleBitmapCache.getOrPut(portalBubbleKey) {
-                        createAgentSpeechBubbleBitmap(
-                            agents = emptyList(),
-                            portalTitle = p.title,
-                            fontSizeSp = agentNameFontSize,
-                            portalFontSizeSp = portalNameFontSize,
-                            density = density,
-                            densityDpi = densityDpi,
-                            isBold = mapFontBold
-                        )
-                    }
-                    bubbleBitmapsToAdd.add(Pair(portalBubbleKey, bmp))
-                } else {
-                    feat.addStringProperty("portalBubbleIcon", "")
-                }
                 feat.addNumberProperty("team", p.team)
                 feat.addNumberProperty("level", p.level)
                 feat.addNumberProperty("health", p.health)
@@ -1699,7 +1786,8 @@ actual fun NativeMapView(
                     if (ring.first() != ring.last()) {
                         ring.add(ring.first())
                     }
-                    val poly = Polygon.fromLngLats(listOf(ring))
+                    if (ring.size >= 4) {
+                        val poly = Polygon.fromLngLats(listOf(ring))
                     val feat = Feature.fromGeometry(poly)
                     feat.addStringProperty("guid", f.guid)
                     feat.addNumberProperty("team", f.team)
@@ -1711,6 +1799,7 @@ actual fun NativeMapView(
                     }
                     feat.addStringProperty("color", color)
                     fieldFeatures.add(feat)
+                    }
                 }
             }
 
@@ -1978,6 +2067,20 @@ actual fun NativeMapView(
             val spiderMarkerCollection = FeatureCollection.fromFeatures(spiderMarkerFeatures)
 
             withContext(Dispatchers.Main) {
+                if (style.getImage(PORTAL_BUBBLE_BG) == null) {
+                    val density = context.resources.displayMetrics.density
+                    val densityDpi = context.resources.displayMetrics.densityDpi
+                    val portalBubbleBmp = createPortalSpeechBubbleBgBitmap(density, densityDpi)
+                    val stretchX = listOf(ImageStretches(16f * density, 34f * density))
+                    val stretchY = listOf(ImageStretches(10f * density, 16f * density))
+                    val content = ImageContent(
+                        14f * density,
+                        5f * density,
+                        (3f + 6f + 32f - 5f) * density,
+                        (3f + 20f - 3f) * density
+                    )
+                    style.addImage(PORTAL_BUBBLE_BG, portalBubbleBmp, stretchX, stretchY, content)
+                }
                 for ((key, bmp) in bubbleBitmapsToAdd) {
                     if (style.getImage(key) == null) {
                         style.addImage(key, bmp)
@@ -2035,8 +2138,8 @@ actual fun NativeMapView(
         val haloC = if (mapTextHalo) (if (isTextDark) "#ffffff" else "#111415") else "rgba(0,0,0,0)"
 
         style.getLayerAs<SymbolLayer>(LAYER_PORTALS_TITLE)?.setProperties(
-            iconSize(playerIconScale / 1.5f),
-            iconOffset(arrayOf(10f, 0f))
+            textSize(portalNameFontSize),
+            textFont(fontStack)
         )
         style.getLayerAs<SymbolLayer>(LAYER_PLAYER_MARKERS)?.setProperties(
             iconSize(playerIconScale / 1.5f),
