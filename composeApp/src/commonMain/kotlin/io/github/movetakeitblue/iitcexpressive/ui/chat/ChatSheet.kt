@@ -297,7 +297,7 @@ fun ChatSheet(
                                 modifier = Modifier.size(16.dp)
                             )
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text(text = "Fetch Messages", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            Text(text = L("chat_fetch_messages"), fontSize = 12.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 } else {

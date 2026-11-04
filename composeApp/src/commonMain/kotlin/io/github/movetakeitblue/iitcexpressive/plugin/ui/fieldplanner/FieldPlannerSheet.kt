@@ -1,5 +1,6 @@
 package io.github.movetakeitblue.iitcexpressive.plugin.ui.fieldplanner
 
+import io.github.movetakeitblue.iitcexpressive.i18n.L
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -227,7 +228,7 @@ fun FieldPlannerSheet(
                         FilterChip(
                             selected = avoidExistingLinks,
                             onClick = { avoidExistingLinks = !avoidExistingLinks },
-                            label = { Text("Avoid Cross-Links", fontSize = 11.sp) }
+                            label = { Text(L("plugin_fieldplanner_avoid_cross"), fontSize = 11.sp) }
                         )
                     }
                 }
@@ -310,20 +311,20 @@ fun FieldPlannerSheet(
                 ) {
                     Icon(imageVector = Icons.Default.Draw, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("Add to Draw Tools", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text(L("plugin_fieldplanner_add_drawtools"), fontSize = 12.sp, fontWeight = FontWeight.Bold)
                 }
 
                 OutlinedButton(
                     onClick = {
                         val cleanedShapes = drawnShapes.filterNot { it.id.startsWith("plan_link_") }
                         host.saveDrawnShapes(cleanedShapes)
-                        host.showToast("Plan links removed from Draw Tools")
+                        host.showToast(L("plugin_fieldplanner_toast_removed"))
                     },
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Icon(imageVector = Icons.Default.DeleteOutline, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("Clear Plan", fontSize = 12.sp)
+                    Text(L("plugin_fieldplanner_clear_plan"), fontSize = 12.sp)
                 }
             }
 

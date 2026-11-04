@@ -1,5 +1,6 @@
 package io.github.movetakeitblue.iitcexpressive.ui.portal
 
+import io.github.movetakeitblue.iitcexpressive.i18n.L
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -219,7 +220,7 @@ fun PortalModDetailDialog(
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text(text = "Close", color = MaterialTheme.colorScheme.primary)
+                Text(text = L("dialog.close"), color = MaterialTheme.colorScheme.primary)
             }
         }
     )

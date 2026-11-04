@@ -1,5 +1,6 @@
 package io.github.movetakeitblue.iitcexpressive.plugin.ui.machina
 
+import io.github.movetakeitblue.iitcexpressive.i18n.L
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -185,7 +186,7 @@ fun MachinaTrackerSheet(
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
-                placeholder = { Text("Search Machina portal name...") },
+                placeholder = { Text(L("plugin_machina_search_hint")) },
                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                 trailingIcon = {
                     if (searchQuery.isNotEmpty()) {

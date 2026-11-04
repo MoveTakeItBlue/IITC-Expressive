@@ -136,9 +136,9 @@ fun AppearanceView(
     }
 
     val fontSizes = listOf(10f, 11f, 12f, 13f, 14f, 15f, 16f)
-    val fontSizeLabels = listOf("10 sp (偏小)", "11 sp", "12 sp (默认)", "13 sp", "14 sp (偏大)", "15 sp", "16 sp (特大)")
+    val fontSizeLabels = listOf(L("appearance_font_size_small", "10"), "11 sp", L("appearance_font_size_default", "12"), "13 sp", L("appearance_font_size_large", "14"), "15 sp", L("appearance_font_size_xlarge", "16"))
     val fontFamilies = listOf("sans-serif", "monospace", "serif")
-    val fontFamilyLabels = listOf("系统默认 (Sans-Serif)", "等宽字体 (Monospace)", "衬线字体 (Serif)")
+    val fontFamilyLabels = listOf(L("appearance_font_family_system"), L("appearance_font_family_monospace"), L("appearance_font_family_serif"))
 
     if (showPortalFontDialog) {
         val selectedIdx = fontSizes.indexOf(portalNameFontSize).let { if (it >= 0) it else 2 }
@@ -184,13 +184,13 @@ fun AppearanceView(
 
     val colorKeys = listOf("auto", "white", "black", "amber", "cyan", "green", "custom")
     val colorLabels = listOf(
-        "自动 (跟随底图反色 - 推荐)",
-        "高光纯白 (#FFFFFF)",
-        "深邃纯黑 (#000000)",
-        "醒目琥珀黄 (#FFD600)",
-        "科技青蓝 (#00E5FF)",
-        "荧光翠绿 (#00FF66)",
-        "自定义十六进制色值 (HEX)..."
+        L("appearance_map_text_color_auto"),
+        L("appearance_map_text_color_white"),
+        L("appearance_map_text_color_black"),
+        L("appearance_map_text_color_amber"),
+        L("appearance_map_text_color_cyan"),
+        L("appearance_map_text_color_green"),
+        L("appearance_map_text_color_custom")
     )
 
     if (showMapTextColorDialog) {
@@ -228,7 +228,7 @@ fun AppearanceView(
             text = {
                 Column {
                     Text(
-                        text = "输入 6 位十六进制 HEX 颜色值（例如 #FFFFFF、#FFD600 或 #00FF66）：",
+                        text = L("appearance_map_text_color_prompt"),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -261,7 +261,7 @@ fun AppearanceView(
     }
 
     val playerIconScales = listOf(1.0f, 1.25f, 1.5f, 1.75f, 2.0f)
-    val playerIconScaleLabels = listOf("100% (标准)", "125%", "150% (默认 / 放大50%)", "175%", "200% (超大)")
+    val playerIconScaleLabels = listOf(L("appearance_player_icon_scale_100"), "125%", L("appearance_player_icon_scale_150"), "175%", L("appearance_player_icon_scale_200"))
 
     if (showPlayerIconScaleDialog) {
         val selectedIdx = playerIconScales.indexOf(playerIconScale).let { if (it >= 0) it else 2 }
@@ -350,7 +350,7 @@ fun AppearanceView(
         val activePresetItem = presetItems.find { it.id.equals(presetColor, ignoreCase = true) } ?: presetItems[5]
         NavSettingsItem(
             title = L("appearance.preset_colors.title"),
-            description = if (isDynamicColor) "已开启动态提取 (点击可切换为固定预设强调色)" else L(activePresetItem.nameKey),
+            description = if (isDynamicColor) L("appearance_preset_colors_dynamic_active") else L(activePresetItem.nameKey),
             isFirst = false,
             isLast = false,
             onClick = { showPresetColorDialog = true }
@@ -436,13 +436,13 @@ fun AppearanceView(
             onCheckedChange = { settingsViewModel.setZoomControl(it) }
         )
         val mapTextColorDesc = when (mapTextColor.lowercase()) {
-            "auto" -> "自动 (跟随底图反色 - 推荐)"
-            "white" -> "高光纯白 (#FFFFFF)"
-            "black" -> "深邃纯黑 (#000000)"
-            "amber" -> "醒目琥珀黄 (#FFD600)"
-            "cyan" -> "科技青蓝 (#00E5FF)"
-            "green" -> "荧光翠绿 (#00FF66)"
-            else -> "自定义 (${mapTextColor.uppercase()})"
+            "auto" -> L("appearance_map_text_color_auto")
+            "white" -> L("appearance_map_text_color_white")
+            "black" -> L("appearance_map_text_color_black")
+            "amber" -> L("appearance_map_text_color_amber")
+            "cyan" -> L("appearance_map_text_color_cyan")
+            "green" -> L("appearance_map_text_color_green")
+            else -> L("appearance_map_text_color_custom_val", mapTextColor.uppercase())
         }
         NavSettingsItem(
             title = L("appearance.map_text_color.title"),
@@ -462,11 +462,11 @@ fun AppearanceView(
         NavSettingsItem(
             title = L("appearance.player_icon_scale.title"),
             description = when (playerIconScale) {
-                1.0f -> "100% (标准)"
+                1.0f -> L("appearance_player_icon_scale_100")
                 1.25f -> "125%"
-                1.5f -> "150% (默认)"
+                1.5f -> L("appearance_player_icon_scale_150")
                 1.75f -> "175%"
-                2.0f -> "200% (超大)"
+                2.0f -> L("appearance_player_icon_scale_200")
                 else -> "${(playerIconScale * 100).toInt()}%"
             },
             onClick = { showPlayerIconScaleDialog = true }
@@ -474,21 +474,21 @@ fun AppearanceView(
         NavSettingsItem(
             title = L("appearance.font_family.title"),
             description = when (mapFontFamily) {
-                "monospace" -> "等宽字体 (Monospace)"
-                "serif" -> "衬线字体 (Serif)"
-                else -> "系统默认 (Sans-Serif)"
+                "monospace" -> L("appearance_font_family_monospace")
+                "serif" -> L("appearance_font_family_serif")
+                else -> L("appearance_font_family_system")
             },
             onClick = { showFontFamilyDialog = true }
         )
         SwitchSettingsItem(
             title = L("appearance.font_bold.title"),
-            description = "使用加粗字重增强文字醒目度",
+            description = L("appearance_font_bold_description"),
             checked = mapFontBold,
             onCheckedChange = { settingsViewModel.setMapFontBold(it) }
         )
         SwitchSettingsItem(
             title = L("appearance.text_halo.title"),
-            description = "在复杂底图下开启可提供辅助微弱描边",
+            description = L("appearance_text_halo_description"),
             checked = mapTextHalo,
             onCheckedChange = { settingsViewModel.setMapTextHalo(it) },
             isLast = true

@@ -1,5 +1,6 @@
 package io.github.movetakeitblue.iitcexpressive.plugin.ui.multiprojects
 
+import io.github.movetakeitblue.iitcexpressive.i18n.L
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -138,7 +139,7 @@ fun MultiProjectsSheet(
             ) {
                 Icon(imageVector = Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("New Project Snapshot", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                Text(L("plugin_multiprojects_snapshot_title"), fontSize = 13.sp, fontWeight = FontWeight.Bold)
             }
 
             HorizontalDivider(
@@ -188,7 +189,7 @@ fun MultiProjectsSheet(
                                 }
                                 host.showToast("Project '${project.name}' deleted")
                             } else {
-                                host.showToast("Cannot delete the only remaining project")
+                                host.showToast(L("plugin_multiprojects_toast_cannot_delete"))
                             }
                         }
                     )
@@ -201,14 +202,14 @@ fun MultiProjectsSheet(
     if (showCreateDialog) {
         AlertDialog(
             onDismissRequest = { showCreateDialog = false },
-            title = { Text("New Operation Project", fontWeight = FontWeight.Bold) },
+            title = { Text(L("plugin_multiprojects_new_op_title"), fontWeight = FontWeight.Bold) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedTextField(
                         value = newProjectName,
                         onValueChange = { newProjectName = it },
-                        label = { Text("Project Name") },
-                        placeholder = { Text("e.g. Field Day Alpha") },
+                        label = { Text(L("plugin_multiprojects_name_label")) },
+                        placeholder = { Text(L("plugin_multiprojects_name_hint")) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -216,8 +217,8 @@ fun MultiProjectsSheet(
                     OutlinedTextField(
                         value = newProjectDesc,
                         onValueChange = { newProjectDesc = it },
-                        label = { Text("Description (Optional)") },
-                        placeholder = { Text("e.g. 5-layer BAF over downtown") },
+                        label = { Text(L("plugin_multiprojects_desc_label")) },
+                        placeholder = { Text(L("plugin_multiprojects_desc_hint")) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -249,12 +250,12 @@ fun MultiProjectsSheet(
                         host.showToast("Created and switched to '$name'")
                     }
                 ) {
-                    Text("Create & Switch")
+                    Text(L("plugin_multiprojects_create_switch"))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showCreateDialog = false }) {
-                    Text("Cancel")
+                    Text(L("dialog.cancel"))
                 }
             }
         )
@@ -359,7 +360,7 @@ private fun ProjectCard(
                     ) {
                         Icon(imageVector = Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("Switch", fontSize = 12.sp)
+                        Text(L("plugin_multiprojects_switch"), fontSize = 12.sp)
                     }
                 } else {
                     FilledTonalButton(
@@ -370,7 +371,7 @@ private fun ProjectCard(
                     ) {
                         Icon(imageVector = Icons.Default.Save, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("Save Current", fontSize = 12.sp)
+                        Text(L("plugin_multiprojects_save_current"), fontSize = 12.sp)
                     }
                 }
 
@@ -381,7 +382,7 @@ private fun ProjectCard(
                 ) {
                     Icon(imageVector = Icons.Default.Sync, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("Update", fontSize = 12.sp)
+                    Text(L("plugin_multiprojects_update"), fontSize = 12.sp)
                 }
 
                 IconButton(

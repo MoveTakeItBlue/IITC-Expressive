@@ -1,5 +1,6 @@
 package io.github.movetakeitblue.iitcexpressive.plugin.ui.bookmarks
 
+import io.github.movetakeitblue.iitcexpressive.i18n.L
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -62,12 +63,12 @@ fun BookmarksSheet(
     if (showAddFolderDialog) {
         AlertDialog(
             onDismissRequest = { showAddFolderDialog = false },
-            title = { Text("New Bookmark Folder", fontWeight = FontWeight.Bold) },
+            title = { Text(L("plugin_bookmarks_new_folder"), fontWeight = FontWeight.Bold) },
             text = {
                 OutlinedTextField(
                     value = newFolderName,
                     onValueChange = { newFolderName = it },
-                    label = { Text("Folder Name") },
+                    label = { Text(L("plugin_bookmarks_folder_name")) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -85,12 +86,12 @@ fun BookmarksSheet(
                         showAddFolderDialog = false
                     }
                 ) {
-                    Text("Create")
+                    Text(L("dialog_create"))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showAddFolderDialog = false }) {
-                    Text("Cancel")
+                    Text(L("dialog.cancel"))
                 }
             }
         )
@@ -184,7 +185,7 @@ fun BookmarksSheet(
                                 title = selectedPortal.title
                             )
                             val added = host.togglePortalBookmark(portal)
-                            host.showToast(if (added) "Bookmarked ${selectedPortal.title}" else "Removed bookmark")
+                            host.showToast(if (added) L("plugin_bookmarks_toast_added", selectedPortal.title) else L("plugin_bookmarks_toast_removed"))
                         },
                         modifier = Modifier
                             .size(38.dp)
@@ -221,7 +222,7 @@ fun BookmarksSheet(
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
-                placeholder = { Text("Filter bookmarks...", fontSize = 14.sp) },
+                placeholder = { Text(L("plugin_bookmarks_filter_hint"), fontSize = 14.sp) },
                 leadingIcon = {
                     Icon(
                         imageVector = Icons.Default.Search,
@@ -266,7 +267,7 @@ fun BookmarksSheet(
                 FilterChip(
                     selected = selectedFolderId == "all",
                     onClick = { selectedFolderId = "all" },
-                    label = { Text("All (${allBookmarks.size})") },
+                    label = { Text(L("plugin_bookmarks_all_filter", allBookmarks.size)) },
                     shape = RoundedCornerShape(12.dp)
                 )
 

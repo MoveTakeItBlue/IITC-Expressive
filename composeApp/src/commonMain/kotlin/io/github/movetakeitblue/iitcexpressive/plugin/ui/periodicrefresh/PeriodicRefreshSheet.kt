@@ -1,5 +1,6 @@
 package io.github.movetakeitblue.iitcexpressive.plugin.ui.periodicrefresh
 
+import io.github.movetakeitblue.iitcexpressive.i18n.L
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -195,7 +196,7 @@ fun PeriodicRefreshSheet(
             Button(
                 onClick = {
                     host.triggerMapRefresh()
-                    host.showToast("Map data refreshed")
+                    host.showToast(L("plugin_periodicrefresh_toast_refreshed"))
                 },
                 shape = RoundedCornerShape(16.dp),
                 modifier = Modifier
@@ -204,7 +205,7 @@ fun PeriodicRefreshSheet(
             ) {
                 Icon(imageVector = Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(20.dp))
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Refresh Now", fontWeight = FontWeight.Bold)
+                Text(L("plugin_periodicrefresh_now"), fontWeight = FontWeight.Bold)
             }
 
             Spacer(modifier = Modifier.height(14.dp))

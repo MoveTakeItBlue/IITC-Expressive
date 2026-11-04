@@ -1,5 +1,6 @@
 package io.github.movetakeitblue.iitcexpressive.plugin.ui.portallist
 
+import io.github.movetakeitblue.iitcexpressive.i18n.L
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
@@ -225,7 +226,7 @@ fun PortalListSheet(
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
-                placeholder = { Text("Search portals by title...", fontSize = 14.sp) },
+                placeholder = { Text(L("plugin_portallist_search_hint"), fontSize = 14.sp) },
                 leadingIcon = {
                     Icon(
                         imageVector = Icons.Default.Search,
@@ -270,7 +271,7 @@ fun PortalListSheet(
                 FilterChip(
                     selected = selectedTeamFilter == -1,
                     onClick = { selectedTeamFilter = -1 },
-                    label = { Text("All Teams") },
+                    label = { Text(L("plugin_portallist_all_teams")) },
                     shape = RoundedCornerShape(12.dp)
                 )
                 FilterChip(
@@ -350,7 +351,7 @@ fun PortalListSheet(
                             isBookmarked = host.isPortalBookmarked(portal.guid),
                             onBookmarkToggle = {
                                 val added = host.togglePortalBookmark(portal)
-                                host.showToast(if (added) "Bookmarked ${portal.title}" else "Removed bookmark")
+                                host.showToast(if (added) L("plugin_bookmarks_toast_added", portal.title) else L("plugin_bookmarks_toast_removed"))
                             },
                             onClick = {
                                 host.flyTo(portal.lat, portal.lng, 17.0)

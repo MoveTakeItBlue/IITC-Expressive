@@ -1,5 +1,6 @@
 package io.github.movetakeitblue.iitcexpressive.plugin.ui.portalcounts
 
+import io.github.movetakeitblue.iitcexpressive.i18n.L
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -207,19 +208,19 @@ fun PortalCountsSheet(
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         MetricCard(
-                            title = "Resonators",
+                            title = L("plugin_portalcounts_resonators"),
                             count = "${resCounts.totalResonators + enlCounts.totalResonators + macCounts.totalResonators}",
                             icon = Icons.Default.Bolt,
                             modifier = Modifier.weight(1f)
                         )
                         MetricCard(
-                            title = "Links",
+                            title = L("plugin_portalcounts_links"),
                             count = "${links.size}",
                             icon = Icons.Default.Share,
                             modifier = Modifier.weight(1f)
                         )
                         MetricCard(
-                            title = "Fields",
+                            title = L("plugin_portalcounts_fields"),
                             count = "${fields.size}",
                             icon = Icons.Default.ChangeHistory,
                             modifier = Modifier.weight(1f)

@@ -1436,7 +1436,7 @@ class MainViewModel(
             }
             "regionScoreError" -> {
                 _isScoreboardLoading.value = false
-                PlatformUtils.showToast("Failed to load region scores")
+                PlatformUtils.showToast(L("region_score_load_failed"))
             }
             "setLayers" -> {
                 try {

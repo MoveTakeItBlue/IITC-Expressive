@@ -1,5 +1,6 @@
 package io.github.movetakeitblue.iitcexpressive.plugin.ui.drawtools
 
+import io.github.movetakeitblue.iitcexpressive.i18n.L
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -72,23 +73,23 @@ fun DrawToolsSheet(
     if (showClearConfirm) {
         AlertDialog(
             onDismissRequest = { showClearConfirm = false },
-            title = { Text("Clear All Drawn Items?", fontWeight = FontWeight.Bold) },
+            title = { Text(L("plugin_drawtools_clear_title"), fontWeight = FontWeight.Bold) },
             text = { Text("Are you sure you want to remove all ${shapes.size} drawn items from the map?") },
             confirmButton = {
                 Button(
                     onClick = {
                         host.saveDrawnShapes(emptyList())
                         showClearConfirm = false
-                        host.showToast("All drawn items cleared")
+                        host.showToast(L("plugin_drawtools_toast_cleared"))
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
                 ) {
-                    Text("Clear All")
+                    Text(L("plugin_drawtools_clear_all"))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showClearConfirm = false }) {
-                    Text("Cancel")
+                    Text(L("dialog.cancel"))
                 }
             }
         )
@@ -97,7 +98,7 @@ fun DrawToolsSheet(
     if (showImportExportDialog) {
         AlertDialog(
             onDismissRequest = { showImportExportDialog = false },
-            title = { Text("Draw Tools JSON Data", fontWeight = FontWeight.Bold) },
+            title = { Text(L("plugin_drawtools_json_title"), fontWeight = FontWeight.Bold) },
             text = {
                 Column(modifier = Modifier.fillMaxWidth()) {
                     Text(
@@ -122,12 +123,12 @@ fun DrawToolsSheet(
                             host.saveDrawnShapes(shapes + parsed)
                             host.showToast("Imported ${parsed.size} drawn shapes")
                         } else {
-                            host.showToast("Invalid draw tools JSON")
+                            host.showToast(L("plugin_drawtools_toast_invalid_json"))
                         }
                         showImportExportDialog = false
                     }
                 ) {
-                    Text("Import & Merge")
+                    Text(L("plugin_drawtools_import_merge"))
                 }
             },
             dismissButton = {
@@ -136,13 +137,13 @@ fun DrawToolsSheet(
                         onClick = {
                             val jsonStr = DrawnShape.toIitcJson(shapes)
                             PlatformUtils.copyToClipboard(jsonStr, "Copied Draw Tools JSON")
-                            host.showToast("Copied to clipboard")
+                            host.showToast(L("plugin_drawtools_toast_copied"))
                         }
                     ) {
-                        Text("Copy JSON")
+                        Text(L("plugin_drawtools_copy_json"))
                     }
                     TextButton(onClick = { showImportExportDialog = false }) {
-                        Text("Close")
+                        Text(L("dialog.close"))
                     }
                 }
             }
@@ -248,7 +249,7 @@ fun DrawToolsSheet(
                     ) {
                         Icon(
                             imageVector = Icons.Default.DeleteSweep,
-                            contentDescription = "Clear All",
+                            contentDescription = L("plugin_drawtools_clear_all"),
                             tint = MaterialTheme.colorScheme.error,
                             modifier = Modifier.size(20.dp)
                         )
@@ -315,7 +316,7 @@ fun DrawToolsSheet(
                 ) {
                     Icon(imageVector = Icons.Default.Timeline, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("Draw Line", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    Text(L("plugin_drawtools_draw_line"), fontWeight = FontWeight.Bold, fontSize = 13.sp)
                 }
 
                 FilledTonalButton(
@@ -328,7 +329,7 @@ fun DrawToolsSheet(
                 ) {
                     Icon(imageVector = Icons.Default.Hexagon, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("Polygon", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    Text(L("plugin_drawtools_polygon"), fontWeight = FontWeight.Bold, fontSize = 13.sp)
                 }
 
                 FilledTonalButton(
@@ -341,7 +342,7 @@ fun DrawToolsSheet(
                 ) {
                     Icon(imageVector = Icons.Default.Place, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("Marker", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    Text(L("plugin_drawtools_marker"), fontWeight = FontWeight.Bold, fontSize = 13.sp)
                 }
             }
 

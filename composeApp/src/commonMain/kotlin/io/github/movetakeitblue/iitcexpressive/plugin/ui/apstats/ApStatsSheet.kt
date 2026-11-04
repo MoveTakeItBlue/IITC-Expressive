@@ -1,5 +1,6 @@
 package io.github.movetakeitblue.iitcexpressive.plugin.ui.apstats
 
+import io.github.movetakeitblue.iitcexpressive.i18n.L
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -224,8 +225,8 @@ fun ApStatsSheet(
 
                 item {
                     ApActionCard(
-                        title = "Neutralize & Capture",
-                        subtitle = "Destroy enemy portals & claim unclaimed",
+                        title = L("plugin_apstats_neutralize_capture"),
+                        subtitle = L("plugin_apstats_neutralize_capture_desc"),
                         icon = Icons.Default.Flag,
                         resAp = resAp.capturePortalAp,
                         enlAp = enlAp.capturePortalAp
@@ -234,8 +235,8 @@ fun ApStatsSheet(
 
                 item {
                     ApActionCard(
-                        title = "Resonators (Deploy & Destroy)",
-                        subtitle = "75 AP destroy / 125 AP deploy per slot",
+                        title = L("plugin_apstats_resonators_title"),
+                        subtitle = L("plugin_apstats_resonators_desc"),
                         icon = Icons.Default.Bolt,
                         resAp = resAp.destroyResonatorsAp + resAp.deployResonatorsAp,
                         enlAp = enlAp.destroyResonatorsAp + enlAp.deployResonatorsAp
@@ -244,8 +245,8 @@ fun ApStatsSheet(
 
                 item {
                     ApActionCard(
-                        title = "Links & Fields Destruction",
-                        subtitle = "187 AP per link / 750 AP per field",
+                        title = L("plugin_apstats_links_fields_title"),
+                        subtitle = L("plugin_apstats_links_fields_desc"),
                         icon = Icons.Default.Share,
                         resAp = resAp.destroyLinksAp + resAp.destroyFieldsAp,
                         enlAp = enlAp.destroyLinksAp + enlAp.destroyFieldsAp

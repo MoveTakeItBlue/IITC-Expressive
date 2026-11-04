@@ -1,5 +1,6 @@
 package io.github.movetakeitblue.iitcexpressive.plugin.ui.scoreboard
 
+import io.github.movetakeitblue.iitcexpressive.i18n.L
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -195,7 +196,7 @@ fun ScoreboardSheet(
                     Tab(
                         selected = selectedTab == 2,
                         onClick = { selectedTab = 2 },
-                        text = { Text("Septicycle") }
+                        text = { Text(L("plugin_scoreboard_septicycle")) }
                     )
                 }
 
@@ -575,9 +576,9 @@ private fun SepticycleInfoView(data: RegionScoreData) {
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 InfoRow(label = "Region", value = data.regionName)
-                InfoRow(label = "CP Duration", value = "5 Hours (300 mins)")
-                InfoRow(label = "Cycle Duration", value = "175 Hours (7.29 Days)")
-                InfoRow(label = "Checkpoints Left", value = "${35 - completedCps}")
+                InfoRow(label = L("plugin_scoreboard_cp_duration"), value = "5 Hours (300 mins)")
+                InfoRow(label = L("plugin_scoreboard_cycle_duration"), value = "175 Hours (7.29 Days)")
+                InfoRow(label = L("plugin_scoreboard_cps_left"), value = "${35 - completedCps}")
             }
         }
     }

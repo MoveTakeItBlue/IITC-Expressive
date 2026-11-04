@@ -1,5 +1,6 @@
 package io.github.movetakeitblue.iitcexpressive.plugin.ui.playerlevel
 
+import io.github.movetakeitblue.iitcexpressive.i18n.L
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -140,7 +141,7 @@ fun PlayerLevelGuessSheet(
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
-                placeholder = { Text("Search agent codename...", fontSize = 13.sp) },
+                placeholder = { Text(L("plugin_playerlevel_search_hint"), fontSize = 13.sp) },
                 leadingIcon = {
                     Icon(imageVector = Icons.Default.Search, contentDescription = null, modifier = Modifier.size(18.dp))
                 },

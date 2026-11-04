@@ -1,5 +1,6 @@
 package io.github.movetakeitblue.iitcexpressive.plugin.ui.uniques
 
+import io.github.movetakeitblue.iitcexpressive.i18n.L
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -111,9 +112,9 @@ fun UniquesSheet(
                         .padding(16.dp),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    UniqueMetricItem(title = "Visible Portals", value = "${portals.size}", icon = Icons.Default.Place)
-                    UniqueMetricItem(title = "Selected Visited", value = if (selectedPortal.historyVisited) "Yes" else "No", icon = Icons.Default.CheckCircle)
-                    UniqueMetricItem(title = "Selected Captured", value = if (selectedPortal.historyCaptured) "Yes" else "No", icon = Icons.Default.Flag)
+                    UniqueMetricItem(title = L("plugin_uniques_visible_portals"), value = "${portals.size}", icon = Icons.Default.Place)
+                    UniqueMetricItem(title = L("plugin_uniques_selected_visited"), value = if (selectedPortal.historyVisited) "Yes" else "No", icon = Icons.Default.CheckCircle)
+                    UniqueMetricItem(title = L("plugin_uniques_selected_captured"), value = if (selectedPortal.historyCaptured) "Yes" else "No", icon = Icons.Default.Flag)
                 }
             }
 

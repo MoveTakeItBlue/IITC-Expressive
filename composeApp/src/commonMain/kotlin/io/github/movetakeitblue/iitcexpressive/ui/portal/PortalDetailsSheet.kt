@@ -1088,7 +1088,7 @@ private fun PortalExpandedDetails(
                 ) {
                     Icon(imageVector = Icons.Default.Directions, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text(text = "Navigate", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                    Text(text = L("portal.details.navigate"), fontSize = 13.sp, fontWeight = FontWeight.Bold)
                 }
             }
 
@@ -1103,7 +1103,7 @@ private fun PortalExpandedDetails(
             ) {
                 Icon(imageVector = Icons.Default.Share, contentDescription = null, modifier = Modifier.size(16.dp))
                 Spacer(modifier = Modifier.width(6.dp))
-                Text(text = "Share", fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                Text(text = L("portal.details.share"), fontSize = 13.sp, fontWeight = FontWeight.Medium)
             }
         }
     }
@@ -1185,7 +1185,7 @@ private fun PortalExpandedDetails(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text(text = "Charge", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+                            Text(text = L("portal.details.charge"), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
                             Text(
                                 text = "${res.energy} / $maxForLvl XM (${res.healthPct}%)",
                                 color = MaterialTheme.colorScheme.onSurface,
@@ -1206,7 +1206,7 @@ private fun PortalExpandedDetails(
                 TextButton(
                     onClick = { selectedResonatorForDetail = null }
                 ) {
-                    Text(text = "Close", color = MaterialTheme.colorScheme.primary)
+                    Text(text = L("dialog.close"), color = MaterialTheme.colorScheme.primary)
                 }
             }
         )
@@ -1448,7 +1448,7 @@ fun PortalFullscreenImageDialog(
                             tint = Color.Gray,
                             modifier = Modifier.size(48.dp)
                         )
-                        Text("Failed to load photo", color = Color.Gray, fontSize = 14.sp)
+                        Text(L("portal.details.photo_failed"), color = Color.Gray, fontSize = 14.sp)
                     }
                 }
             }
@@ -1547,7 +1547,7 @@ fun PortalFullscreenImageDialog(
                         modifier = Modifier.size(16.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("Browser", fontSize = 12.sp)
+                    Text(L("portal.details.browser"), fontSize = 12.sp)
                 }
             }
         }

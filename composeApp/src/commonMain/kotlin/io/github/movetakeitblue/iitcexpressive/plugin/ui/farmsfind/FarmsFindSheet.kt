@@ -1,5 +1,6 @@
 package io.github.movetakeitblue.iitcexpressive.plugin.ui.farmsfind
 
+import io.github.movetakeitblue.iitcexpressive.i18n.L
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -263,7 +264,7 @@ fun FarmsFindSheet(
                                     radiusMeters = farm.radiusMeters.coerceAtLeast(100.0)
                                 )
                                 host.saveDrawnShapes(drawnShapes + boundaryCircle)
-                                host.showToast("Farm boundary added to Draw Tools")
+                                host.showToast(L("plugin_farmsfind_toast_added"))
                             },
                             onSelectPortal = { portal ->
                                 host.flyTo(portal.lat, portal.lng, zoom = 17.5)
@@ -414,7 +415,7 @@ private fun FarmCard(
                 ) {
                     Icon(imageVector = Icons.Default.NearMe, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("Fly To", fontSize = 12.sp)
+                    Text(L("plugin_farmsfind_fly_to"), fontSize = 12.sp)
                 }
 
                 OutlinedButton(
@@ -425,7 +426,7 @@ private fun FarmCard(
                 ) {
                     Icon(imageVector = Icons.Default.Draw, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("Draw Boundary", fontSize = 12.sp)
+                    Text(L("plugin_farmsfind_draw_boundary"), fontSize = 12.sp)
                 }
 
                 IconButton(

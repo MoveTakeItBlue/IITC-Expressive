@@ -80,8 +80,8 @@ fun SettingsView(
         // Map & Location settings section
         SettingsSection(title = L("settings.section.map"))
         SwitchSettingsItem(
-            title = "原生硬件加速地图 (120fps)",
-            description = "使用 MapLibre 硬件加速渲染地图与所有实体，大幅提升交互与缩放流畅度",
+            title = L("settings.native_map.title"),
+            description = L("settings.native_map.description"),
             checked = nativeMapEnabled,
             onCheckedChange = { viewModel.setNativeMapEnabled(it) },
             isFirst = true

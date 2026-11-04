@@ -1,5 +1,6 @@
 package io.github.movetakeitblue.iitcexpressive.plugin.ui.regions
 
+import io.github.movetakeitblue.iitcexpressive.i18n.L
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -176,7 +177,7 @@ fun RegionsSheet(
                                 ) {
                                     Icon(imageVector = Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp))
                                     Spacer(modifier = Modifier.width(6.dp))
-                                    Text("Copy Code", fontSize = 12.sp)
+                                    Text(L("plugin_regions_copy_code"), fontSize = 12.sp)
                                 }
 
                                 Button(
@@ -200,7 +201,7 @@ fun RegionsSheet(
                                 ) {
                                     Icon(imageVector = Icons.Default.Draw, contentDescription = null, modifier = Modifier.size(16.dp))
                                     Spacer(modifier = Modifier.width(6.dp))
-                                    Text("Draw on Map", fontSize = 12.sp)
+                                    Text(L("plugin_regions_draw_map"), fontSize = 12.sp)
                                 }
                             }
                         }
@@ -228,7 +229,7 @@ fun RegionsSheet(
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Column {
-                                    Text("South-West", fontSize = 11.sp, color = MaterialTheme.colorScheme.outline)
+                                    Text(L("plugin_regions_south_west"), fontSize = 11.sp, color = MaterialTheme.colorScheme.outline)
                                     Text(
                                         text = "${((regionInfo.minLat * 1000).roundToInt() / 1000.0)}, ${((regionInfo.minLng * 1000).roundToInt() / 1000.0)}",
                                         fontSize = 12.sp,
@@ -237,7 +238,7 @@ fun RegionsSheet(
                                     )
                                 }
                                 Column(horizontalAlignment = Alignment.End) {
-                                    Text("North-East", fontSize = 11.sp, color = MaterialTheme.colorScheme.outline)
+                                    Text(L("plugin_regions_north_east"), fontSize = 11.sp, color = MaterialTheme.colorScheme.outline)
                                     Text(
                                         text = "${((regionInfo.maxLat * 1000).roundToInt() / 1000.0)}, ${((regionInfo.maxLng * 1000).roundToInt() / 1000.0)}",
                                         fontSize = 12.sp,
@@ -255,7 +256,7 @@ fun RegionsSheet(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Text("Center Coordinates", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(L("plugin_regions_center_coords"), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 Text(
                                     text = "${((regionInfo.centerLat * 1000).roundToInt() / 1000.0)}, ${((regionInfo.centerLng * 1000).roundToInt() / 1000.0)}",
                                     fontSize = 12.sp,
@@ -294,7 +295,7 @@ fun RegionsSheet(
                                         fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.primary
                                     )
-                                    Text("Portals in Cell", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text(L("plugin_regions_portals_in_cell"), fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                     Text(
@@ -303,7 +304,7 @@ fun RegionsSheet(
                                         fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.secondary
                                     )
-                                    Text("Checkpoint", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text(L("plugin_regions_checkpoint"), fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                     Text(
@@ -312,7 +313,7 @@ fun RegionsSheet(
                                         fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.tertiary
                                     )
-                                    Text("CP Timer", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text(L("plugin_regions_cp_timer"), fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                             }
                         }
@@ -331,7 +332,7 @@ fun RegionsSheet(
                     ) {
                         Icon(imageVector = Icons.Default.Leaderboard, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Query Region Scoreboard", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                        Text(L("plugin_regions_query_scores"), fontSize = 13.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }
