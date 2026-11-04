@@ -297,8 +297,26 @@ fun MainScreen(
         }
         }
 
-        // 普通模式下使用 M3E 实色表面覆盖避让状态栏与导航栏；全屏地图模式下完全去除阴影遮罩，直接显示地图
-        if (!isFullscreenMap) {
+        // 状态栏：全面屏模式下使用优雅的渐变护罩保护文字可读性；普通模式下使用 M3E 实色表面覆盖
+        if (currentScreen == "main" && isFullscreenMap) {
+            val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+            val scrimColor = if (isMapDark) Color.Black else Color.White
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(statusBarHeight + 20.dp)
+                    .align(Alignment.TopCenter)
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                scrimColor.copy(alpha = 0.60f),
+                                scrimColor.copy(alpha = 0.25f),
+                                Color.Transparent
+                            )
+                        )
+                    )
+            )
+        } else if (!isFullscreenMap) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()

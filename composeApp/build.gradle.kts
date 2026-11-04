@@ -53,7 +53,7 @@ kotlin {
             implementation(libs.androidx.activity.compose)
             implementation(libs.coroutines.android)
             implementation(libs.ktor.client.okhttp)
-            implementation("org.maplibre.gl:android-sdk:11.8.0")
+            implementation("org.maplibre.gl:android-sdk:13.0.2")
         }
         
         iosMain.dependencies {

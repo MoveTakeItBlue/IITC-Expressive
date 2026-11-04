@@ -8,7 +8,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -1072,6 +1076,15 @@ actual fun NativeMapView(
     val nativeBaseMap by viewModel.nativeBaseMap.collectAsState()
     val userLocation by viewModel.userLocation.collectAsState()
     val showLocation by viewModel.showLocation.collectAsState()
+    val isFullscreenMap by viewModel.isFullscreenMap.collectAsState()
+    val density = LocalDensity.current
+    val statusBarTopDp = if (isFullscreenMap) {
+        WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    } else {
+        0.dp
+    }
+    val compassTopMarginPx = with(density) { (statusBarTopDp + 16.dp).roundToPx() }
+    val compassRightMarginPx = with(density) { 16.dp.roundToPx() }
     var userScreenOffset by remember { mutableStateOf<Offset?>(null) }
 
     fun updateUserScreenOffset(map: MapLibreMap?) {
@@ -1321,6 +1334,7 @@ actual fun NativeMapView(
                 iconSize(playerIconScale / 1.5f),
                 iconAnchor(Property.ICON_ANCHOR_LEFT),
                 iconOffset(arrayOf(10f, 0f)),
+                iconRotationAlignment(Property.ICON_ROTATION_ALIGNMENT_VIEWPORT),
                 iconAllowOverlap(true),
                 iconIgnorePlacement(false),
                 iconOptional(false)
@@ -1347,6 +1361,8 @@ actual fun NativeMapView(
                 iconTextFitPadding(arrayOf(3.5f * density, 7.5f * density, 3.5f * density, 7.5f * density)),
                 iconAnchor(Property.ICON_ANCHOR_LEFT),
                 iconOffset(arrayOf(10f, 0f)),
+                iconRotationAlignment(Property.ICON_ROTATION_ALIGNMENT_VIEWPORT),
+                textRotationAlignment(Property.TEXT_ROTATION_ALIGNMENT_VIEWPORT),
                 textField(get("title")),
                 textSize(portalNameFontSize),
                 textColor("#ffffff"),
@@ -1357,7 +1373,7 @@ actual fun NativeMapView(
                 textAllowOverlap(false),
                 iconIgnorePlacement(false),
                 textIgnorePlacement(false),
-                iconOptional(false),
+                iconOptional(true),
                 textOptional(false)
             )
             minZoom = 15.0f
@@ -1417,6 +1433,7 @@ actual fun NativeMapView(
                 iconImage(get("bubbleIcon")),
                 iconSize(playerIconScale / 1.5f),
                 iconAnchor(Property.ICON_ANCHOR_CENTER),
+                iconRotationAlignment(Property.ICON_ROTATION_ALIGNMENT_VIEWPORT),
                 iconAllowOverlap(true),
                 iconIgnorePlacement(true),
                 iconOptional(false)
@@ -1475,6 +1492,11 @@ actual fun NativeMapView(
     // Recompute user location screen projection when position, visibility, or basemap changes
     LaunchedEffect(userLocation, showLocation, nativeBaseMap, mapLibreMap) {
         updateUserScreenOffset(mapLibreMap)
+    }
+
+    // Update compass margins dynamically when fullscreen or status bar insets change
+    LaunchedEffect(mapLibreMap, compassTopMarginPx, compassRightMarginPx) {
+        mapLibreMap?.uiSettings?.setCompassMargins(0, compassTopMarginPx, compassRightMarginPx, 0)
     }
 
     // Listen for zoom in/out delta events
@@ -2167,6 +2189,7 @@ actual fun NativeMapView(
                         isTiltGesturesEnabled = true
                         isZoomGesturesEnabled = true
                         isScrollGesturesEnabled = true
+                        setCompassMargins(0, compassTopMarginPx, compassRightMarginPx, 0)
                     }
 
                     // Limit zoom range to eliminate "map data not yet available" and ensure optimal display
