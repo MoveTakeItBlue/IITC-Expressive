@@ -952,6 +952,12 @@ class MainViewModel(
             val sortedMsgs = msgs.sortedBy { it.time }
             val points = mutableListOf<PlayerActivityPoint>()
             for (m in sortedMsgs) {
+                // Defensive check: ignore link/field destruction messages where player location is uncertain
+                if (m.text.contains("destroyed the Link", ignoreCase = true) ||
+                    m.text.contains("destroyed a Control Field", ignoreCase = true) ||
+                    m.text.contains("Your Link", ignoreCase = true)) {
+                    continue
+                }
                 val p = m.portal ?: continue
                 if (p.lat == 0.0 && p.lng == 0.0) continue
                 val last = points.lastOrNull()
@@ -964,6 +970,15 @@ class MainViewModel(
                             time = m.time,
                             formattedTime = m.formattedTime
                         )
+                    )
+                } else {
+                    // Update latest activity time at this portal
+                    points[points.lastIndex] = PlayerActivityPoint(
+                        lat = p.lat,
+                        lng = p.lng,
+                        portalName = p.name,
+                        time = m.time,
+                        formattedTime = m.formattedTime
                     )
                 }
             }

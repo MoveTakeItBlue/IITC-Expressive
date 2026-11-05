@@ -1001,21 +1001,39 @@ body.light-map .leaflet-popup-pane .portal-name {
                         var msgObj = item[4] || {};
                         var text = '';
                         var portal = null;
+                        var isDestroyLinkOrField = false;
                         if (msgObj.markup) {
                             msgObj.markup.forEach(function(m) {
                                 var type = m[0];
                                 var data = m[1] || {};
-                                if (type === 'TEXT') text += data.plain || '';
-                                else if (type === 'PLAYER') text += (data.plain || '');
-                                else if (type === 'PORTAL') {
+                                if (type === 'TEXT') {
+                                    text += data.plain || '';
+                                    if (data.plain && (
+                                        data.plain.indexOf('destroyed the Link') !== -1 ||
+                                        data.plain.indexOf('destroyed a Control Field') !== -1 ||
+                                        data.plain.indexOf('Your Link') !== -1
+                                    )) {
+                                        isDestroyLinkOrField = true;
+                                    }
+                                } else if (type === 'PLAYER') {
+                                    text += (data.plain || '');
+                                } else if (type === 'PORTAL') {
                                     text += (data.name || data.plain || '');
-                                    portal = {
-                                        name: data.name || data.plain || '',
-                                        lat: (data.latE6 || 0) / 1e6,
-                                        lng: (data.lngE6 || 0) / 1e6
-                                    };
+                                    // In Ingress, the agent is physically at the first portal ('linked from X to Y').
+                                    // The second portal ('to Y') is the remote destination, not where the agent is.
+                                    // Keep only the first portal where the agent actually operated!
+                                    if (!portal) {
+                                        portal = {
+                                            name: data.name || data.plain || '',
+                                            lat: (data.latE6 || 0) / 1e6,
+                                            lng: (data.lngE6 || 0) / 1e6
+                                        };
+                                    }
                                 }
                             });
+                            if (isDestroyLinkOrField) {
+                                portal = null;
+                            }
                         } else {
                             text = item[2] ? item[2].replace(/<[^>]*>/g, '') : '';
                         }
